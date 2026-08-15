@@ -1,0 +1,22 @@
+{
+  "name": "namiki-18th-github-io",
+  "version": "1.0.0",
+  "description": "Google-account-style class planner dashboard for Namiki-18th.github.io",
+  "main": "node.js",
+  "scripts": {
+    "start": "node node.js",
+    "dev": "nodemon node.js",
+    "test": "node --test"
+  },
+  "dependencies": {
+    "express": "^4.18.2",
+    "passport": "^0.7.0",
+    "passport-google-oauth20": "^2.0.0",
+    "express-session": "^1.17.3",
+    "connect-mongo": "^5.1.0",
+    "dotenv": "^16.3.1"
+  },
+  "devDependencies": {
+    "nodemon": "^3.0.1"
+  }
+}
