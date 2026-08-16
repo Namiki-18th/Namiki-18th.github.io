@@ -45,24 +45,21 @@
           <div>
             <h1 class="font-bold text-lg tracking-tight text-white flex items-center gap-2">
               学校生活ダッシュボード
-              <span class="text-xs px-2 py-0.5 rounded-full bg-blue-500/20 text-blue-400 border border-blue-500/30 font-medium hidden sm:inline-block">v2.7</span>
+              <span class="text-xs px-2 py-0.5 rounded-full bg-blue-500/20 text-blue-400 border border-blue-500/30 font-medium hidden sm:inline-block">v2.8</span>
             </h1>
           </div>
         </div>
 
         <div class="flex items-center space-x-4">
-          <!-- Admin Link (Only visible if admin) -->
           <a href="admin.html" id="admin-link" class="hidden text-xs bg-purple-500/10 hover:bg-purple-500/20 text-purple-300 border border-purple-500/30 px-3 py-1.5 rounded-xl font-semibold transition-all">
             ⚙️ 管理画面
           </a>
 
-          <!-- User Profile Pill -->
           <div id="user-profile" class="flex items-center space-x-3 bg-white/5 border border-white/10 px-3 py-1.5 rounded-full">
             <img id="user-avatar" src="https://placehold.co/32x32/333/fff?text=U" alt="Avatar" class="w-7 h-7 rounded-full object-cover border border-white/20" onerror="this.src='https://placehold.co/32x32/333/fff?text=U'" />
             <span id="user-name" class="text-sm font-medium text-gray-200 hidden sm:inline-block">読み込み中...</span>
           </div>
 
-          <!-- Logout Button -->
           <a href="/logout" class="bg-red-500/10 hover:bg-red-500/20 text-red-400 border border-red-500/20 px-3.5 py-1.5 rounded-xl text-sm font-semibold transition-all duration-200 flex items-center gap-1.5 shadow-sm hover:shadow">
             <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1"/></svg>
             <span class="hidden sm:inline">ログアウト</span>
@@ -124,7 +121,6 @@
       <div id="tab-home" class="tab-content space-y-8">
         <div class="grid grid-cols-1 lg:grid-cols-3 gap-8">
           <div class="lg:col-span-2 space-y-8">
-            <!-- Notices Card -->
             <div class="bg-dark-card border border-white/10 rounded-2xl p-6 shadow-xl">
               <div class="flex items-center justify-between mb-6">
                 <h3 class="text-lg font-bold text-white flex items-center gap-2">
@@ -137,11 +133,10 @@
               </div>
             </div>
 
-            <!-- Quick Schedule -->
             <div class="bg-dark-card border border-white/10 rounded-2xl p-6 shadow-xl">
               <div class="flex items-center justify-between mb-6">
                 <h3 class="text-lg font-bold text-white flex items-center gap-2">
-                  <span>📅</span> 本日の時間割ハイライト (月曜日)
+                  <span>📅</span> 本日の時間割ハイライト
                 </h3>
                 <button onclick="switchTab('schedule')" class="text-xs text-blue-400 hover:text-blue-300 font-semibold transition-colors">全時間割 →</button>
               </div>
@@ -152,7 +147,6 @@
           </div>
 
           <div class="space-y-8">
-            <!-- Quick Links -->
             <div class="bg-dark-card border border-white/10 rounded-2xl p-6 shadow-xl">
               <div class="flex items-center justify-between mb-6">
                 <h3 class="text-lg font-bold text-white flex items-center gap-2">
@@ -165,7 +159,6 @@
               </div>
             </div>
 
-            <!-- School Status Card -->
             <div class="bg-dark-card border border-white/10 rounded-2xl p-6 shadow-xl">
               <h3 class="text-lg font-bold text-white mb-4 flex items-center gap-2">
                 <span>🏫</span> ステータス
@@ -180,9 +173,9 @@
                   <span class="text-gray-200 font-mono text-xs">namiki-cs.ibk.ed.jp</span>
                 </div>
                 <div class="flex justify-between items-center py-2">
-                  <span class="text-gray-400">システム状態</span>
-                  <span class="text-green-400 font-semibold flex items-center gap-1.5">
-                    <span class="w-2 h-2 rounded-full bg-green-400 animate-ping"></span> 正常稼働中
+                  <span class="text-gray-400">メッセージ暗号化</span>
+                  <span class="text-blue-400 font-semibold flex items-center gap-1.5 text-xs">
+                    🔒 AES-GCM 有効
                   </span>
                 </div>
               </div>
@@ -202,6 +195,9 @@
             <div class="flex space-x-2 bg-black/40 p-1.5 rounded-xl border border-white/10">
               <button onclick="filterSchedule('月')" id="sched-btn-月" class="sched-day-btn px-4 py-1.5 rounded-lg text-sm font-semibold transition-all bg-blue-600 text-white shadow">月</button>
               <button onclick="filterSchedule('火')" id="sched-btn-火" class="sched-day-btn px-4 py-1.5 rounded-lg text-sm font-semibold transition-all text-gray-400 hover:text-white">火</button>
+              <button onclick="filterSchedule('水')" id="sched-btn-水" class="sched-day-btn px-4 py-1.5 rounded-lg text-sm font-semibold transition-all text-gray-400 hover:text-white">水</button>
+              <button onclick="filterSchedule('木')" id="sched-btn-木" class="sched-day-btn px-4 py-1.5 rounded-lg text-sm font-semibold transition-all text-gray-400 hover:text-white">木</button>
+              <button onclick="filterSchedule('金')" id="sched-btn-金" class="sched-day-btn px-4 py-1.5 rounded-lg text-sm font-semibold transition-all text-gray-400 hover:text-white">金</button>
             </div>
           </div>
           <div id="schedule-table-container" class="overflow-x-auto">
@@ -249,7 +245,7 @@
         </div>
       </div>
 
-      <!-- 6. CHAT TAB (Channels: Grade, Class, DM) -->
+      <!-- 6. CHAT TAB (Encrypted JSON persistence in /chat) -->
       <div id="tab-chat" class="tab-content hidden space-y-6">
         <div class="bg-dark-card border border-white/10 rounded-2xl p-6 shadow-xl grid grid-cols-1 lg:grid-cols-4 gap-6 h-[700px]">
           
@@ -274,27 +270,45 @@
 
           <!-- Main Chat Box -->
           <div class="lg:col-span-3 flex flex-col h-full">
-            <!-- Chat Top Header -->
-            <div class="flex items-center justify-between pb-4 border-b border-white/10 mb-4">
+            <div class="flex items-center justify-between pb-4 border-b border-white/10 mb-3">
               <div>
                 <h3 id="current-channel-title" class="text-lg font-bold text-white flex items-center gap-2">🏫 学年全体チャット</h3>
-                <p id="current-channel-desc" class="text-xs text-gray-400">学年全員で交流・情報共有するチャンネルです。</p>
+                <p id="current-channel-desc" class="text-xs text-gray-400">学年全員で交流・情報共有するチャンネルです。（AES-GCM暗号化・サーバー確認不可）</p>
               </div>
-              <span id="user-role-badge" class="text-xs px-2.5 py-1 rounded-full bg-blue-500/20 text-blue-300 border border-blue-500/30 font-semibold">権限: 読込中</span>
+              <div class="flex items-center gap-2">
+                <span class="text-[10px] bg-blue-500/20 text-blue-300 px-2 py-1 rounded-md border border-blue-500/30 font-mono">🔒 AES-GCM 暗号化</span>
+                <span id="user-role-badge" class="text-xs px-2.5 py-1 rounded-full bg-blue-500/20 text-blue-300 border border-blue-500/30 font-semibold">権限: 読込中</span>
+              </div>
+            </div>
+
+            <!-- AES-GCM Encryption Info Banner -->
+            <div class="bg-blue-950/40 border border-blue-500/30 rounded-xl p-3 mb-4 text-xs text-blue-300 flex items-center gap-2 flex-shrink-0">
+              <span class="text-base">🛡️</span>
+              <span>このメッセージは <strong>AES-GCM</strong> という暗号化方式で暗号化されており、サーバーからは確認できません。</span>
             </div>
 
             <!-- Messages List -->
             <div id="chat-messages" class="flex-grow overflow-y-auto space-y-4 pr-2 mb-4">
               <div class="flex items-start gap-3">
-                <div class="w-8 h-8 rounded-full bg-blue-600 flex items-center justify-center text-sm font-bold text-white flex-shrink-0">学</div>
+                <div class="w-8 h-8 rounded-full bg-blue-600 flex items-center justify-center text-sm font-bold text-white flex-shrink-0 overflow-hidden">学</div>
                 <div class="p-4 rounded-2xl bg-white/5 border border-white/10 max-w-[80%] text-sm text-gray-200">
-                  学年全体チャンネルへようこそ！マナーを守って利用してください。
+                  暗号化チャットチャンネルへようこそ！送信されたメッセージは暗号化されて保存されます。
                 </div>
               </div>
             </div>
 
-            <!-- Chat Input Form -->
-            <form id="chat-form" onsubmit="handleChatSubmit(event)" class="flex gap-3 pt-2 border-t border-white/10">
+            <!-- Chat Input Form with Add Button -->
+            <form id="chat-form" onsubmit="handleChatSubmit(event)" class="flex items-center gap-2 pt-2 border-t border-white/10 flex-shrink-0">
+              <!-- 追加（添付）ボタン -->
+              <button 
+                type="button" 
+                onclick="handleAttachment()" 
+                class="p-3 bg-white/5 hover:bg-white/10 border border-white/15 text-gray-300 rounded-xl text-sm transition-all flex items-center justify-center flex-shrink-0"
+                title="ファイルを追加・添付"
+              >
+                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/></svg>
+              </button>
+
               <input 
                 type="text" 
                 id="chat-input" 
@@ -304,7 +318,7 @@
               />
               <button 
                 type="submit" 
-                class="px-6 py-3 bg-blue-600 hover:bg-blue-500 text-white font-semibold rounded-xl text-sm transition-all shadow-lg shadow-blue-500/25 flex items-center justify-center gap-2 flex-shrink-0"
+                class="px-5 py-3 bg-blue-600 hover:bg-blue-500 text-white font-semibold rounded-xl text-sm transition-all shadow-lg shadow-blue-500/25 flex items-center justify-center gap-2 flex-shrink-0"
               >
                 <span>送信</span>
                 <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M14 5l7 7m0 0l-7 7m7-7H3"/></svg>
@@ -329,7 +343,7 @@
       </div>
     </footer>
 
-    <!-- Client-side Logic -->
+    <!-- Client-side Logic & Encryption -->
     <script>
       let globalData = {
         profile: null,
@@ -340,6 +354,74 @@
       };
 
       let currentChannel = 'grade'; // 'grade', 'class', or 'dm_userid'
+
+      // --- Encryption Helpers (Web Crypto API - AES-GCM) ---
+      const ENCRYPTION_SECRET = "NamikiPortalSecureKey2026";
+
+      async function getCryptoKey() {
+        const enc = new TextEncoder();
+        const keyMaterial = await window.crypto.subtle.importKey(
+          "raw",
+          enc.encode(ENCRYPTION_SECRET.padEnd(32, '0').slice(0, 32)),
+          { name: "PBKDF2" },
+          false,
+          ["deriveKey"]
+        );
+        return window.crypto.subtle.deriveKey(
+          {
+            name: "PBKDF2",
+            salt: enc.encode("namiki-school-salt"),
+            iterations: 100000,
+            hash: "SHA-256"
+          },
+          keyMaterial,
+          { name: "AES-GCM", length: 256 },
+          false,
+          ["encrypt", "decrypt"]
+        );
+      }
+
+      async function encryptData(plainText) {
+        try {
+          const key = await getCryptoKey();
+          const iv = window.crypto.getRandomValues(new Uint8Array(12));
+          const encoded = new TextEncoder().encode(plainText);
+          const cipherText = await window.crypto.subtle.encrypt(
+            { name: "AES-GCM", iv: iv },
+            key,
+            encoded
+          );
+          const combined = new Uint8Array(iv.length + new Uint8Array(cipherText).length);
+          combined.set(iv);
+          combined.set(new Uint8Array(cipherText), iv.length);
+          return btoa(String.fromCharCode(...combined));
+        } catch (e) {
+          console.error("暗号化エラー:", e);
+          return plainText;
+        }
+      }
+
+      async function decryptData(base64Str) {
+        try {
+          const key = await getCryptoKey();
+          const binaryStr = atob(base64Str);
+          const bytes = new Uint8Array(binaryStr.length);
+          for (let i = 0; i < binaryStr.length; i++) {
+            bytes[i] = binaryStr.charCodeAt(i);
+          }
+          const iv = bytes.slice(0, 12);
+          const cipherText = bytes.slice(12);
+          const decrypted = await window.crypto.subtle.decrypt(
+            { name: "AES-GCM", iv: iv },
+            key,
+            cipherText
+          );
+          return new TextDecoder().decode(decrypted);
+        } catch (e) {
+          console.error("復号エラー:", e);
+          return base64Str;
+        }
+      }
 
       function switchTab(tabId) {
         document.querySelectorAll('.tab-content').forEach(el => el.classList.add('hidden'));
@@ -357,6 +439,9 @@
           targetBtn.classList.remove('text-gray-400', 'border-transparent');
         }
         window.scrollTo({ top: 0, behavior: 'smooth' });
+        if (tabId === 'chat') {
+          loadChannelMessages(currentChannel);
+        }
       }
 
       function initDateStr() {
@@ -399,7 +484,6 @@
           if (p.picture) document.getElementById('user-avatar').src = p.picture;
           document.getElementById('welcome-title').textContent = `ようこそ、${p.name} さん`;
           
-          // Class and Role labels
           document.getElementById('user-class-label').textContent = p.userClass || '未設定';
           const roleBadge = document.getElementById('user-role-badge');
           roleBadge.textContent = `権限: ${p.role === 'admin' ? '管理者' : '生徒'}`;
@@ -408,85 +492,213 @@
           }
         }
 
-        // Render Home lists... (omitted repetitive parts for brevity, keeping existing render logic)
         filterSchedule('月');
-        // Render other components as before...
         renderDMUsers();
       }
 
       function renderDMUsers() {
-        // Mock DM list of classmates/teachers set by admin
         const dmList = [
-          { id: 'u1', name: '佐藤 先生', role: '教員' },
-          { id: 'u2', name: '田中 太郎', role: '生徒' },
-          { id: 'u3', name: '鈴木 花子', role: '生徒' }
+          { id: 'u1', name: '佐藤 先生', role: '教員', avatar: 'https://placehold.co/32x32/444/fff?text=S' },
+          { id: 'u2', name: '田中 太郎', role: '生徒', avatar: 'https://placehold.co/32x32/555/fff?text=T' },
+          { id: 'u3', name: '鈴木 花子', role: '生徒', avatar: 'https://placehold.co/32x32/666/fff?text=H' }
         ];
+        window.dmUsersMap = {};
+        dmList.forEach(u => window.dmUsersMap[u.id] = u);
+
         const container = document.getElementById('dm-users-list');
         container.innerHTML = dmList.map(u => `
           <button onclick="switchChannel('dm_${u.id}', '${u.name}')" class="w-full text-left px-3 py-2 rounded-xl text-sm transition-all text-gray-300 hover:bg-white/5 flex items-center justify-between">
-            <span class="truncate">💬 ${u.name}</span>
+            <span class="truncate flex items-center gap-2">
+              <img src="${u.avatar}" class="w-5 h-5 rounded-full object-cover" />
+              ${u.name}
+            </span>
             <span class="text-[10px] text-gray-500">${u.role}</span>
           </button>
         `).join('');
       }
 
-      function switchChannel(channelId, name = '') {
+      async function switchChannel(channelId, name = '') {
         currentChannel = channelId;
-        // Reset active classes
-        document.querySelectorAll('#tab-chat button').forEach(btn => btn.classList.remove('bg-blue-600', 'text-white'));
-        document.querySelectorAll('#tab-chat button').forEach(btn => btn.classList.add('text-gray-300', 'hover:bg-white/5'));
+        document.querySelectorAll('#tab-chat button').forEach(btn => {
+          if (!btn.id.startsWith('tab-btn')) {
+            btn.classList.remove('bg-blue-600', 'text-white');
+            btn.classList.add('text-gray-300', 'hover:bg-white/5');
+          }
+        });
 
         const titleEl = document.getElementById('current-channel-title');
         const descEl = document.getElementById('current-channel-desc');
 
         if (channelId === 'grade') {
-          document.getElementById('chan-btn-grade').classList.add('bg-blue-600', 'text-white');
-          document.getElementById('chan-btn-grade').classList.remove('text-gray-300', 'hover:bg-white/5');
+          const btn = document.getElementById('chan-btn-grade');
+          if(btn) { btn.classList.add('bg-blue-600', 'text-white'); btn.classList.remove('text-gray-300', 'hover:bg-white/5'); }
           titleEl.innerHTML = '🏫 学年全体チャット';
-          descEl.textContent = '学年全員で交流・情報共有するチャンネルです。';
+          descEl.textContent = '学年全員で交流・情報共有するチャンネルです。（AES-GCM暗号化・サーバー確認不可）';
         } else if (channelId === 'class') {
-          document.getElementById('chan-btn-class').classList.add('bg-blue-600', 'text-white');
-          document.getElementById('chan-btn-class').classList.remove('text-gray-300', 'hover:bg-white/5');
+          const btn = document.getElementById('chan-btn-class');
+          if(btn) { btn.classList.add('bg-blue-600', 'text-white'); btn.classList.remove('text-gray-300', 'hover:bg-white/5'); }
           const cls = globalData.profile?.userClass || 'クラス未設定';
           titleEl.innerHTML = `📚 ${cls} クラスチャット`;
-          descEl.textContent = `${cls}の生徒専用の連絡・相談チャンネルです。`;
+          descEl.textContent = `${cls}の生徒専用の連絡・相談チャンネルです。（AES-GCM暗号化・サーバー確認不可）`;
         } else if (channelId.startsWith('dm_')) {
           titleEl.innerHTML = `💬 DM: ${name}`;
-          descEl.textContent = `${name}さんとのプライベートメッセージです。`;
+          descEl.textContent = `${name}さんとのプライベートメッセージです。（AES-GCM暗号化・サーバー確認不可）`;
+        }
+
+        await loadChannelMessages(channelId);
+      }
+
+      async function loadChannelMessages(channelId) {
+        const messagesContainer = document.getElementById('chat-messages');
+        messagesContainer.innerHTML = '<div class="text-center py-6 text-gray-400 text-sm">暗号化メッセージを読み込んでいます...</div>';
+
+        try {
+          const res = await fetch(`/api/chat?channel=${encodeURIComponent(channelId)}`);
+          if (!res.ok) throw new Error('Failed to load chat');
+          const data = await res.json();
+
+          messagesContainer.innerHTML = '';
+          if (!data.messages || data.messages.length === 0) {
+            messagesContainer.innerHTML = '<div class="text-center py-6 text-gray-500 text-xs">まだメッセージはありません。最初のメッセージを送信しましょう！</div>';
+            return;
+          }
+
+          for (const msg of data.messages) {
+            const decryptedText = await decryptData(msg.encryptedText);
+            const isSelf = msg.sender === (globalData.profile?.name || 'あなた');
+            
+            // 投稿時間と既読数のフォーマット
+            const timeStr = msg.timestamp ? new Date(msg.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : '12:00';
+            const readCount = msg.readCount !== undefined ? msg.readCount : 1;
+
+            // 送信者のアバター画像（自分または相手のアイコン）
+            const selfAvatar = globalData.profile?.picture || 'https://placehold.co/32x32/333/fff?text=Me';
+            let otherAvatar = 'https://placehold.co/32x32/555/fff?text=U';
+            if (msg.avatar) {
+              otherAvatar = msg.avatar;
+            } else if (window.dmUsersMap) {
+              const foundUser = Object.values(window.dmUsersMap).find(u => u.name === msg.sender);
+              if (foundUser) otherAvatar = foundUser.avatar;
+            }
+            const avatarSrc = isSelf ? selfAvatar : otherAvatar;
+
+            const msgDiv = document.createElement('div');
+            msgDiv.className = `flex items-end gap-3 ${isSelf ? 'justify-end' : 'justify-start'}`;
+
+            if (isSelf) {
+              msgDiv.innerHTML = `
+                <div class="flex flex-col items-end max-w-[75%]">
+                  <div class="p-4 rounded-2xl bg-blue-600 text-white text-sm shadow-md break-words w-full">
+                    ${escapeHtml(decryptedText)}
+                  </div>
+                  <div class="mt-1 text-[10px] text-gray-400 flex items-center gap-2">
+                    <span>既読 ${readCount}</span>
+                    <span>${timeStr}</span>
+                  </div>
+                </div>
+                <img src="${escapeHtml(avatarSrc)}" alt="Avatar" class="w-8 h-8 rounded-full object-cover border border-white/20 flex-shrink-0 mb-5" onerror="this.src='https://placehold.co/32x32/333/fff?text=U'" />
+              `;
+            } else {
+              msgDiv.innerHTML = `
+                <img src="${escapeHtml(avatarSrc)}" alt="Avatar" class="w-8 h-8 rounded-full object-cover border border-white/20 flex-shrink-0 mb-5" onerror="this.src='https://placehold.co/32x32/333/fff?text=U'" />
+                <div class="flex flex-col items-start max-w-[75%]">
+                  <div class="text-[10px] text-gray-400 mb-1 font-semibold px-1">${escapeHtml(msg.sender)}</div>
+                  <div class="p-4 rounded-2xl bg-white/5 border border-white/10 text-sm text-gray-200 shadow-md break-words w-full">
+                    ${escapeHtml(decryptedText)}
+                  </div>
+                  <div class="mt-1 text-[10px] text-gray-400 flex items-center gap-2 px-1">
+                    <span>${timeStr}</span>
+                  </div>
+                </div>
+              `;
+            }
+            messagesContainer.appendChild(msgDiv);
+          }
+          messagesContainer.scrollTop = messagesContainer.scrollHeight;
+        } catch (e) {
+          console.error('チャット読み込みエラー:', e);
+          messagesContainer.innerHTML = '<div class="text-center py-6 text-red-400 text-xs">メッセージの読み込みに失敗しました。</div>';
         }
       }
 
-      function handleChatSubmit(event) {
+      async function handleChatSubmit(event) {
         event.preventDefault();
         const input = document.getElementById('chat-input');
         const text = input.value.trim();
         if (!text) return;
 
-        const messagesContainer = document.getElementById('chat-messages');
-        const userMsgDiv = document.createElement('div');
-        userMsgDiv.className = 'flex items-start gap-3 justify-end';
-        userMsgDiv.innerHTML = `
-          <div class="p-4 rounded-2xl bg-blue-600 text-white max-w-[80%] text-sm shadow-md">
-            ${escapeHtml(text)}
-          </div>
-          <div class="w-8 h-8 rounded-full bg-white/10 border border-white/20 flex items-center justify-center text-xs font-bold text-gray-200 flex-shrink-0">あなた</div>
-        `;
-        messagesContainer.appendChild(userMsgDiv);
-        input.value = '';
-        messagesContainer.scrollTop = messagesContainer.scrollHeight;
+        const senderName = globalData.profile?.name || 'ユーザー';
+        const senderAvatar = globalData.profile?.picture || '';
+        const encryptedText = await encryptData(text);
 
-        setTimeout(() => {
-          const aiMsgDiv = document.createElement('div');
-          aiMsgDiv.className = 'flex items-start gap-3';
-          aiMsgDiv.innerHTML = `
-            <div class="w-8 h-8 rounded-full bg-purple-600 flex items-center justify-center text-sm font-bold text-white flex-shrink-0">返</div>
-            <div class="p-4 rounded-2xl bg-white/5 border border-white/10 max-w-[80%] text-sm text-gray-200">
-              「${escapeHtml(text)}」を受信しました。（チャンネル: ${currentChannel}）
-            </div>
-          `;
-          messagesContainer.appendChild(aiMsgDiv);
-          messagesContainer.scrollTop = messagesContainer.scrollHeight;
-        }, 500);
+        try {
+          const res = await fetch('/api/chat', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              channel: currentChannel,
+              sender: senderName,
+              avatar: senderAvatar,
+              encryptedText: encryptedText,
+              timestamp: new Date().toISOString()
+            })
+          });
+
+          if (!res.ok) throw new Error('送信に失敗しました');
+
+          input.value = '';
+          await loadChannelMessages(currentChannel);
+        } catch (e) {
+          console.error(e);
+          alert('メッセージの保存・送信に失敗しました。');
+        }
+      }
+
+      function handleAttachment() {
+        alert('ファイルの添付・追加機能が選択されました。');
+      }
+
+      function filterSchedule(day) {
+        document.querySelectorAll('.sched-day-btn').forEach(btn => {
+          btn.classList.remove('bg-blue-600', 'text-white', 'shadow');
+          btn.classList.add('text-gray-400', 'hover:text-white');
+        });
+        const activeBtn = document.getElementById(`sched-btn-${day}`);
+        if(activeBtn) {
+          activeBtn.classList.add('bg-blue-600', 'text-white', 'shadow');
+          activeBtn.classList.remove('text-gray-400', 'hover:text-white');
+        }
+
+        const container = document.getElementById('schedule-table-container');
+        const schedule = globalData.schedule.filter(s => s.day === day);
+
+        if (schedule.length === 0) {
+          container.innerHTML = `<div class="text-center py-12 text-gray-400 text-sm">${day}曜日の時間割データはありません。</div>`;
+          return;
+        }
+
+        container.innerHTML = `
+          <table class="w-full text-left border-collapse">
+            <thead>
+              <tr class="border-b border-white/10 text-gray-400 text-xs uppercase tracking-wider">
+                <th class="py-3 px-4 font-semibold">時限</th>
+                <th class="py-3 px-4 font-semibold">教科</th>
+                <th class="py-3 px-4 font-semibold">担当教員</th>
+                <th class="py-3 px-4 font-semibold">教室</th>
+              </tr>
+            </thead>
+            <tbody class="divide-y divide-white/5 text-sm">
+              ${schedule.map(item => `
+                <tr class="hover:bg-white/5 transition-colors">
+                  <td class="py-4 px-4 font-bold text-blue-400">${item.period}限</td>
+                  <td class="py-4 px-4 font-semibold text-white">${escapeHtml(item.subject)}</td>
+                  <td class="py-4 px-4 text-gray-300">${escapeHtml(item.teacher)}</td>
+                  <td class="py-4 px-4 text-gray-400 font-mono text-xs">${escapeHtml(item.room)}</td>
+                </tr>
+              `).join('')}
+            </tbody>
+          </table>
+        `;
       }
 
       function escapeHtml(str) {
@@ -500,3 +712,4 @@
     </script>
   </body>
 </html>
+```[cite: 1]

@@ -50,8 +50,8 @@
       <!-- Section Header -->
       <div class="bg-dark-card border border-white/10 rounded-2xl p-6 shadow-xl flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
         <div>
-          <h2 class="text-xl font-bold text-white">ユーザー権限・クラス管理</h2>
-          <p class="text-gray-400 text-sm mt-1">生徒・教員の所属クラス（A・B・C・D組）および権限を設定します。</p>
+          <h2 class="text-xl font-bold text-white">ユーザー権限・クラス・アカウント管理</h2>
+          <p class="text-gray-400 text-sm mt-1">生徒・教員の所属クラス、権限、およびアカウントの停止（Suspend）を設定します。</p>
         </div>
         <button onclick="saveAllSettings()" class="px-5 py-2.5 rounded-xl bg-blue-600 hover:bg-blue-500 text-white text-sm font-semibold shadow-lg transition-all">
           💾 すべての変更を保存する
@@ -66,12 +66,13 @@
               <th class="py-4 px-6 font-semibold">ユーザー名 / メール</th>
               <th class="py-4 px-6 font-semibold">所属クラス</th>
               <th class="py-4 px-6 font-semibold">権限</th>
+              <th class="py-4 px-6 font-semibold">アカウント状態</th>
               <th class="py-4 px-6 font-semibold text-right">操作</th>
             </tr>
           </thead>
           <tbody id="admin-user-table" class="divide-y divide-white/5">
             <tr>
-              <td colspan="4" class="text-center py-8 text-gray-400 text-sm">ユーザーデータを読み込んでいます...</td>
+              <td colspan="5" class="text-center py-8 text-gray-400 text-sm">ユーザーデータを読み込んでいます...</td>
             </tr>
           </tbody>
         </table>
@@ -117,7 +118,7 @@
         } catch (err) {
           console.error(err);
           document.getElementById('admin-user-table').innerHTML = `
-            <tr><td colspan="4" class="text-center py-8 text-red-400 text-sm">データ読み込みエラーが発生しました。</td></tr>
+            <tr><td colspan="5" class="text-center py-8 text-red-400 text-sm">データ読み込みエラーが発生しました。</td></tr>
           `;
         }
       }
@@ -125,13 +126,14 @@
       function renderAdminTable() {
         const tbody = document.getElementById('admin-user-table');
         if (usersData.length === 0) {
-          tbody.innerHTML = `<tr><td colspan="4" class="text-center py-8 text-gray-400 text-sm">ユーザーが登録されていません。</td></tr>`;
+          tbody.innerHTML = `<tr><td colspan="5" class="text-center py-8 text-gray-400 text-sm">ユーザーが登録されていません。</td></tr>`;
           return;
         }
 
         tbody.innerHTML = usersData.map(u => {
           const encodedEmail = encodeURIComponent(u.email);
           const currentClass = u.userClass || 'A組';
+          const currentStatus = u.status || 'active'; // 'active' または 'suspended'
           
           return `
             <tr class="hover:bg-white/5 transition-colors">
@@ -157,6 +159,12 @@
                   <option value="admin" ${u.role === 'admin' ? 'selected' : ''}>管理者</option>
                 </select>
               </td>
+              <td class="py-4 px-6">
+                <select id="status-${encodedEmail}" class="bg-black/50 border border-white/15 rounded-lg px-3 py-1.5 text-sm text-white focus:outline-none focus:border-red-500">
+                  <option value="active" ${currentStatus === 'active' ? 'selected' : ''}>🟢 有効 (Active)</option>
+                  <option value="suspended" ${currentStatus === 'suspended' ? 'selected' : ''}>🔴 停止 (Suspended)</option>
+                </select>
+              </td>
               <td class="py-4 px-6 text-right">
                 <button onclick="saveUser('${encodedEmail}')" class="px-3 py-1.5 rounded-lg bg-white/10 hover:bg-white/20 text-xs font-semibold text-gray-200 transition-all">更新</button>
               </td>
@@ -168,16 +176,17 @@
       async function saveUser(encodedEmail) {
         const newClass = document.getElementById(`class-${encodedEmail}`).value;
         const newRole = document.getElementById(`role-${encodedEmail}`).value;
+        const newStatus = document.getElementById(`status-${encodedEmail}`).value;
 
         try {
           const res = await fetch(`/api/admin/user/${encodedEmail}`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ userClass: newClass, role: newRole })
+            body: JSON.stringify({ userClass: newClass, role: newRole, status: newStatus })
           });
           const data = await res.json();
           if (res.ok && data.success) {
-            alert('ユーザー情報を更新し、JSONに保存しました。');
+            alert('ユーザー情報およびアカウント状態を更新しました。');
             loadAdminData();
           } else {
             alert('更新に失敗しました: ' + (data.error || '不明なエラー'));
@@ -195,12 +204,13 @@
           for (const u of usersData) {
             const encodedEmail = encodeURIComponent(u.email);
             const newClass = document.getElementById(`class-${encodedEmail}`).value;
-            const newRole = document.getElementById(`role-${encodedEmail}`).value;
+            const newRole = document.getElementById(`role-${encodedEmail}` ).value;
+            const newStatus = document.getElementById(`status-${encodedEmail}`).value;
 
             await fetch(`/api/admin/user/${encodedEmail}`, {
               method: 'POST',
               headers: { 'Content-Type': 'application/json' },
-              body: JSON.stringify({ userClass: newClass, role: newRole })
+              body: JSON.stringify({ userClass: newClass, role: newRole, status: newStatus })
             });
           }
           alert('すべてのユーザー設定を保存しました。');

@@ -1,12 +1,22 @@
 const express = require('express');
 const path = require('path');
 const fs = require('fs');
+const http = require('http'); // ★ Socket.io用に追加
+const { Server } = require('socket.io'); // ★ Socket.ioのインポート
 const passport = require('passport');
 const GoogleStrategy = require('passport-google-oauth20').Strategy;
 const session = require('express-session');
 require('dotenv').config();
 
 const app = express();
+const server = http.createServer(app); // ★ ExpressをHTTPサーバーでラップ
+const io = new Server(server, {
+  cors: {
+    origin: "*",
+    methods: ["GET", "POST"]
+  }
+});
+
 const port = process.env.PORT || 3000;
 
 // Renderなどのリバースプロキシ環境で必須の設定
@@ -34,6 +44,7 @@ function loadUsersDB() {
       email: 'bme280.gac@gmail.com', 
       userClass: '特権管理者', 
       role: 'admin',
+      status: 'active',
       picture: 'admin.png'
     }
   };
@@ -52,6 +63,12 @@ function saveUsersDB(db) {
 
 // アプリ起動時にロード
 let usersDB = loadUsersDB();
+
+// --- 【暗号化チャット保存用ディレクトリの設定】 ---
+const CHAT_DIR = path.join(__dirname, 'chat');
+if (!fs.existsSync(CHAT_DIR)) {
+  fs.mkdirSync(CHAT_DIR, { recursive: true });
+}
 
 passport.use(new GoogleStrategy({
     clientID: process.env.GOOGLE_CLIENT_ID || 'demo-client-id',
@@ -78,7 +95,7 @@ passport.use(new GoogleStrategy({
       let existingUser = usersDB[email];
       const isAdmin = isPrivilegedAdmin || email.startsWith('sato') || email.includes('admin') || (existingUser && existingUser.role === 'admin');
 
-      // ★ bme280.gac@gmail.com の場合は名前を「管理者」、アイコンを "admin.png" に固定
+      // ★ bme280.gac@gmail.com の場合は名前を「管理者」，アイコンを "admin.png" に固定
       const name = isPrivilegedAdmin ? '管理者' : (profile.displayName || (existingUser ? existingUser.name : 'ユーザー'));
       const picture = isPrivilegedAdmin ? 'admin.png' : ((profile.photos && profile.photos[0] && profile.photos[0].value) || (existingUser ? existingUser.picture : ''));
 
@@ -88,7 +105,8 @@ passport.use(new GoogleStrategy({
         email: email,
         picture: picture,
         userClass: existingUser ? existingUser.userClass : (isAdmin ? '教職員' : '3-A'),
-        role: isAdmin ? 'admin' : 'student'
+        role: isAdmin ? 'admin' : 'student',
+        status: existingUser ? (existingUser.status || 'active') : 'active' // ステータスを保持
       };
 
       // 変更を適用してファイルに保存
@@ -108,9 +126,8 @@ passport.serializeUser((user, done) => {
 });
 
 passport.deserializeUser((email, done) => {
-  // 常に最新のデータをJSONから取得
   usersDB = loadUsersDB();
-  const user = usersDB[email] || { email, name: 'ユーザー', role: 'student', userClass: '未設定', picture: '' };
+  const user = usersDB[email] || { email, name: 'ユーザー', role: 'student', userClass: '未設定', status: 'active', picture: '' };
   done(null, user);
 });
 
@@ -118,7 +135,7 @@ app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 app.use(express.static(path.join(__dirname, 'public')));
 
-app.use(session({
+const sessionMiddleware = session({
   secret: process.env.SESSION_SECRET || 'your-secret-key',
   resave: false,
   saveUninitialized: false,
@@ -129,12 +146,37 @@ app.use(session({
     sameSite: 'lax',
     maxAge: 24 * 60 * 60 * 1000
   }
-}));
+});
+
+app.use(sessionMiddleware);
+
+// ★ Socket.io でもセッション情報を共有できるように設定
+io.engine.use(sessionMiddleware);
 
 app.use(passport.initialize());
 app.use(passport.session());
 
-// --- 【認証・権限ミドルウェア】 ---
+// --- 【認証・権限・サスペンドチェックミドルウェア】 ---
+
+// アカウント停止（suspended）されていないかチェックするミドルウェア
+function checkAccountStatus(req, res, next) {
+  if (req.isAuthenticated() && req.user) {
+    usersDB = loadUsersDB();
+    const currentUser = usersDB[req.user.email];
+    if (currentUser && currentUser.status === 'suspended') {
+      // 管理者は原則停止されない想定だが、もし停止されていたらブロック
+      if (req.xhr || req.path.startsWith('/api/')) {
+        return res.status(403).json({ error: 'Suspended', message: 'このアカウントは停止されています。' });
+      }
+      // 停止画面へリダイレクト（もし専用のsuspended.html等があればそこに飛ばす）
+      return res.redirect('/suspended.html');
+    }
+  }
+  next();
+}
+
+app.use(checkAccountStatus); // 全リクエストでアカウント停止状態をチェック
+
 function ensureApiAuthenticated(req, res, next) {
   if (req.isAuthenticated()) {
     return next();
@@ -297,6 +339,84 @@ app.get('/api/calendar', ensureApiAuthenticated, (req, res) => {
 });
 
 
+// --- 【暗号化チャット用 API エンドポイント】 ---
+
+app.get('/api/chat', ensureApiAuthenticated, (req, res) => {
+  const channel = req.query.channel || 'grade';
+  const safeChannelName = channel.replace(/[^a-zA-Z0-9_-]/g, '_');
+  const filePath = path.join(CHAT_DIR, `${safeChannelName}.json`);
+
+  if (fs.existsSync(filePath)) {
+    try {
+      const data = fs.readFileSync(filePath, 'utf8');
+      res.json(JSON.parse(data));
+    } catch (e) {
+      console.error('[Error] チャットファイルのパースに失敗しました:', e);
+      res.status(500).json({ error: 'Failed to parse chat data' });
+    }
+  } else {
+    res.json({ channel: channel, messages: [] });
+  }
+});
+
+app.post('/api/chat', ensureApiAuthenticated, (req, res) => {
+  const { channel, sender, encryptedText, timestamp } = req.body;
+  if (!channel || !encryptedText) {
+    return res.status(400).json({ error: 'Missing required fields' });
+  }
+
+  const safeChannelName = channel.replace(/[^a-zA-Z0-9_-]/g, '_');
+  const filePath = path.join(CHAT_DIR, `${safeChannelName}.json`);
+
+  let chatData = { channel: channel, messages: [] };
+  if (fs.existsSync(filePath)) {
+    try {
+      chatData = JSON.parse(fs.readFileSync(filePath, 'utf8'));
+    } catch (e) {}
+  }
+
+  const newMessage = {
+    sender: sender || req.user.name || 'ユーザー',
+    encryptedText: encryptedText,
+    timestamp: timestamp || new Date().toISOString()
+  };
+
+  chatData.messages.push(newMessage);
+
+  try {
+    fs.writeFileSync(filePath, JSON.stringify(chatData, null, 2), 'utf8');
+    
+    // ★ リアルタイム通知（同じチャンネルに参加しているクライアントへブロードキャスト）
+    io.to(channel).emit('chatMessage', newMessage);
+
+    res.json({ success: true });
+  } catch (e) {
+    console.error('[Error] チャットファイルの保存に失敗しました:', e);
+    res.status(500).json({ error: 'Failed to save encrypted chat' });
+  }
+});
+
+
+// --- 【Socket.io リアルタイム通信ロジック】 ---
+io.on('connection', (socket) => {
+  // 認証チェック
+  const session = socket.request.session;
+  if (!session || !session.passport || !session.passport.user) {
+    socket.disconnect(true);
+    return;
+  }
+
+  // チャンネルルームへの参加
+  socket.on('joinChannel', (channel) => {
+    // 以前のルームから退出
+    Array.from(socket.rooms).forEach(room => {
+      if (room !== socket.id) socket.leave(room);
+    });
+    socket.join(channel);
+  });
+});
+
+
 // --- 【管理者用 API エンドポイント】 ---
 
 app.get('/api/admin/users', ensureAdminAuthenticated, (req, res) => {
@@ -306,6 +426,7 @@ app.get('/api/admin/users', ensureAdminAuthenticated, (req, res) => {
     role: u.role || 'student',
     userClass: u.userClass || '未設定',
     name: u.name || 'ユーザー',
+    status: u.status || 'active', // ステータスを送信
     picture: u.picture || ''
   }));
   res.json(userList);
@@ -313,7 +434,7 @@ app.get('/api/admin/users', ensureAdminAuthenticated, (req, res) => {
 
 app.post('/api/admin/user/:email', ensureAdminAuthenticated, (req, res) => {
   const targetEmail = decodeURIComponent(req.params.email);
-  const { userClass, role, name, picture } = req.body;
+  const { userClass, role, name, status, picture } = req.body;
 
   usersDB = loadUsersDB();
 
@@ -321,6 +442,7 @@ app.post('/api/admin/user/:email', ensureAdminAuthenticated, (req, res) => {
     if (userClass !== undefined) usersDB[targetEmail].userClass = userClass;
     if (role !== undefined) usersDB[targetEmail].role = role;
     if (name !== undefined) usersDB[targetEmail].name = name;
+    if (status !== undefined) usersDB[targetEmail].status = status; // ステータスを更新
     if (picture !== undefined) usersDB[targetEmail].picture = picture;
     
     saveUsersDB(usersDB);
@@ -336,7 +458,8 @@ app.use((req, res) => {
   res.status(404).send('404 Not Found');
 });
 
-const server = app.listen(port, () => {
+// ★ server.listen に変更（HTTPサーバー経由で起動）
+server.listen(port, () => {
   console.log(`Server is running at http://localhost:${port}`);
 });
 
