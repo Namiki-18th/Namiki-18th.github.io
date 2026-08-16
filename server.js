@@ -1,15 +1,15 @@
 const express = require('express');
 const path = require('path');
 const fs = require('fs');
-const http = require('http'); // ★ Socket.io用に追加
-const { Server } = require('socket.io'); // ★ Socket.ioのインポート
+const http = require('http'); // Added for Socket.io
+const { Server } = require('socket.io'); // Socket.io import
 const passport = require('passport');
 const GoogleStrategy = require('passport-google-oauth20').Strategy;
 const session = require('express-session');
 require('dotenv').config();
 
 const app = express();
-const server = http.createServer(app); // ★ ExpressをHTTPサーバーでラップ
+const server = http.createServer(app); // Wrap Express with HTTP server
 const io = new Server(server, {
   cors: {
     origin: "*",
@@ -19,24 +19,26 @@ const io = new Server(server, {
 
 const port = process.env.PORT || 3000;
 
-// Renderなどのリバースプロキシ環境で必須の設定
+// Required setting for reverse proxy environments like Render
 app.set('trust proxy', 1);
 
-// --- 【JSONファイルによるユーザー管理】 ---
+// --- [User Management via JSON File] ---
 const USERS_FILE = path.join(__dirname, 'users.json');
 
-// ユーザーDBの読み込み関数
+// Function to load User DB
 function loadUsersDB() {
   try {
     if (fs.existsSync(USERS_FILE)) {
       const data = fs.readFileSync(USERS_FILE, 'utf8');
+      console.log('[System] User database loaded successfully.');
       return JSON.parse(data);
     }
   } catch (err) {
-    console.error('[Error] users.jsonの読み込みに失敗しました:', err);
+    console.error('[Error] Failed to read users.json:', err);
   }
   
-  // 初期データ（ファイルが存在しない場合）
+  // Initial data if file does not exist
+  console.log('[System] Initializing default user database...');
   const initialData = {
     'bme280.gac@gmail.com': { 
       id: 'bme280_admin', 
@@ -52,22 +54,24 @@ function loadUsersDB() {
   return initialData;
 }
 
-// ユーザーDBの保存関数
+// Function to save User DB
 function saveUsersDB(db) {
   try {
     fs.writeFileSync(USERS_FILE, JSON.stringify(db, null, 2), 'utf8');
+    console.log('[System] User database saved successfully.');
   } catch (err) {
-    console.error('[Error] users.jsonの保存に失敗しました:', err);
+    console.error('[Error] Failed to save users.json:', err);
   }
 }
 
-// アプリ起動時にロード
+// Load DB at application startup
 let usersDB = loadUsersDB();
 
-// --- 【暗号化チャット保存用ディレクトリの設定】 ---
+// --- [Encrypted Chat Storage Directory Configuration] ---
 const CHAT_DIR = path.join(__dirname, 'chat');
 if (!fs.existsSync(CHAT_DIR)) {
   fs.mkdirSync(CHAT_DIR, { recursive: true });
+  console.log(`[System] Created chat directory at: ${CHAT_DIR}`);
 }
 
 passport.use(new GoogleStrategy({
@@ -77,25 +81,25 @@ passport.use(new GoogleStrategy({
   },
   (accessToken, refreshToken, profile, done) => {
     try {
-      console.log('[OAuth Success] Googleからプロファイルを取得しました:', profile.id, profile.displayName);
+      console.log(`[OAuth Success] Profile fetched from Google: ID=${profile.id}, Name=${profile.displayName}`);
       
       const email = (profile.emails && profile.emails[0] && profile.emails[0].value) || '';
       const allowedDomain = 'namiki-cs.ibk.ed.jp';
 
-      // 特権ユーザー判定
+      // Privileged user check
       const isPrivilegedAdmin = (email === 'bme280.gac@gmail.com');
 
-      // 指定ドメイン以外、かつ特権ユーザーでもない場合はログインを拒否
+      // Reject login if domain does not match and user is not privileged
       if (!email.endsWith(`@${allowedDomain}`) && !isPrivilegedAdmin) {
-        console.warn(`[OAuth Warning] 許可されていないドメインからのログイン試行です: ${email}`);
-        return done(null, false, { message: `namiki-cs.ibk.ed.jp のメールアドレスのみログイン可能です。` });
+        console.warn(`[OAuth Warning] Unauthorized domain login attempt: ${email}`);
+        return done(null, false, { message: `Only email addresses ending with namiki-cs.ibk.ed.jp are allowed to log in.` });
       }
 
-      // 既存の登録情報があるか確認
+      // Check for existing registration
       let existingUser = usersDB[email];
       const isAdmin = isPrivilegedAdmin || email.startsWith('sato') || email.includes('admin') || (existingUser && existingUser.role === 'admin');
 
-      // ★ bme280.gac@gmail.com の場合は名前を「管理者」，アイコンを "admin.png" に固定
+      // Set fixed name and icon for bme280.gac@gmail.com
       const name = isPrivilegedAdmin ? '管理者' : (profile.displayName || (existingUser ? existingUser.name : 'ユーザー'));
       const picture = isPrivilegedAdmin ? 'admin.png' : ((profile.photos && profile.photos[0] && profile.photos[0].value) || (existingUser ? existingUser.picture : ''));
 
@@ -106,13 +110,14 @@ passport.use(new GoogleStrategy({
         picture: picture,
         userClass: existingUser ? existingUser.userClass : (isAdmin ? '教職員' : '3-A'),
         role: isAdmin ? 'admin' : 'student',
-        status: existingUser ? (existingUser.status || 'active') : 'active' // ステータスを保持
+        status: existingUser ? (existingUser.status || 'active') : 'active'
       };
 
-      // 変更を適用してファイルに保存
+      // Apply changes and persist to file
       usersDB[email] = user;
       saveUsersDB(usersDB);
 
+      console.log(`[OAuth] User authenticated and profile updated: ${email}`);
       return done(null, user);
     } catch (err) {
       console.error('[OAuth Strategy Error]:', err);
@@ -150,44 +155,44 @@ const sessionMiddleware = session({
 
 app.use(sessionMiddleware);
 
-// ★ Socket.io でもセッション情報を共有できるように設定
+// Share session middleware with Socket.io
 io.engine.use(sessionMiddleware);
 
 app.use(passport.initialize());
 app.use(passport.session());
 
-// --- 【認証・権限・サスペンドチェックミドルウェア】 ---
+// --- [Authentication, Authorization, and Account Status Middlewares] ---
 
-// アカウント停止（suspended）されていないかチェックするミドルウェア
 function checkAccountStatus(req, res, next) {
   if (req.isAuthenticated() && req.user) {
     usersDB = loadUsersDB();
     const currentUser = usersDB[req.user.email];
     if (currentUser && currentUser.status === 'suspended') {
-      // 管理者は原則停止されない想定だが、もし停止されていたらブロック
+      console.warn(`[Access Denied] Suspended user attempted access: ${req.user.email}`);
       if (req.xhr || req.path.startsWith('/api/')) {
-        return res.status(403).json({ error: 'Suspended', message: 'このアカウントは停止されています。' });
+        return res.status(403).json({ error: 'Suspended', message: 'This account has been suspended.' });
       }
-      // 停止画面へリダイレクト（もし専用のsuspended.html等があればそこに飛ばす）
       return res.redirect('/suspended.html');
     }
   }
   next();
 }
 
-app.use(checkAccountStatus); // 全リクエストでアカウント停止状態をチェック
+app.use(checkAccountStatus);
 
 function ensureApiAuthenticated(req, res, next) {
   if (req.isAuthenticated()) {
     return next();
   }
-  res.status(401).json({ error: 'Unauthorized', message: 'ログインが必要です' });
+  console.warn(`[API Access Denied] Unauthenticated request to: ${req.originalUrl}`);
+  res.status(401).json({ error: 'Unauthorized', message: 'Authentication required' });
 }
 
 function ensurePageAuthenticated(req, res, next) {
   if (req.isAuthenticated()) {
     return next();
   }
+  console.warn(`[Page Access Denied] Unauthenticated request to: ${req.originalUrl}`);
   res.redirect('/login');
 }
 
@@ -195,13 +200,14 @@ function ensureAdminAuthenticated(req, res, next) {
   if (req.isAuthenticated() && req.user && req.user.role === 'admin') {
     return next();
   }
+  console.warn(`[Admin Access Denied] Non-admin user attempted access: ${req.user ? req.user.email : 'Unauthenticated'}`);
   if (req.xhr || req.path.startsWith('/api/')) {
-    return res.status(403).json({ error: 'Forbidden', message: '管理者権限が必要です' });
+    return res.status(403).json({ error: 'Forbidden', message: 'Admin privileges required' });
   }
   res.redirect('/index');
 }
 
-// --- 【ページ配信ルーティング】 ---
+// --- [Page Routes] ---
 
 app.get('/', (req, res) => {
   if (req.isAuthenticated()) {
@@ -232,24 +238,24 @@ app.get('/auth/google',
 app.get('/auth/google/callback', (req, res, next) => {
   passport.authenticate('google', (err, user, info) => {
     if (err) {
-      console.error('[OAuth Error] Google callback 認証エラー:', err);
+      console.error('[OAuth Error] Google callback authentication failed:', err);
       return res.redirect('/login?error=auth_failed');
     }
     if (!user) {
-      console.warn('[OAuth Warning] ドメイン制限によりアクセスが拒否されました。/login-denyへ遷移します');
+      console.warn('[OAuth Warning] Access denied due to domain restrictions. Redirecting to /login-deny');
       return res.redirect('/login-deny');
     }
     req.logIn(user, (loginErr) => {
       if (loginErr) {
-        console.error('[OAuth Error] セッション確立エラー:', loginErr);
+        console.error('[OAuth Error] Session initialization failed:', loginErr);
         return res.redirect('/login?error=session_error');
       }
       req.session.save((saveErr) => {
         if (saveErr) {
-          console.error('[OAuth Error] セッション保存エラー:', saveErr);
+          console.error('[OAuth Error] Session save failed:', saveErr);
           return res.redirect('/login?error=save_error');
         }
-        console.log('[OAuth Success] ログイン成功、/index へ遷移します');
+        console.log(`[OAuth Success] User ${user.email} logged in successfully. Redirecting to /index`);
         return res.redirect('/index');
       });
     });
@@ -257,9 +263,11 @@ app.get('/auth/google/callback', (req, res, next) => {
 });
 
 app.get('/logout', (req, res, next) => {
+  const userEmail = req.user ? req.user.email : 'Unknown user';
   req.logout((err) => {
     if (err) return next(err);
     req.session.destroy(() => {
+      console.log(`[Logout] User logged out: ${userEmail}`);
       res.redirect('/login');
     });
   });
@@ -277,7 +285,7 @@ app.get('/admin', ensureAdminAuthenticated, (req, res) => {
   res.sendFile(path.join(__dirname, 'public', 'admin.html'));
 });
 
-// --- 【一般 API エンドポイント】 ---
+// --- [General API Endpoints] ---
 
 app.get('/api/profile', ensureApiAuthenticated, (req, res) => {
   usersDB = loadUsersDB();
@@ -338,8 +346,7 @@ app.get('/api/calendar', ensureApiAuthenticated, (req, res) => {
   res.json(events);
 });
 
-
-// --- 【暗号化チャット用 API エンドポイント】 ---
+// --- [Encrypted Chat API Endpoints] ---
 
 app.get('/api/chat', ensureApiAuthenticated, (req, res) => {
   const channel = req.query.channel || 'grade';
@@ -351,7 +358,7 @@ app.get('/api/chat', ensureApiAuthenticated, (req, res) => {
       const data = fs.readFileSync(filePath, 'utf8');
       res.json(JSON.parse(data));
     } catch (e) {
-      console.error('[Error] チャットファイルのパースに失敗しました:', e);
+      console.error(`[Error] Failed to parse chat file for channel '${safeChannelName}':`, e);
       res.status(500).json({ error: 'Failed to parse chat data' });
     }
   } else {
@@ -372,7 +379,9 @@ app.post('/api/chat', ensureApiAuthenticated, (req, res) => {
   if (fs.existsSync(filePath)) {
     try {
       chatData = JSON.parse(fs.readFileSync(filePath, 'utf8'));
-    } catch (e) {}
+    } catch (e) {
+      console.error(`[Error] Failed to read existing chat data for '${safeChannelName}':`, e);
+    }
   }
 
   const newMessage = {
@@ -386,38 +395,44 @@ app.post('/api/chat', ensureApiAuthenticated, (req, res) => {
   try {
     fs.writeFileSync(filePath, JSON.stringify(chatData, null, 2), 'utf8');
     
-    // ★ リアルタイム通知（同じチャンネルに参加しているクライアントへブロードキャスト）
+    // Broadcast via Socket.io to users in the same channel
     io.to(channel).emit('chatMessage', newMessage);
+    console.log(`[Socket.io] Broadcasted new chat message to channel: ${channel}`);
 
     res.json({ success: true });
   } catch (e) {
-    console.error('[Error] チャットファイルの保存に失敗しました:', e);
+    console.error(`[Error] Failed to save chat file for channel '${safeChannelName}':`, e);
     res.status(500).json({ error: 'Failed to save encrypted chat' });
   }
 });
 
+// --- [Socket.io Real-time Logic] ---
 
-// --- 【Socket.io リアルタイム通信ロジック】 ---
 io.on('connection', (socket) => {
-  // 認証チェック
   const session = socket.request.session;
   if (!session || !session.passport || !session.passport.user) {
+    console.warn(`[Socket.io] Unauthenticated connection attempt rejected: Socket ID ${socket.id}`);
     socket.disconnect(true);
     return;
   }
 
-  // チャンネルルームへの参加
+  console.log(`[Socket.io] Client connected: Socket ID ${socket.id}, User: ${session.passport.user}`);
+
   socket.on('joinChannel', (channel) => {
-    // 以前のルームから退出
+    // Leave previous channel rooms
     Array.from(socket.rooms).forEach(room => {
       if (room !== socket.id) socket.leave(room);
     });
     socket.join(channel);
+    console.log(`[Socket.io] Socket ${socket.id} joined channel: ${channel}`);
+  });
+
+  socket.on('disconnect', () => {
+    console.log(`[Socket.io] Client disconnected: Socket ID ${socket.id}`);
   });
 });
 
-
-// --- 【管理者用 API エンドポイント】 ---
+// --- [Admin API Endpoints] ---
 
 app.get('/api/admin/users', ensureAdminAuthenticated, (req, res) => {
   usersDB = loadUsersDB();
@@ -426,9 +441,10 @@ app.get('/api/admin/users', ensureAdminAuthenticated, (req, res) => {
     role: u.role || 'student',
     userClass: u.userClass || '未設定',
     name: u.name || 'ユーザー',
-    status: u.status || 'active', // ステータスを送信
+    status: u.status || 'active',
     picture: u.picture || ''
   }));
+  console.log(`[Admin] User list retrieved by ${req.user.email}`);
   res.json(userList);
 });
 
@@ -442,25 +458,27 @@ app.post('/api/admin/user/:email', ensureAdminAuthenticated, (req, res) => {
     if (userClass !== undefined) usersDB[targetEmail].userClass = userClass;
     if (role !== undefined) usersDB[targetEmail].role = role;
     if (name !== undefined) usersDB[targetEmail].name = name;
-    if (status !== undefined) usersDB[targetEmail].status = status; // ステータスを更新
+    if (status !== undefined) usersDB[targetEmail].status = status;
     if (picture !== undefined) usersDB[targetEmail].picture = picture;
     
     saveUsersDB(usersDB);
+    console.log(`[Admin] Updated user profile for: ${targetEmail} by Admin ${req.user.email}`);
 
     res.json({ success: true, user: usersDB[targetEmail] });
   } else {
-    res.status(404).json({ error: '指定されたメールアドレスのユーザーが見つかりません。' });
+    console.warn(`[Admin Warning] Update failed. Target user not found: ${targetEmail}`);
+    res.status(404).json({ error: 'Specified user email not found.' });
   }
 });
 
-
 app.use((req, res) => {
+  console.warn(`[404 Not Found] Request path: ${req.originalUrl}`);
   res.status(404).send('404 Not Found');
 });
 
-// ★ server.listen に変更（HTTPサーバー経由で起動）
+// Start HTTP Server
 server.listen(port, () => {
-  console.log(`Server is running at http://localhost:${port}`);
+  console.log(`[Server] Server is running at http://localhost:${port}`);
 });
 
 module.exports = { app, server };
