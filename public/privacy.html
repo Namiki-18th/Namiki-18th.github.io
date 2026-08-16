@@ -9,25 +9,26 @@
       
       body { 
         font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
-        background: linear-gradient(135deg, #f5f7fb 0%, #e3f2fd 100%);
-        color: #1f2937;
+        background: #000000;
+        color: #f3f4f6;
         min-height: 100vh;
       }
       
       header { 
-        background: linear-gradient(90deg, #2563eb 0%, #1e40af 100%);
+        background: #0a0a0c;
         color: white; 
         padding: 24px 32px; 
         display: flex; 
         justify-content: space-between; 
         align-items: center;
-        box-shadow: 0 4px 12px rgba(37, 99, 235, 0.15);
+        border-bottom: 1px solid rgba(255, 255, 255, 0.12);
+        box-shadow: 0 4px 20px rgba(0,0,0,0.8);
         position: sticky;
         top: 0;
         z-index: 100;
       }
       
-      header h1 { font-size: 24px; font-weight: 600; }
+      header h1 { font-size: 24px; font-weight: 700; letter-spacing: -0.025em; }
       
       .container { 
         max-width: 900px; 
@@ -35,22 +36,47 @@
         padding: 40px 20px; 
       }
       
+      .back-link {
+        display: inline-flex;
+        align-items: center;
+        gap: 8px;
+        margin-bottom: 24px;
+        padding: 10px 16px;
+        background: rgba(255, 255, 255, 0.08);
+        border: 1px solid rgba(255, 255, 255, 0.18);
+        border-radius: 10px;
+        color: #f3f4f6;
+        text-decoration: none;
+        transition: all 0.2s ease;
+        font-weight: 600;
+        font-size: 14px;
+      }
+      
+      .back-link:hover {
+        background: rgba(255, 255, 255, 0.16);
+        border-color: rgba(255, 255, 255, 0.35);
+        transform: translateY(-1px);
+        color: #ffffff;
+      }
+      
       .content {
-        background: white;
-        border-radius: 12px;
+        background: #0a0a0c;
+        border-radius: 16px;
         padding: 40px;
-        box-shadow: 0 4px 12px rgba(0,0,0,0.08);
-        line-height: 1.8;
+        border: 1px solid rgba(255, 255, 255, 0.08);
+        box-shadow: 0 10px 30px rgba(0,0,0,0.5);
+        line-height: 1.9;
       }
       
       h2 {
-        font-size: 22px;
+        font-size: 20px;
         font-weight: 600;
-        color: #1f2937;
-        margin-top: 32px;
+        color: #ffffff;
+        margin-top: 40px;
         margin-bottom: 16px;
         padding-bottom: 12px;
-        border-bottom: 2px solid #e5e7eb;
+        border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+        letter-spacing: -0.01em;
       }
       
       h2:first-of-type { margin-top: 0; }
@@ -58,93 +84,78 @@
       h3 {
         font-size: 16px;
         font-weight: 600;
-        color: #374151;
-        margin-top: 20px;
+        color: #e5e7eb;
+        margin-top: 24px;
         margin-bottom: 10px;
       }
       
       p {
-        margin-bottom: 12px;
-        color: #4b5563;
+        margin-bottom: 14px;
+        color: #d1d5db;
+        font-size: 15px;
       }
       
       ul, ol {
-        margin-left: 20px;
-        margin-bottom: 12px;
+        margin-left: 24px;
+        margin-bottom: 16px;
       }
       
       li {
         margin-bottom: 8px;
-        color: #4b5563;
+        color: #d1d5db;
+        font-size: 14px;
       }
       
       .highlight {
-        background: #eff6ff;
+        background: rgba(255, 255, 255, 0.03);
+        border: 1px solid rgba(255, 255, 255, 0.08);
         border-left: 4px solid #3b82f6;
-        padding: 16px;
-        border-radius: 6px;
-        margin: 16px 0;
+        padding: 24px;
+        border-radius: 12px;
+        margin: 24px 0;
       }
       
       .highlight strong {
-        color: #1e40af;
+        color: #60a5fa;
       }
       
       a {
-        color: #2563eb;
+        color: #60a5fa;
         text-decoration: none;
         transition: color 0.2s;
       }
       
       a:hover {
-        color: #1e40af;
+        color: #93c5fd;
         text-decoration: underline;
       }
       
       footer {
-        background: #1f2937;
-        color: white;
+        background: #0a0a0c;
+        color: #a1a1aa;
         text-align: center;
         padding: 32px 20px;
         margin-top: 60px;
-        border-top: 1px solid #374151;
+        border-top: 1px solid rgba(255, 255, 255, 0.08);
       }
       
       footer p {
-        color: #d1d5db;
+        color: #a1a1aa;
         margin-bottom: 12px;
-      }
-      
-      footer a {
-        color: #93c5fd;
-      }
-      
-      footer a:hover {
-        color: #dbeafe;
+        font-size: 14px;
       }
       
       .footer-links {
         display: flex;
         justify-content: center;
-        gap: 24px;
+        gap: 16px;
         margin-top: 16px;
         flex-wrap: wrap;
-        font-size: 14px;
+        font-size: 12px;
       }
       
-      .back-link {
-        display: inline-block;
-        margin-bottom: 24px;
-        padding: 10px 16px;
-        background: #f3f4f6;
-        border-radius: 6px;
-        color: #2563eb;
-        text-decoration: none;
-        transition: all 0.2s;
-      }
-      
-      .back-link:hover {
-        background: #e5e7eb;
+      .footer-links a {
+        color: #60a5fa;
       }
     </style>
   </head>
@@ -157,145 +168,116 @@
       <a href="/" class="back-link">← ホームに戻る</a>
       
       <div class="content">
-        <h1 style="font-size: 28px; margin-bottom: 32px; color: #1f2937;">プライバシーポリシー</h1>
+        <h1 style="font-size: 26px; margin-bottom: 32px; color: #ffffff; font-weight: 700; letter-spacing: -0.025em;">プライバシーポリシー</h1>
 
-        <p><strong>最終更新日：2024年8月15日</strong></p>
+        <p><strong style="color: #a1a1aa;">最終更新日：2026年8月16日</strong></p>
 
-        <h2>1. はじめに</h2>
         <p>
-          本ダッシュボール（以下、「本サービス」）は、ユーザーの個人情報を大切に取り扱います。
-          本プライバシーポリシーは、本サービスにおいて、どのような個人情報を収集し、
-          どのように利用・管理するかについて説明するものです。
+          学校生活ダッシュボード運営チーム（以下、「当サービス」）は、本サービスを利用するユーザー（以下、「ユーザー」）の個人情報の保護について、その重要性を深く認識し、個人情報の保護に関する法律（個人情報保護法）およびその他の関連法令を遵守するとともに、以下のプライバシーポリシー（以下、「本ポリシー」）に基づき、適切な取り扱いおよび保護に努めます。
         </p>
 
-        <h2>2. 収集する情報</h2>
-        <p>本サービスは、以下の情報を収集することがあります。</p>
+        <h2>1. 個人情報の定義</h2>
+        <p>
+          本ポリシーにおいて「個人情報」とは、個人情報保護法にいう「個人情報」を指すものとし、生存する個人に関する情報であって、当該情報に含まれる氏名、生年月日、住所、電話番号、連絡先その他の記述等により特定の個人を識別できる情報（他の情報と容易に照合することができ、それにより特定の個人を識別することができることとなるものを含みます）を指します。
+        </p>
+
+        <h2>2. 収集する利用者情報および収集方法</h2>
+        <p>当サービスでは、ユーザーが本サービスを利用する際に、以下の情報を収集することがあります。</p>
         
-        <h3>2.1 ユーザーが提供する情報</h3>
+        <h3>2.1 ユーザーからご提供いただく情報</h3>
         <ul>
-          <li>Googleアカウント経由で提供される情報（メールアドレス、名前、プロフィール画像）</li>
-          <li>ダッシュボード上で入力される情報（任意入力項目）</li>
+          <li>Google OAuth 2.0認証を通じて提供されるアカウント情報（氏名、メールアドレス、プロフィール画像等）</li>
+          <li>その他、ユーザーが本サービスの利用にあたり任意で入力または送信する情報</li>
         </ul>
 
-        <h3>2.2 自動的に収集される情報</h3>
+        <h3>2.2 サービス利用時に自動的に収集される情報</h3>
         <ul>
-          <li>アクセスログ（IPアドレス、アクセス日時、ブラウザ情報）</li>
-          <li>セッション情報（クッキー、セッションID）</li>
-          <li>デバイス情報（OS、ブラウザ種別）</li>
+          <li>端末情報（利用しているOSの種類、ブラウザの種類等）</li>
+          <li>ログ情報（IPアドレス、アクセス日時、リファラー情報、サービス内の操作履歴）</li>
+          <li>セッション Cookie およびこれに類する技術により収集される情報</li>
         </ul>
 
-        <h2>3. 情報の利用目的</h2>
-        <p>本サービスは、収集した個人情報を以下の目的で利用します：</p>
+        <h2>3. 利用目的</h2>
+        <p>当サービスが個人情報を収集・利用する目的は、以下のとおりです。</p>
         <ul>
-          <li>✓ ユーザー認証とセッション管理</li>
-          <li>✓ サービスの提供と改善</li>
-          <li>✓ セキュリティの維持・向上</li>
-          <li>✓ 不正利用の防止</li>
-          <li>✓ ユーザーサポート対応</li>
-          <li>✓ アクセス統計の分析（個人識別できない形式で）</li>
+          <li>本サービスの提供、維持、および改善のため</li>
+          <li>ユーザー認証、セッション管理、およびアカウントの不正利用防止のため</li>
+          <li>ユーザーからのお問い合わせに対する対応および本人確認を行うため</li>
+          <li>本サービスに関する規約変更や重要なお知らせなどの連絡を行うため</li>
+          <li>サービス利用状況の統計的分析を行い、利便性向上や新機能開発に役立てるため</li>
+          <li>上記の利用目的に付随する目的のため</li>
         </ul>
 
-        <h2>4. 情報の管理</h2>
-        <h3>4.1 セキュリティ対策</h3>
-        <p>本サービスは、個人情報の紛失、破壊、改ざん、および不正アクセスを防止するために、
-           以下のセキュリティ対策を実施しています：</p>
-        <ul>
-          <li>✓ HTTPS（SSL/TLS暗号化通信）の使用</li>
-          <li>✓ HTTPOnly Cookieによるセッション保護</li>
-          <li>✓ 環境変数の秘密化</li>
-          <li>✓ 定期的なシステムアップデート</li>
-        </ul>
-
-        <h3>4.2 データの保持期間</h3>
+        <h2>4. 個人情報の管理およびセキュリティ対策</h2>
         <p>
-          セッションデータはユーザーのログアウト時または24時間後に自動削除されます。
-          統計データは個人識別できない形式で保持可能です。
+          当サービスは、収集した情報の漏えい、滅失、またはき損の防止、その他個人情報の安全管理のために必要かつ適切な措置を講じます。
         </p>
+        <ul>
+          <li>すべての通信における HTTPS（SSL/TLS暗号化通信）の強制</li>
+          <li>HttpOnly属性およびセキュア属性を付与したセッションクッキーの利用による不正アクセス防止</li>
+          <li>アクセス権限の厳格な管理および不要となった情報の速やかな廃棄</li>
+        </ul>
 
-        <h2>5. Google OAuthについて</h2>
+        <h2>5. Google OAuth 2.0 認証および外部サービスの利用</h2>
         <div class="highlight">
-          <p><strong>重要：</strong> 本サービスは Google OAuth 2.0 を使用して認証を行っています。</p>
+          <p><strong>Google API サービスに関する重要事項：</strong></p>
+          <p>
+            当サービスは、ユーザー認証のために Google OAuth 2.0 を採用しています。Google APIから取得する情報（メールアドレスや氏名等）の取り扱いは、Google社が定めるポリシーに準拠します。
+          </p>
           <ul style="margin-left: 20px; margin-top: 12px;">
-            <li>Googleに送信される情報は Google の <a href="https://policies.google.com/privacy" target="_blank">プライバシーポリシー</a> に従って管理されます</li>
-            <li>本サービスは、Googleから取得したアクセストークンを安全に管理します</li>
-            <li>Googleアカウントの詳細情報（メール、パスワード等）は本サービスに保存されません</li>
+            <li>取得したアクセストークンおよび認証情報は、厳重なセキュリティ環境下で管理されます。</li>
+            <li>Googleアカウントを通じて取得された情報は、本サービスの中核機能（ログインおよびダッシュボード表示）以外の目的で不正に利用されることはありません。</li>
+            <li>Google のプライバシーポリシーについては、<a href="https://policies.google.com/privacy" target="_blank">Google プライバシーポリシー</a> をご参照ください。</li>
           </ul>
         </div>
 
-        <h2>6. 第三者への情報提供</h2>
+        <h2>6. 第三者提供の制限</h2>
         <p>
-          本サービスは、ユーザーの同意なく個人情報を第三者に提供することはありません。
-          ただし、以下の場合は例外とします：
+          当サービスは、あらかじめユーザーの同意を得ることなく、個人情報を第三者に提供することはありません。ただし、個人情報保護法その他の法令により認められる場合を除きます。
         </p>
         <ul>
           <li>法令に基づく場合</li>
-          <li>個人の生命、身体または財産の保護のため必要な場合</li>
-          <li>公衆衛生の向上または児童の健全な育成の推進のため</li>
+          <li>人の生命、身体または財産の保護のために必要がある場合であって、本人の同意を得ることが困難であるとき</li>
+          <li>国の機関もしくは地方公共団体またはその委託を受けた者が法令の定める事務を遂行することに対して協力する必要がある場合</li>
         </ul>
 
-        <h2>7. クッキーの使用</h2>
+        <h2>7. Cookie（クッキー）等の利用について</h2>
         <p>
-          本サービスは、セッション管理とユーザー認証のためにクッキーを使用しています。
-          これらのクッキーは以下の特性を持ちます：
+          本サービスでは、ユーザーの利便性向上およびセッション維持のために Cookieを使用しています。Cookieはブラウザの設定により無効化することが可能ですが、無効化された場合、本サービスの正常な機能（ログイン状態の維持等）が利用できなくなることがありますのであらかじめご了承ください。
         </p>
-        <ul>
-          <li>セッション専用（ブラウザ閉鎖時に削除）</li>
-          <li>HTTPOnly属性で保護（JavaScriptからのアクセス不可）</li>
-          <li>個人を特定する情報は含まない</li>
-        </ul>
 
-        <h2>8. ユーザーの権利</h2>
-        <p>ユーザーは以下の権利を有しています：</p>
-        <ul>
-          <li>✓ 個人情報へのアクセス権</li>
-          <li>✓ 個人情報の修正・削除請求権</li>
-          <li>✓ 個人情報処理の停止請求権</li>
-          <li>✓ 任意の時点でのログアウト権</li>
-        </ul>
+        <h2>8. ユーザーの権利（個人情報の開示・訂正・削除等）</h2>
+        <p>
+          ユーザーは、当サービスが保有する自身の個人情報について、開示、訂正、追加、削除、または利用停止を求めることができます。ご希望の際は、後述のお問い合わせ窓口よりご連絡ください。ご本人確認を行った上で、法令の定めに従い速やかに対応いたします。
+        </p>
 
         <h2>9. プライバシーポリシーの変更</h2>
         <p>
-          本プライバシーポリシーは、予告なく変更される可能性があります。
-          変更がある場合は、本ページにおいて「最終更新日」を更新します。
+          本ポリシーの内容は、法令の改正やサービスの仕様変更等に伴い、ユーザーに通知することなく変更することができるものとします。変更後のプライバシーポリシーは、本ページに掲載した時点から効力を生じるものとします。定期的なご確認をお願いいたします。
         </p>
 
-        <h2>10. お問い合わせ</h2>
+        <h2>10. お問い合わせ窓口</h2>
         <p>
-          本プライバシーポリシーまたは個人情報の取り扱いについてご質問がある場合は、
-          以下の連絡先までお問い合わせください：
+          本ポリシーに関するお問い合わせ、または個人情報の取り扱いに関するご質問・苦情などは、下記の窓口までお願いいたします。
         </p>
         <div class="highlight">
           <p>
-            <strong>学校生活ダッシュボール 管理者</strong><br>
-            メール: <a href="mailto:support@namiki-cs.ibk.ed.jp">support@namiki-cs.ibk.ed.jp</a><br>
+            <strong>窓口</strong><br>
+            連絡先メールアドレス: <a href="mailto:kimura.taichi@namiki-cs.ibk.ed.jp">support@namiki-cs.ibk.ed.jp</a><br>
             <br>
-            ※ 本フォームは技術的なお問い合わせにのみ対応しています
+            ※ 技術的なサポートやシステムに関するお問い合わせを対象としています。
           </p>
         </div>
-
-        <h2>11. 法的根拠</h2>
-        <p>本プライバシーポリシーは、以下に基づいています：</p>
-        <ul>
-          <li>個人情報の保護に関する法律（APPI）</li>
-          <li>一般データ保護規則（GDPR）</li>
-          <li>Google API に関するポリシー</li>
-          <li>Renderのプライバシーポリシー</li>
-        </ul>
-
-        <h2>12. 補足事項</h2>
-        <p>
-          本ダッシュボールはデモンストレーション・教育目的で提供されています。
-          本番環境での使用を検討する場合は、適切なセキュリティ監査を実施してください。
-        </p>
       </div>
     </div>
 
     <footer>
-      <p>&copy; 2024 学校生活ダッシュボード. All rights reserved.</p>
+      <p>&copy; 2026 学校生活ダッシュボード. All rights reserved.</p>
       <div class="footer-links">
         <a href="/">ホーム</a>
+        <span>|</span>
         <a href="/privacy">プライバシーポリシー</a>
-        <a href="/terms">利用規約</a>
+        <span>|</span>
         <a href="https://github.com/Namiki-18th/Namiki-18th.github.io" target="_blank">GitHub</a>
       </div>
     </footer>

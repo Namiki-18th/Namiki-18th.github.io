@@ -1,5 +1,6 @@
 const express = require('express');
 const path = require('path');
+const fs = require('fs');
 const passport = require('passport');
 const GoogleStrategy = require('passport-google-oauth20').Strategy;
 const session = require('express-session');
@@ -8,40 +9,111 @@ require('dotenv').config();
 const app = express();
 const port = process.env.PORT || 3000;
 
-// Renderなどのリバースプロキシ環境でHTTPSセッションクッキーを正しく動作させるための設定
+// Renderなどのリバースプロキシ環境で必須の設定
 app.set('trust proxy', 1);
 
-const users = new Map();
+// --- 【JSONファイルによるユーザー管理】 ---
+const USERS_FILE = path.join(__dirname, 'users.json');
 
-// Passportの設定
+// ユーザーDBの読み込み関数
+function loadUsersDB() {
+  try {
+    if (fs.existsSync(USERS_FILE)) {
+      const data = fs.readFileSync(USERS_FILE, 'utf8');
+      return JSON.parse(data);
+    }
+  } catch (err) {
+    console.error('[Error] users.jsonの読み込みに失敗しました:', err);
+  }
+  
+  // 初期データ（ファイルが存在しない場合）
+  const initialData = {
+    'bme280.gac@gmail.com': { 
+      id: 'bme280_admin', 
+      name: '管理者', 
+      email: 'bme280.gac@gmail.com', 
+      userClass: '特権管理者', 
+      role: 'admin',
+      picture: 'admin.png'
+    }
+  };
+  saveUsersDB(initialData);
+  return initialData;
+}
+
+// ユーザーDBの保存関数
+function saveUsersDB(db) {
+  try {
+    fs.writeFileSync(USERS_FILE, JSON.stringify(db, null, 2), 'utf8');
+  } catch (err) {
+    console.error('[Error] users.jsonの保存に失敗しました:', err);
+  }
+}
+
+// アプリ起動時にロード
+let usersDB = loadUsersDB();
+
 passport.use(new GoogleStrategy({
     clientID: process.env.GOOGLE_CLIENT_ID || 'demo-client-id',
     clientSecret: process.env.GOOGLE_CLIENT_SECRET || 'demo-client-secret',
     callbackURL: process.env.GOOGLE_CALLBACK_URL || 'http://localhost:3000/auth/google/callback'
   },
   (accessToken, refreshToken, profile, done) => {
-    // ユーザー情報をデータベースに保存（ここではメモリーに保存）
-    const user = {
-      id: profile.id,
-      name: profile.displayName,
-      email: profile.emails[0].value,
-      picture: profile.photos[0]?.value || ''
-    };
-    users.set(profile.id, user);
-    return done(null, user);
+    try {
+      console.log('[OAuth Success] Googleからプロファイルを取得しました:', profile.id, profile.displayName);
+      
+      const email = (profile.emails && profile.emails[0] && profile.emails[0].value) || '';
+      const allowedDomain = 'namiki-cs.ibk.ed.jp';
+
+      // 特権ユーザー判定
+      const isPrivilegedAdmin = (email === 'bme280.gac@gmail.com');
+
+      // 指定ドメイン以外、かつ特権ユーザーでもない場合はログインを拒否
+      if (!email.endsWith(`@${allowedDomain}`) && !isPrivilegedAdmin) {
+        console.warn(`[OAuth Warning] 許可されていないドメインからのログイン試行です: ${email}`);
+        return done(null, false, { message: `namiki-cs.ibk.ed.jp のメールアドレスのみログイン可能です。` });
+      }
+
+      // 既存の登録情報があるか確認
+      let existingUser = usersDB[email];
+      const isAdmin = isPrivilegedAdmin || email.startsWith('sato') || email.includes('admin') || (existingUser && existingUser.role === 'admin');
+
+      // ★ bme280.gac@gmail.com の場合は名前を「管理者」、アイコンを "admin.png" に固定
+      const name = isPrivilegedAdmin ? '管理者' : (profile.displayName || (existingUser ? existingUser.name : 'ユーザー'));
+      const picture = isPrivilegedAdmin ? 'admin.png' : ((profile.photos && profile.photos[0] && profile.photos[0].value) || (existingUser ? existingUser.picture : ''));
+
+      const user = {
+        id: profile.id,
+        name: name,
+        email: email,
+        picture: picture,
+        userClass: existingUser ? existingUser.userClass : (isAdmin ? '教職員' : '3-A'),
+        role: isAdmin ? 'admin' : 'student'
+      };
+
+      // 変更を適用してファイルに保存
+      usersDB[email] = user;
+      saveUsersDB(usersDB);
+
+      return done(null, user);
+    } catch (err) {
+      console.error('[OAuth Strategy Error]:', err);
+      return done(err, null);
+    }
   }
 ));
 
 passport.serializeUser((user, done) => {
-  done(null, user.id);
+  done(null, user.email);
 });
 
-passport.deserializeUser((id, done) => {
-  const user = users.get(id);
+passport.deserializeUser((email, done) => {
+  // 常に最新のデータをJSONから取得
+  usersDB = loadUsersDB();
+  const user = usersDB[email] || { email, name: 'ユーザー', role: 'student', userClass: '未設定', picture: '' };
   done(null, user);
 });
 
-// ミドルウェア設定
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 app.use(express.static(path.join(__dirname, 'public')));
@@ -50,83 +122,127 @@ app.use(session({
   secret: process.env.SESSION_SECRET || 'your-secret-key',
   resave: false,
   saveUninitialized: false,
+  proxy: true,
   cookie: { 
-    secure: process.env.NODE_ENV === 'production', // HTTPSを使用している場合のみtrue
+    secure: process.env.NODE_ENV === 'production',
     httpOnly: true,
-    maxAge: 24 * 60 * 60 * 1000 // 24時間
+    sameSite: 'lax',
+    maxAge: 24 * 60 * 60 * 1000
   }
 }));
 
 app.use(passport.initialize());
 app.use(passport.session());
 
-// 認証チェック用ミドルウェア
-function ensureAuthenticated(req, res, next) {
+// --- 【認証・権限ミドルウェア】 ---
+function ensureApiAuthenticated(req, res, next) {
+  if (req.isAuthenticated()) {
+    return next();
+  }
+  res.status(401).json({ error: 'Unauthorized', message: 'ログインが必要です' });
+}
+
+function ensurePageAuthenticated(req, res, next) {
   if (req.isAuthenticated()) {
     return next();
   }
   res.redirect('/login');
 }
 
-// ルート
+function ensureAdminAuthenticated(req, res, next) {
+  if (req.isAuthenticated() && req.user && req.user.role === 'admin') {
+    return next();
+  }
+  if (req.xhr || req.path.startsWith('/api/')) {
+    return res.status(403).json({ error: 'Forbidden', message: '管理者権限が必要です' });
+  }
+  res.redirect('/index');
+}
+
+// --- 【ページ配信ルーティング】 ---
+
 app.get('/', (req, res) => {
   if (req.isAuthenticated()) {
-    res.redirect('/index');
-    return;
+    return res.redirect('/index');
   }
   res.redirect('/login');
 });
 
 app.get('/login', (req, res) => {
   if (req.isAuthenticated()) {
-    res.redirect('/index');
-    return;
+    return res.redirect('/index');
   }
   res.sendFile(path.join(__dirname, 'public', 'login.html'));
 });
 
-// プライバシーポリシー
+app.get('/login-deny', (req, res) => {
+  res.sendFile(path.join(__dirname, 'public', 'login-deny.html'));
+});
+
 app.get('/privacy', (req, res) => {
   res.sendFile(path.join(__dirname, 'public', 'privacy.html'));
 });
 
-// Google OAuth認証ルート
 app.get('/auth/google',
   passport.authenticate('google', { scope: ['profile', 'email'] })
 );
 
-app.get('/auth/google/callback',
-  passport.authenticate('google', { failureRedirect: '/login' }),
-  (req, res) => {
-    // 認証成功後、/index にリダイレクト
-    res.redirect('/index');
-  }
-);
+app.get('/auth/google/callback', (req, res, next) => {
+  passport.authenticate('google', (err, user, info) => {
+    if (err) {
+      console.error('[OAuth Error] Google callback 認証エラー:', err);
+      return res.redirect('/login?error=auth_failed');
+    }
+    if (!user) {
+      console.warn('[OAuth Warning] ドメイン制限によりアクセスが拒否されました。/login-denyへ遷移します');
+      return res.redirect('/login-deny');
+    }
+    req.logIn(user, (loginErr) => {
+      if (loginErr) {
+        console.error('[OAuth Error] セッション確立エラー:', loginErr);
+        return res.redirect('/login?error=session_error');
+      }
+      req.session.save((saveErr) => {
+        if (saveErr) {
+          console.error('[OAuth Error] セッション保存エラー:', saveErr);
+          return res.redirect('/login?error=save_error');
+        }
+        console.log('[OAuth Success] ログイン成功、/index へ遷移します');
+        return res.redirect('/index');
+      });
+    });
+  })(req, res, next);
+});
 
-// ログアウト
 app.get('/logout', (req, res, next) => {
   req.logout((err) => {
     if (err) return next(err);
-    res.redirect('/login');
+    req.session.destroy(() => {
+      res.redirect('/login');
+    });
   });
 });
 
-// メインページ（index.htmlを表示）
-app.get('/index', ensureAuthenticated, (req, res) => {
+app.get('/index', ensurePageAuthenticated, (req, res) => {
   res.sendFile(path.join(__dirname, 'public', 'index.html'));
 });
 
-// 互換性のためのダッシュボードルート（/index へリダイレクト）
-app.get('/dashboard', ensureAuthenticated, (req, res) => {
+app.get('/dashboard', ensurePageAuthenticated, (req, res) => {
   res.redirect('/index');
 });
 
-app.get('/api/profile', ensureAuthenticated, (req, res) => {
-  res.json(req.user);
+app.get('/admin', ensureAdminAuthenticated, (req, res) => {
+  res.sendFile(path.join(__dirname, 'public', 'admin.html'));
 });
 
-// 時間割/授業スケジュール
-app.get('/api/schedule', ensureAuthenticated, (req, res) => {
+// --- 【一般 API エンドポイント】 ---
+
+app.get('/api/profile', ensureApiAuthenticated, (req, res) => {
+  usersDB = loadUsersDB();
+  res.json(usersDB[req.user.email] || req.user);
+});
+
+app.get('/api/schedule', ensureApiAuthenticated, (req, res) => {
   const schedule = [
     { id: 1, day: '月', time: '9:00-9:50', subject: '数学', room: 'A-102', teacher: '田中先生' },
     { id: 2, day: '月', time: '10:00-10:50', subject: '英語', room: 'B-201', teacher: '佐藤先生' },
@@ -142,8 +258,7 @@ app.get('/api/schedule', ensureAuthenticated, (req, res) => {
   res.json(schedule);
 });
 
-// お知らせ/通知
-app.get('/api/notices', ensureAuthenticated, (req, res) => {
+app.get('/api/notices', ensureApiAuthenticated, (req, res) => {
   const notices = [
     { id: 1, title: '7月月末テストについて', date: '2024-07-13', priority: 'high', content: '7月月末テストは7月25日(木)～7月26日(金)に実施されます。範囲表を確認してください。', icon: '📝' },
     { id: 2, title: '夏休みの宿題について', date: '2024-07-12', priority: 'normal', content: '夏休みの宿題リストを配布しました。提出期限は8月30日(金)です。', icon: '📚' },
@@ -154,8 +269,7 @@ app.get('/api/notices', ensureAuthenticated, (req, res) => {
   res.json(notices);
 });
 
-// リンクのまとめ
-app.get('/api/links', ensureAuthenticated, (req, res) => {
+app.get('/api/links', ensureApiAuthenticated, (req, res) => {
   const links = [
     { id: 1, category: '学習', name: '学校LMS', url: 'https://lms.school.edu', icon: '📚', description: '授業資料やレポート提出用システム' },
     { id: 2, category: '学習', name: 'Google Classroom', url: 'https://classroom.google.com', icon: '📝', description: '担任からの連絡・課題配布' },
@@ -169,8 +283,7 @@ app.get('/api/links', ensureAuthenticated, (req, res) => {
   res.json(links);
 });
 
-// カレンダーイベント
-app.get('/api/calendar', ensureAuthenticated, (req, res) => {
+app.get('/api/calendar', ensureApiAuthenticated, (req, res) => {
   const events = [
     { date: '2024-07-15', title: '開校記念日', type: 'holiday' },
     { date: '2024-07-22', title: '海の日', type: 'holiday' },
@@ -182,6 +295,42 @@ app.get('/api/calendar', ensureAuthenticated, (req, res) => {
   ];
   res.json(events);
 });
+
+
+// --- 【管理者用 API エンドポイント】 ---
+
+app.get('/api/admin/users', ensureAdminAuthenticated, (req, res) => {
+  usersDB = loadUsersDB();
+  const userList = Object.values(usersDB).map(u => ({
+    email: u.email,
+    role: u.role || 'student',
+    userClass: u.userClass || '未設定',
+    name: u.name || 'ユーザー',
+    picture: u.picture || ''
+  }));
+  res.json(userList);
+});
+
+app.post('/api/admin/user/:email', ensureAdminAuthenticated, (req, res) => {
+  const targetEmail = decodeURIComponent(req.params.email);
+  const { userClass, role, name, picture } = req.body;
+
+  usersDB = loadUsersDB();
+
+  if (usersDB[targetEmail]) {
+    if (userClass !== undefined) usersDB[targetEmail].userClass = userClass;
+    if (role !== undefined) usersDB[targetEmail].role = role;
+    if (name !== undefined) usersDB[targetEmail].name = name;
+    if (picture !== undefined) usersDB[targetEmail].picture = picture;
+    
+    saveUsersDB(usersDB);
+
+    res.json({ success: true, user: usersDB[targetEmail] });
+  } else {
+    res.status(404).json({ error: '指定されたメールアドレスのユーザーが見つかりません。' });
+  }
+});
+
 
 app.use((req, res) => {
   res.status(404).send('404 Not Found');
