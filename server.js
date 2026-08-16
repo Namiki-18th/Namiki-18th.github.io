@@ -8,6 +8,9 @@ require('dotenv').config();
 const app = express();
 const port = process.env.PORT || 3000;
 
+// Renderなどのリバースプロキシ環境でHTTPSセッションクッキーを正しく動作させるための設定
+app.set('trust proxy', 1);
+
 const users = new Map();
 
 // Passportの設定
@@ -48,7 +51,7 @@ app.use(session({
   resave: false,
   saveUninitialized: false,
   cookie: { 
-    secure: process.env.NODE_ENV === 'production', // HTTPSを使用している場合のみtrueに
+    secure: process.env.NODE_ENV === 'production', // HTTPSを使用している場合のみtrue
     httpOnly: true,
     maxAge: 24 * 60 * 60 * 1000 // 24時間
   }
@@ -68,7 +71,7 @@ function ensureAuthenticated(req, res, next) {
 // ルート
 app.get('/', (req, res) => {
   if (req.isAuthenticated()) {
-    res.redirect('/dashboard');
+    res.redirect('/index');
     return;
   }
   res.redirect('/login');
@@ -76,7 +79,7 @@ app.get('/', (req, res) => {
 
 app.get('/login', (req, res) => {
   if (req.isAuthenticated()) {
-    res.redirect('/dashboard');
+    res.redirect('/index');
     return;
   }
   res.sendFile(path.join(__dirname, 'public', 'login.html'));
@@ -95,8 +98,8 @@ app.get('/auth/google',
 app.get('/auth/google/callback',
   passport.authenticate('google', { failureRedirect: '/login' }),
   (req, res) => {
-    // 認証成功後、ダッシュボードにリダイレクト
-    res.redirect('/dashboard');
+    // 認証成功後、/index にリダイレクト
+    res.redirect('/index');
   }
 );
 
@@ -108,9 +111,14 @@ app.get('/logout', (req, res, next) => {
   });
 });
 
+// メインページ（index.htmlを表示）
+app.get('/index', ensureAuthenticated, (req, res) => {
+  res.sendFile(path.join(__dirname, 'public', 'index.html'));
+});
 
+// 互換性のためのダッシュボードルート（/index へリダイレクト）
 app.get('/dashboard', ensureAuthenticated, (req, res) => {
-  res.sendFile(path.join(__dirname, 'public', 'dashboard.html'));
+  res.redirect('/index');
 });
 
 app.get('/api/profile', ensureAuthenticated, (req, res) => {
@@ -163,9 +171,6 @@ app.get('/api/links', ensureAuthenticated, (req, res) => {
 
 // カレンダーイベント
 app.get('/api/calendar', ensureAuthenticated, (req, res) => {
-  const year = req.query.year || new Date().getFullYear();
-  const month = req.query.month || new Date().getMonth() + 1;
-  
   const events = [
     { date: '2024-07-15', title: '開校記念日', type: 'holiday' },
     { date: '2024-07-22', title: '海の日', type: 'holiday' },
