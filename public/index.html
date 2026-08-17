@@ -8,33 +8,9 @@
   <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" />
   <style>
     /* ==========================================
-       1. デザイントークン（CSS変数：ダーク/ライト）
+       1. デザイントークン（CSS変数）
        ========================================== */
     :root {
-      --color-bg: #f9fafb;
-      --color-surface: #ffffff;
-      --color-border: rgba(0, 0, 0, 0.08);
-      --color-surface-hover: rgba(0, 0, 0, 0.04);
-      --color-surface-active: rgba(0, 0, 0, 0.08);
-
-      --color-accent-blue-light: #2563eb;
-      --color-accent-blue: #3b82f6;
-      --color-accent-blue-dark: #1d4ed8;
-      --color-accent-purple: #9333ea;
-      --color-accent-green: #16a34a;
-      --color-accent-yellow: #ca8a04;
-      --color-accent-red: #dc2626;
-
-      --color-text-primary: #111827;
-      --color-text-secondary: #374151;
-      --color-text-body: #4b5563;
-      --color-text-muted: #6b7280;
-      --color-text-faint: #9ca3af;
-      --color-text-subtle: #d1d5db;
-      --color-line: #e5e7eb;
-    }
-
-    html.dark {
       --color-bg: #000000;
       --color-surface: #0a0a0c;
       --color-border: rgba(255, 255, 255, 0.12);
@@ -72,10 +48,9 @@
       background-color: var(--color-bg);
       color: var(--color-text-secondary);
       height: 100vh;
-      min-width: 1024px;
+      min-width: 1024px; /* PC用最小幅を設定 */
       overflow: hidden;
       display: flex;
-      transition: background-color 0.3s, color 0.3s;
     }
 
     ::selection {
@@ -84,7 +59,8 @@
 
     ::-webkit-scrollbar { width: 8px; height: 8px; }
     ::-webkit-scrollbar-track { background: transparent; }
-    ::-webkit-scrollbar-thumb { background: var(--color-text-faint); border-radius: 4px; }
+    ::-webkit-scrollbar-thumb { background: #374151; border-radius: 4px; }
+    ::-webkit-scrollbar-thumb:hover { background: #4b5563; }
 
     .fade-in { animation: fadeIn 0.3s ease-in-out; }
     @keyframes fadeIn {
@@ -104,8 +80,12 @@
     .grid { display: grid; }
     .flex-col { flex-direction: column; }
     .flex-row { flex-direction: row; }
+    .flex-row-reverse { flex-direction: row-reverse; }
     .items-center { align-items: center; }
+    .items-start { align-items: flex-start; }
+    .items-end { align-items: flex-end; }
     .justify-between { justify-content: space-between; }
+    .justify-center { justify-content: center; }
     .flex-1 { flex: 1; }
     .shrink-0 { flex-shrink: 0; }
     .overflow-hidden { overflow: hidden; }
@@ -116,31 +96,40 @@
     .w-full { width: 100%; }
     .h-full { height: 100%; }
     .min-w-0 { min-width: 0; }
+    .mx-auto { margin-left: auto; margin-right: auto; }
     .font-bold { font-weight: 700; }
     .font-semibold { font-weight: 600; }
     .font-medium { font-weight: 500; }
     .font-normal { font-weight: 400; }
     .text-xs { font-size: 0.75rem; line-height: 1rem; }
     .text-sm { font-size: 0.875rem; line-height: 1.25rem; }
+    .text-base { font-size: 1rem; line-height: 1.5rem; }
+    .text-xl { font-size: 1.25rem; line-height: 1.75rem; }
     .text-2xl { font-size: 1.5rem; line-height: 2rem; }
     .text-3xl { font-size: 1.875rem; line-height: 2.25rem; }
+    .text-center { text-align: center; }
     .truncate { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+    .whitespace-nowrap { white-space: nowrap; }
     .grid-full-width { grid-column: 1 / -1; }
 
     .space-y-1 > * + * { margin-top: 0.25rem; }
     .space-y-2 > * + * { margin-top: 0.5rem; }
     .space-y-3 > * + * { margin-top: 0.75rem; }
     .space-y-4 > * + * { margin-top: 1rem; }
+    .space-y-5 > * + * { margin-top: 1.25rem; }
     .space-y-6 > * + * { margin-top: 1.5rem; }
+    .gap-1 { gap: 0.25rem; }
     .gap-2 { gap: 0.5rem; }
     .gap-3 { gap: 0.75rem; }
     .gap-4 { gap: 1rem; }
     .gap-6 { gap: 1.5rem; }
 
+    .grid-cols-1 { grid-template-columns: repeat(1, minmax(0, 1fr)); }
     .grid-cols-2 { grid-template-columns: repeat(2, minmax(0, 1fr)); }
     .grid-cols-3 { grid-template-columns: repeat(3, minmax(0, 1fr)); }
     .col-span-2 { grid-column: span 2 / span 2; }
 
+    /* アイコン共通サイズ */
     .icon-nav { width: 1.25rem; height: 1.25rem; }
     .icon-sm { width: 1rem; height: 1rem; }
     .icon-xs { width: 0.75rem; height: 0.75rem; }
@@ -151,12 +140,11 @@
     .sidebar {
       display: flex;
       flex-direction: column;
-      width: 17rem;
+      width: 16rem;
       background-color: var(--color-surface);
       border-right: 1px solid var(--color-border);
       height: 100%;
       flex-shrink: 0;
-      transition: background-color 0.3s, border-color 0.3s;
     }
 
     .app-main {
@@ -166,34 +154,6 @@
       height: 100%;
       position: relative;
       overflow: hidden;
-    }
-
-    .top-header {
-      height: 4rem;
-      border-bottom: 1px solid var(--color-border);
-      display: flex;
-      align-items: center;
-      justify-content: flex-end;
-      padding: 0 2rem;
-      background-color: var(--color-surface);
-      gap: 1rem;
-    }
-
-    .theme-toggle-button {
-      background: var(--color-surface-hover);
-      border: 1px solid var(--color-border);
-      color: var(--color-text-secondary);
-      padding: 0.5rem 0.75rem;
-      border-radius: 0.5rem;
-      font-size: 0.875rem;
-      cursor: pointer;
-      display: flex;
-      align-items: center;
-      gap: 0.5rem;
-      transition: background 0.2s;
-    }
-    .theme-toggle-button:hover {
-      background: var(--color-surface-active);
     }
 
     .content-area {
@@ -225,13 +185,22 @@
       align-items: center;
       justify-content: center;
       color: #ffffff;
-      box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+      box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.3);
       overflow: hidden;
     }
-    .logo-badge-img { width: 100%; height: 100%; object-fit: cover; }
+    .logo-badge-img {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+    }
 
-    .sidebar-brand-name { color: var(--color-text-primary); line-height: 1.25; }
-    .sidebar-brand-tagline { color: var(--color-accent-blue-light); }
+    .sidebar-brand-name {
+      color: #ffffff;
+      line-height: 1.25;
+    }
+    .sidebar-brand-tagline {
+      color: var(--color-accent-blue-light);
+    }
 
     .sidebar-nav {
       flex: 1;
@@ -266,8 +235,8 @@
     }
 
     .sidebar-nav-divider {
-      padding-top: 0.75rem;
-      margin-top: 0.75rem;
+      padding-top: 1rem;
+      margin-top: 1rem;
       border-top: 1px solid var(--color-border);
     }
 
@@ -289,7 +258,11 @@
       padding: 0.5rem;
       border-radius: 0.5rem;
       font-weight: 500;
+      transition: background-color 0.2s;
       text-decoration: none;
+    }
+    .admin-panel-button:hover {
+      background-color: rgba(168, 85, 247, 0.2);
     }
 
     .sidebar-user-row {
@@ -320,19 +293,22 @@
       border-radius: 0.5rem;
       font-size: 0.875rem;
       font-weight: 500;
+      transition: background-color 0.2s;
       border: 1px solid rgba(239, 68, 68, 0.2);
       text-decoration: none;
     }
+    .logout-button:hover {
+      background-color: rgba(239, 68, 68, 0.2);
+    }
 
     /* ==========================================
-       6. 共通カード & パーツ
+       6. 共通カード & バッジ
        ========================================== */
     .app-card {
       background-color: var(--color-surface);
       border: 1px solid var(--color-border);
       border-radius: 1rem;
       padding: 1.5rem;
-      transition: background-color 0.3s, border-color 0.3s;
     }
 
     .card-header-row {
@@ -344,11 +320,15 @@
     .card-title {
       font-size: 1rem;
       font-weight: 600;
-      color: var(--color-text-primary);
+      color: #ffffff;
       display: flex;
       align-items: center;
       gap: 0.5rem;
     }
+    .card-icon--yellow { color: var(--color-accent-yellow); }
+    .card-icon--green  { color: var(--color-accent-green); }
+    .card-icon--purple { color: var(--color-accent-purple); }
+
     .card-link-button {
       color: var(--color-accent-blue-light);
       background: none;
@@ -358,8 +338,29 @@
       font-weight: 500;
     }
 
-    .placeholder-text { color: var(--color-text-faint); padding: 0.5rem 0; font-size: 0.875rem; }
-    .empty-state-text { padding: 2.5rem 0; color: var(--color-text-faint); text-align: center; }
+    .skeleton-loader-row {
+      display: flex;
+      gap: 1rem;
+      animation: pulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+    }
+    .skeleton-bar {
+      height: 1rem;
+      background-color: var(--color-surface-hover);
+      border-radius: 0.25rem;
+    }
+    .skeleton-bar--lg { width: 75%; }
+    .skeleton-bar--sm { width: 50%; }
+
+    .placeholder-text {
+      color: var(--color-text-faint);
+      padding: 0.5rem 0;
+      font-size: 0.875rem;
+    }
+    .empty-state-text {
+      padding: 2.5rem 0;
+      color: var(--color-text-faint);
+      text-align: center;
+    }
 
     .status-card { padding: 1.25rem; }
     .status-card-title {
@@ -377,7 +378,11 @@
       padding: 0.25rem 0;
       font-size: 0.875rem;
     }
-    .status-row--divider { border-top: 1px solid var(--color-border); padding-top: 0.75rem; margin-top: 0.25rem; }
+    .status-row--divider {
+      border-top: 1px solid var(--color-border);
+      padding-top: 0.75rem;
+      margin-top: 0.25rem;
+    }
     .status-label { color: var(--color-text-muted); }
     .status-value { color: var(--color-text-secondary); font-weight: 500; }
 
@@ -412,15 +417,19 @@
       border-radius: 0.75rem;
       border: none;
       cursor: pointer;
+      transition: background-color 0.2s;
+      box-shadow: 0 10px 15px -3px rgba(37, 99, 235, 0.2);
       display: inline-flex;
       align-items: center;
       gap: 0.5rem;
       text-decoration: none;
     }
-    .button-primary:hover { background-color: var(--color-accent-blue); }
+    .button-primary:hover {
+      background-color: var(--color-accent-blue);
+    }
 
     /* ==========================================
-       7. 各種タブの中身
+       7. ホームタブ（ようこそバナー・各種リスト）
        ========================================== */
     .welcome-banner {
       background: linear-gradient(to right, var(--color-surface-hover), var(--color-surface));
@@ -430,9 +439,38 @@
       position: relative;
       overflow: hidden;
     }
-    .welcome-date-text { color: var(--color-accent-blue-light); margin-bottom: 0.25rem; font-size: 0.875rem; font-weight: 500; }
-    .welcome-heading-text { color: var(--color-text-primary); font-size: 1.875rem; font-weight: 700; }
-    .welcome-banner-row { display: flex; justify-content: space-between; align-items: center; gap: 1rem; position: relative; z-index: 1; }
+    .welcome-banner-glow {
+      position: absolute;
+      right: 0;
+      top: 0;
+      width: 16rem;
+      height: 16rem;
+      background-color: rgba(59, 130, 246, 0.05);
+      border-radius: 9999px;
+      filter: blur(48px);
+      pointer-events: none;
+      transform: translate(50%, -50%);
+    }
+    .welcome-date-text {
+      color: var(--color-accent-blue-light);
+      margin-bottom: 0.25rem;
+      font-size: 0.875rem;
+      font-weight: 500;
+    }
+    .welcome-heading-text {
+      color: #ffffff;
+      font-size: 1.875rem;
+      font-weight: 700;
+    }
+    .welcome-banner-row {
+      display: flex;
+      flex-direction: row;
+      justify-content: space-between;
+      align-items: center;
+      gap: 1rem;
+      position: relative;
+      z-index: 1;
+    }
 
     .notice-item {
       display: flex;
@@ -443,6 +481,7 @@
       background-color: var(--color-surface-hover);
       border: 1px solid var(--color-border);
     }
+    .notice-item-icon { margin-top: 0.125rem; }
     .notice-item-title { color: var(--color-text-secondary); font-size: 0.875rem; font-weight: 500; }
     .notice-item-date { color: var(--color-text-faint); font-size: 0.75rem; margin-top: 0.25rem; }
 
@@ -452,6 +491,7 @@
       justify-content: space-between;
       padding: 0.5rem 0.75rem;
       border-radius: 0.5rem;
+      transition: background-color 0.2s;
       font-size: 0.875rem;
       color: var(--color-text-body);
       text-decoration: none;
@@ -479,21 +519,25 @@
       font-size: 0.75rem;
       font-weight: 700;
       color: var(--color-text-body);
+      flex-shrink: 0;
     }
     .schedule-highlight-subject { color: var(--color-text-secondary); font-size: 0.875rem; font-weight: 600; }
     .schedule-highlight-room { color: var(--color-text-faint); font-size: 0.75rem; }
 
-    /* 時間割 */
+    /* ==========================================
+       8. 時間割タブ
+       ========================================== */
     .schedule-card { padding: 2rem; }
     .schedule-header {
       display: flex;
-      justify-content: space-between;
+      flex-direction: row;
       align-items: center;
+      justify-content: space-between;
       margin-bottom: 1.5rem;
       border-bottom: 1px solid var(--color-border);
       padding-bottom: 1.5rem;
     }
-    .schedule-title { color: var(--color-text-primary); font-size: 1.25rem; font-weight: 700; }
+    .schedule-title { color: #ffffff; font-size: 1.25rem; font-weight: 700; }
     .schedule-subtitle { color: var(--color-text-muted); font-size: 0.875rem; margin-top: 0.25rem; }
 
     .schedule-day-tabs {
@@ -502,42 +546,53 @@
       padding: 0.25rem;
       border-radius: 0.75rem;
       border: 1px solid var(--color-border);
+      align-self: flex-start;
     }
     .schedule-day-button {
       padding: 0.375rem 1rem;
       border-radius: 0.5rem;
       font-size: 0.875rem;
       font-weight: 500;
+      transition: all 0.2s;
       color: var(--color-text-muted);
       background: transparent;
       border: none;
       cursor: pointer;
     }
+    .schedule-day-button:hover { color: var(--color-text-secondary); }
     .schedule-day-button.active {
       background-color: var(--color-surface-hover);
-      color: var(--color-text-primary);
+      color: #ffffff;
     }
 
-    table { width: 100%; text-align: left; border-collapse: collapse; white-space: nowrap; }
+    table {
+      width: 100%;
+      text-align: left;
+      border-collapse: collapse;
+      white-space: nowrap;
+    }
     th {
       padding: 0.75rem 1rem;
       font-weight: 500;
       color: var(--color-text-faint);
       font-size: 0.75rem;
       text-transform: uppercase;
+      letter-spacing: 0.05em;
       border-bottom: 1px solid var(--color-border);
     }
     td { padding: 0.75rem 1rem; font-size: 0.875rem; }
-    tbody tr { border-bottom: 1px solid var(--color-line); }
-    tbody tr:hover { background-color: var(--color-surface-hover); }
+    tbody tr { border-bottom: 1px solid var(--color-line); transition: background-color 0.2s; }
+    tbody tr:hover { background-color: rgba(255, 255, 255, 0.04); }
     .cell-period { color: var(--color-text-muted); font-weight: 600; }
     .cell-subject { color: var(--color-text-secondary); font-weight: 600; }
     .cell-teacher { color: var(--color-text-muted); }
-    .cell-room { color: var(--color-text-faint); font-size: 0.75rem; }
+    .cell-room { color: var(--color-text-faint); font-family: ui-monospace, monospace; font-size: 0.75rem; }
 
-    /* コンテンツカード汎用 */
+    /* ==========================================
+       9. お知らせ・リンク集・カレンダー・規約 タブ
+       ========================================== */
     .content-card { padding: 1.5rem; }
-    .content-card-title { color: var(--color-text-primary); font-size: 1.25rem; font-weight: 700; margin-bottom: 0.25rem; }
+    .content-card-title { color: #ffffff; font-size: 1.25rem; font-weight: 700; margin-bottom: 0.25rem; }
     .content-card-subtitle {
       color: var(--color-text-muted);
       font-size: 0.875rem;
@@ -553,6 +608,7 @@
       border: 1px solid var(--color-border);
       margin-bottom: 0.75rem;
     }
+    .notice-card-header { display: flex; align-items: center; gap: 0.5rem; margin-bottom: 0.5rem; }
     .notice-card-date {
       font-size: 0.75rem;
       padding: 0.125rem 0.5rem;
@@ -560,7 +616,7 @@
       background-color: var(--color-surface-active);
       color: var(--color-text-body);
     }
-    .notice-card-title { color: var(--color-text-primary); font-weight: 700; }
+    .notice-card-title { color: var(--color-text-secondary); font-weight: 700; }
     .notice-card-body { color: var(--color-text-muted); font-size: 0.875rem; }
 
     .link-card {
@@ -580,13 +636,158 @@
       background-color: var(--color-surface-hover);
       border: 1px solid var(--color-border);
       display: flex;
-      justify-content: space-between;
       align-items: center;
+      justify-content: space-between;
     }
     .calendar-item-title { color: var(--color-text-secondary); font-weight: 500; }
-    .calendar-item-date { color: var(--color-text-faint); font-size: 0.875rem; }
+    .calendar-item-date { color: var(--color-text-faint); font-size: 0.875rem; font-family: ui-monospace, monospace; }
 
-    /* フッター */
+    /* ==========================================
+       10. チャットタブ
+       ========================================== */
+    .chat-page-wrapper {
+      height: calc(100vh - 100px);
+    }
+
+    .chat-card {
+      padding: 0;
+      display: flex;
+      flex-direction: row;
+      height: 100%;
+      overflow: hidden;
+      box-shadow: 0 1px 2px 0 rgba(0, 0, 0, 0.05);
+    }
+
+    .chat-sidebar {
+      width: 16rem;
+      display: flex;
+      flex-direction: column;
+      background-color: var(--color-surface);
+      border-right: 1px solid var(--color-border);
+    }
+
+    .chat-sidebar-header { padding: 1rem; border-bottom: 1px solid var(--color-border); }
+    .chat-sidebar-title { color: var(--color-text-secondary); font-size: 0.875rem; font-weight: 700; }
+    .chat-sidebar-body { flex: 1; overflow-y: auto; padding: 0.75rem; }
+    .chat-section-label {
+      color: var(--color-text-faint);
+      margin-bottom: 0.5rem;
+      padding: 0 0.5rem;
+      font-size: 0.75rem;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+    }
+
+    .channel-button {
+      width: 100%;
+      text-align: left;
+      padding: 0.5rem 0.75rem;
+      border-radius: 0.5rem;
+      font-size: 0.875rem;
+      font-weight: 500;
+      transition: background-color 0.2s;
+      color: var(--color-text-muted);
+      background: transparent;
+      border: none;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+    }
+    .channel-button:hover { background-color: var(--color-surface-hover); }
+    .channel-button.active { background-color: var(--color-surface-hover); color: #ffffff; }
+    .channel-hash { color: var(--color-text-muted); }
+    .dm-user-avatar { width: 1.25rem; height: 1.25rem; border-radius: 9999px; object-fit: cover; }
+    .dm-loading-text { color: var(--color-text-subtle); padding: 0 0.5rem; font-size: 0.75rem; }
+
+    .chat-main { flex: 1; display: flex; flex-direction: column; height: 100%; background-color: var(--color-bg); }
+
+    .chat-header {
+      height: 4rem;
+      padding: 0 1.5rem;
+      border-bottom: 1px solid var(--color-border);
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      background-color: rgba(10, 10, 12, 0.8);
+      backdrop-filter: blur(8px);
+      flex-shrink: 0;
+    }
+    .chat-header-title { color: #ffffff; font-size: 1rem; font-weight: 700; display: flex; align-items: center; gap: 0.5rem; }
+    .chat-header-desc { color: var(--color-text-muted); font-size: 0.75rem; display: block; }
+
+    .chat-messages-area { flex: 1; overflow-y: auto; padding: 1.5rem; display: flex; flex-direction: column; gap: 1.25rem; }
+    .chat-center-message { display: flex; align-items: center; justify-content: center; height: 100%; }
+    .chat-center-message-text { color: var(--color-text-faint); font-size: 0.875rem; }
+
+    .chat-message { display: flex; gap: 0.75rem; }
+    .chat-message--self { flex-direction: row-reverse; }
+    .chat-message--other { flex-direction: row; }
+    .chat-message-avatar {
+      width: 2rem;
+      height: 2rem;
+      border-radius: 9999px;
+      background-color: var(--color-surface-hover);
+      flex-shrink: 0;
+      margin-top: 0.25rem;
+    }
+    .chat-message-content { display: flex; flex-direction: column; max-width: 80%; }
+    .chat-message-content--self { align-items: flex-end; }
+    .chat-message-content--other { align-items: flex-start; }
+    .chat-message-sender { color: var(--color-text-faint); font-size: 0.75rem; margin-bottom: 0.25rem; margin-left: 0.25rem; }
+    .chat-bubble { padding: 0.625rem 1rem; border-radius: 1rem; font-size: 0.875rem; box-shadow: 0 1px 2px 0 rgba(0, 0, 0, 0.05); }
+    .chat-bubble--self { background-color: var(--color-accent-blue-dark); color: #ffffff; border-top-right-radius: 0.125rem; }
+    .chat-bubble--other { background-color: var(--color-surface-hover); color: var(--color-text-secondary); border-top-left-radius: 0.125rem; }
+    .chat-message-time { font-size: 0.625rem; color: var(--color-text-faint); margin-top: 0.25rem; margin-left: 0.25rem; margin-right: 0.25rem; }
+
+    .chat-input-bar { padding: 1rem; background-color: var(--color-surface); border-top: 1px solid var(--color-border); flex-shrink: 0; }
+    .chat-input-form { display: flex; align-items: flex-end; gap: 0.5rem; max-width: 56rem; margin: 0 auto; }
+    .chat-attach-button {
+      padding: 0.625rem;
+      color: var(--color-text-muted);
+      background: none;
+      border: none;
+      cursor: pointer;
+      border-radius: 0.5rem;
+      margin-bottom: 0.125rem;
+    }
+    .chat-attach-button:hover { color: var(--color-text-secondary); background-color: var(--color-surface-hover); }
+    .chat-input-wrapper {
+      flex: 1;
+      overflow: hidden;
+      background-color: var(--color-bg);
+      border: 1px solid var(--color-border);
+      border-radius: 0.75rem;
+      transition: border-color 0.2s;
+    }
+    .chat-input-wrapper:focus-within { border-color: var(--color-accent-blue); }
+    .chat-text-input {
+      width: 100%;
+      background: transparent;
+      padding: 0.75rem 1rem;
+      font-size: 0.875rem;
+      color: var(--color-text-primary);
+      border: none;
+      outline: none;
+    }
+    .chat-text-input::placeholder { color: var(--color-text-faint); }
+    .chat-send-button {
+      padding: 0.75rem;
+      background-color: var(--color-accent-blue-dark);
+      color: #ffffff;
+      border-radius: 0.75rem;
+      border: none;
+      cursor: pointer;
+      box-shadow: 0 1px 2px 0 rgba(0, 0, 0, 0.05);
+      margin-bottom: 0.125rem;
+      transition: background-color 0.2s;
+    }
+    .chat-send-button:hover { background-color: var(--color-accent-blue); }
+
+    /* ==========================================
+       11. フッター
+       ========================================== */
     .site-footer {
       margin-top: 3rem;
       padding: 1.5rem 0;
@@ -638,12 +839,15 @@
         <svg class="icon-nav" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"/></svg>
         カレンダー
       </button>
-      <button onclick="switchTab('chat')" id="sidebar-nav-chat" class="sidebar-nav-button">
-        <svg class="icon-nav" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z"/></svg>
-        メッセージ
-      </button>
 
-      <!-- 独立した項目セクション：プライバシーポリシー & 利用規約 -->
+      <div class="sidebar-nav-divider">
+        <button onclick="switchTab('chat')" id="sidebar-nav-chat" class="sidebar-nav-button">
+          <svg class="icon-nav" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z"/></svg>
+          メッセージ (暗号化)
+        </button>
+      </div>
+
+      <!-- 追加: プライバシーポリシー & 利用規約 -->
       <div class="sidebar-nav-divider">
         <button onclick="switchTab('privacy')" id="sidebar-nav-privacy" class="sidebar-nav-button">
           <svg class="icon-nav" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z"/></svg>
@@ -657,9 +861,11 @@
     </nav>
 
     <div class="sidebar-footer">
-      <a href="admin.html" id="admin-panel-link" class="admin-panel-button hidden">⚙️ 管理画面へ</a>
+      <a href="admin.html" id="admin-panel-link" class="admin-panel-button hidden">
+        ⚙️ 管理画面へ
+      </a>
       <div class="sidebar-user-row">
-        <img id="sidebar-user-avatar" src="https://placehold.co/40x40/333/fff?text=U" alt="Avatar" class="sidebar-avatar-image" />
+        <img id="sidebar-user-avatar" src="https://placehold.co/40x40/333/fff?text=U" alt="Avatar" class="sidebar-avatar-image" onerror="this.src='https://placehold.co/40x40/333/fff?text=U'" />
         <div class="flex-1 min-w-0">
           <p id="sidebar-user-name" class="text-sm font-semibold truncate sidebar-user-name-text">読み込み中...</p>
           <p id="sidebar-user-role" class="text-xs truncate sidebar-user-role-text">権限: 読込中</p>
@@ -674,41 +880,46 @@
 
   <!-- ========== メインエリア ========== -->
   <div class="app-main">
-    <header class="top-header">
-      <button onclick="toggleTheme()" class="theme-toggle-button" id="theme-toggle-btn">
-        <span id="theme-icon">🌙</span> <span id="theme-text">ダークモード</span>
-      </button>
-    </header>
 
     <main class="content-area">
 
       <!-- 1. ホームタブ -->
       <div id="page-home" class="page-section fade-in space-y-6">
+
         <div class="welcome-banner">
+          <div class="welcome-banner-glow"></div>
           <div class="welcome-banner-row">
             <div>
               <p id="dashboard-date-display" class="welcome-date-text">日付を読み込んでいます...</p>
               <h2 id="dashboard-welcome-heading" class="welcome-heading-text">ようこそ、ダッシュボードへ</h2>
             </div>
-            <button onclick="switchTab('schedule')" class="button-primary">📅 今日の時間割を見る</button>
+            <button onclick="switchTab('schedule')" class="button-primary">
+              📅 今日の時間割を見る
+            </button>
           </div>
         </div>
 
         <div class="grid grid-cols-3 gap-6">
           <div class="col-span-2 space-y-6">
+
             <div class="app-card">
               <div class="card-header-row">
-                <h3 class="card-title"><span>🔔</span> 最新のお知らせ</h3>
+                <h3 class="card-title"><span class="card-icon--yellow">🔔</span> 最新のお知らせ</h3>
                 <button onclick="switchTab('notices')" class="card-link-button">すべて見る &rarr;</button>
               </div>
               <div id="dashboard-notices-list" class="space-y-3">
-                <div class="placeholder-text">読み込み中...</div>
+                <div class="skeleton-loader-row">
+                  <div class="flex-1 space-y-3">
+                    <div class="skeleton-bar skeleton-bar--lg"></div>
+                    <div class="skeleton-bar skeleton-bar--sm"></div>
+                  </div>
+                </div>
               </div>
             </div>
 
             <div class="app-card">
               <div class="card-header-row">
-                <h3 class="card-title"><span>📅</span> 本日のハイライト</h3>
+                <h3 class="card-title"><span class="card-icon--green">📅</span> 本日のハイライト</h3>
                 <button onclick="switchTab('schedule')" class="card-link-button">詳細 &rarr;</button>
               </div>
               <div id="dashboard-schedule-highlights" class="grid grid-cols-2 gap-3">
@@ -720,7 +931,7 @@
           <div class="space-y-6">
             <div class="app-card">
               <div class="card-header-row">
-                <h3 class="card-title"><span>🔗</span> クイックリンク</h3>
+                <h3 class="card-title"><span class="card-icon--purple">🔗</span> クイックリンク</h3>
               </div>
               <div id="dashboard-quicklinks-list" class="space-y-2">
                 <div class="placeholder-text">読み込み中...</div>
@@ -740,7 +951,10 @@
                 </div>
                 <div class="status-row status-row--divider">
                   <span class="status-label">チャット暗号化</span>
-                  <span class="encryption-badge">AES-GCM</span>
+                  <span class="encryption-badge">
+                    <svg class="icon-xs" fill="currentColor" viewBox="0 0 20 20"><path d="M5 9V7a5 5 0 0110 0v2a2 2 0 012 2v5a2 2 0 01-2 2H5a2 2 0 01-2-2v-5a2 2 0 012-2zm8-2v2H7V7a3 3 0 016 0z" clip-rule="evenodd" fill-rule="evenodd"></path></svg>
+                    AES-GCM
+                  </span>
                 </div>
               </div>
             </div>
@@ -803,12 +1017,71 @@
         </div>
       </div>
 
-      <!-- 6. メッセージタブ -->
-      <div id="page-chat" class="page-section hidden fade-in" style="height: calc(100vh - 120px);">
-        <div class="app-card content-card h-full flex flex-col">
-          <h2 class="content-card-title">メッセージ</h2>
-          <p class="content-card-subtitle">学年・クラス間での連絡用チャンネルです。</p>
-          <div class="empty-state-text">チャットシステム稼働中</div>
+      <!-- 6. チャットタブ -->
+      <div id="page-chat" class="page-section hidden fade-in chat-page-wrapper">
+        <div class="app-card chat-card">
+
+          <div class="chat-sidebar">
+            <div class="chat-sidebar-header">
+              <h3 class="chat-sidebar-title">メッセージ</h3>
+            </div>
+            <div class="chat-sidebar-body space-y-6">
+              <div>
+                <h4 class="chat-section-label">チャンネル</h4>
+                <div class="space-y-1">
+                  <button onclick="switchChannel('grade')" id="channel-button-grade" class="channel-button active">
+                    <span class="channel-hash">#</span> 学年全体
+                  </button>
+                  <button onclick="switchChannel('class')" id="channel-button-class" class="channel-button">
+                    <span class="channel-hash">#</span> クラス
+                  </button>
+                </div>
+              </div>
+
+              <div>
+                <h4 class="chat-section-label">ダイレクトメッセージ</h4>
+                <div id="chat-dm-list" class="space-y-1">
+                  <div class="dm-loading-text">読み込み中...</div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <div class="chat-main">
+            <div class="chat-header">
+              <div>
+                <h3 id="chat-channel-title" class="chat-header-title"># 学年全体チャット</h3>
+                <p id="chat-channel-description" class="chat-header-desc">学年全員で交流・情報共有するチャンネルです。</p>
+              </div>
+              <div class="flex items-center gap-2" title="このチャットはエンドツーエンドで暗号化されています">
+                <span class="encryption-badge">
+                  <svg class="icon-xs" fill="currentColor" viewBox="0 0 20 20"><path d="M5 9V7a5 5 0 0110 0v2a2 2 0 012 2v5a2 2 0 01-2 2H5a2 2 0 01-2-2v-5a2 2 0 012-2zm8-2v2H7V7a3 3 0 016 0z" clip-rule="evenodd" fill-rule="evenodd"></path></svg>
+                  AES-GCM
+                </span>
+              </div>
+            </div>
+
+            <div id="chat-messages-list" class="chat-messages-area">
+              <div class="chat-center-message">
+                <div class="chat-center-message-text">暗号化メッセージを読み込んでいます...</div>
+              </div>
+            </div>
+
+            <div class="chat-input-bar">
+              <form id="chat-message-form" onsubmit="handleChatSubmit(event)" class="chat-input-form">
+                <button type="button" onclick="handleAttachment()" class="chat-attach-button">
+                  <svg class="icon-nav" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15.172 7l-6.586 6.586a2 2 0 102.828 2.828l6.414-6.586a4 4 0 00-5.656-5.656l-6.415 6.585a6 6 0 108.486 8.486L20.5 13"/></svg>
+                </button>
+                <div class="chat-input-wrapper">
+                  <input type="text" id="chat-message-input" placeholder="メッセージを入力..." class="chat-text-input" autocomplete="off" />
+                </div>
+                <button type="submit" class="chat-send-button">
+                  <svg class="icon-nav" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 19l9 2-9-18-9 18 9-2zm0 0v-8"/></svg>
+                </button>
+              </form>
+            </div>
+          </div>
+
         </div>
       </div>
 
@@ -819,10 +1092,12 @@
           <p class="content-card-subtitle">本ポータルサイトにおける個人情報の取り扱いについて。</p>
           <div class="space-y-4" style="color: var(--color-text-body); font-size: 0.875rem; line-height: 1.6;">
             <p>当ポータルサイト（以下、「当サイト」）では、利用者（生徒・教職員）のプライバシーを尊重し、個人情報の保護に努めています。</p>
-            <h3 style="color: var(--color-text-primary); font-size: 1rem; font-weight: 600; margin-top: 1rem;">1. 収集する情報</h3>
+            <h3 style="color: #fff; font-size: 1rem; font-weight: 600; margin-top: 1rem;">1. 収集する情報</h3>
             <p>当サイトでは、ログイン認証や学校生活のサポートを目的として、氏名、学年・クラス、メールアドレス等の情報を扱います。</p>
-            <h3 style="color: var(--color-text-primary); font-size: 1rem; font-weight: 600; margin-top: 1rem;">2. 情報の利用目的</h3>
-            <p>収集した情報は、時間割表示、お知らせの配信、および利用者間のメッセージング機能の提供・維持にのみ使用します。</p>
+            <h3 style="color: #fff; font-size: 1rem; font-weight: 600; margin-top: 1rem;">2. 情報の利用目的</h3>
+            <p>収集した情報は、時間割表示、お知らせの配信、および利用者間のメッセージング機能（エンドツーエンド暗号化対応）の提供・維持にのみ使用します。</p>
+            <h3 style="color: #fff; font-size: 1rem; font-weight: 600; margin-top: 1rem;">3. セキュリティについて</h3>
+            <p>当サイトのメッセージ機能等におけるデータ通信は暗号化され、安全な管理体制のもとで保護されています。</p>
           </div>
         </div>
       </div>
@@ -833,11 +1108,18 @@
           <h2 class="content-card-title">利用規約</h2>
           <p class="content-card-subtitle">当ポータルサイトを利用する上でのルールと条件。</p>
           <div class="space-y-4" style="color: var(--color-text-body); font-size: 0.875rem; line-height: 1.6;">
-            <p>この利用規約（以下、「本規約」）は、当ポータルサイトの利用条件を定めるものです。</p>
-            <h3 style="color: var(--color-text-primary); font-size: 1rem; font-weight: 600; margin-top: 1rem;">第1条（適用）</h3>
+            <p>この利用規約（以下、「本規約」）は、当ポータルサイトの利用条件を定めるものです。利用者の皆様には、本規約に従ってご利用いただきます。</p>
+            <h3 style="color: #fff; font-size: 1rem; font-weight: 600; margin-top: 1rem;">第1条（適用）</h3>
             <p>本規約は、利用者と当サイトの運営管理者との間のすべての関係に適用されます。</p>
-            <h3 style="color: var(--color-text-primary); font-size: 1rem; font-weight: 600; margin-top: 1rem;">第2条（禁止事項）</h3>
-            <p>利用者は、法令違反や迷惑行為、不正アクセス等の禁止事項を行ってはなりません。</p>
+            <h3 style="color: #fff; font-size: 1rem; font-weight: 600; margin-top: 1rem;">第2条（禁止事項）</h3>
+            <p>利用者は、以下の行為をしてはなりません。</p>
+            <ul style="padding-left: 1.5rem;" class="space-y-1">
+              <li>法令や公序良俗に違反する行為</li>
+              <li>他の利用者に対する誹謗中傷、迷惑行為、プライバシーを侵害する行為</li>
+              <li>システムへの不正アクセス、または運営を妨害するおそれのある行為</li>
+            </ul>
+            <h3 style="color: #fff; font-size: 1rem; font-weight: 600; margin-top: 1rem;">第3条（利用制限・垢削除）</h3>
+            <p>管理者は、利用者が本規約に違反したと判断した場合、事前通知なくアカウントの利用を停止または削除することがあります。</p>
           </div>
         </div>
       </div>
@@ -847,6 +1129,7 @@
         <div class="footer-links">
           <a href="#" onclick="switchTab('privacy'); return false;" class="footer-link">プライバシーポリシー</a>
           <a href="#" onclick="switchTab('terms'); return false;" class="footer-link">利用規約</a>
+          <a href="https://github.com/Namiki-18th/Namiki-18th.github.io" target="_blank" class="footer-link">GitHub</a>
         </div>
       </footer>
 
@@ -855,28 +1138,84 @@
 
   <script>
     let globalData = {
-      profile: { name: 'テストユーザー', role: 'student', userClass: '3-A' },
-      schedule: [{ id: 1, day: '月', period: 1, subject: '数学', room: 'A-102', teacher: '田中' }],
-      notices: [{ id: 1, title: 'システムメンテナンスのお知らせ', date: '2026-08-20', content: '通常通りご利用いただけます。', priority: 'high' }],
-      links: [{ name: '学校公式サイト', url: '#', description: 'ポータル' }],
-      calendar: [{ date: '2026-09-01', title: '始業式' }]
+      profile: null,
+      schedule: [],
+      notices: [],
+      links: [],
+      calendar: []
     };
 
-    function toggleTheme() {
-      const html = document.documentElement;
-      const isDark = html.classList.toggle('dark');
-      document.getElementById('theme-icon').textContent = isDark ? '🌙' : '☀️';
-      document.getElementById('theme-text').textContent = isDark ? 'ダークモード' : 'ライトモード';
-      localStorage.setItem('theme', isDark ? 'dark' : 'light');
+    let currentChannel = 'grade';
+
+    // --- 暗号化ヘルパー (Web Crypto API - AES-GCM) ---
+    const ENCRYPTION_SECRET = "NamikiPortalSecureKey2026";
+
+    async function getCryptoKey() {
+      const enc = new TextEncoder();
+      const keyMaterial = await window.crypto.subtle.importKey(
+        "raw",
+        enc.encode(ENCRYPTION_SECRET.padEnd(32, '0').slice(0, 32)),
+        { name: "PBKDF2" },
+        false,
+        ["deriveKey"]
+      );
+      return window.crypto.subtle.deriveKey(
+        {
+          name: "PBKDF2",
+          salt: enc.encode("namiki-school-salt"),
+          iterations: 100000,
+          hash: "SHA-256"
+        },
+        keyMaterial,
+        { name: "AES-GCM", length: 256 },
+        false,
+        ["encrypt", "decrypt"]
+      );
     }
 
-    // 初期テーマの適用
-    if (localStorage.getItem('theme') === 'light') {
-      document.documentElement.classList.remove('dark');
-      document.getElementById('theme-icon').textContent = '☀️';
-      document.getElementById('theme-text').textContent = 'ライトモード';
+    async function encryptData(plainText) {
+      try {
+        const key = await getCryptoKey();
+        const iv = window.crypto.getRandomValues(new Uint8Array(12));
+        const encoded = new TextEncoder().encode(plainText);
+        const cipherText = await window.crypto.subtle.encrypt(
+          { name: "AES-GCM", iv: iv },
+          key,
+          encoded
+        );
+        const combined = new Uint8Array(iv.length + new Uint8Array(cipherText).length);
+        combined.set(iv);
+        combined.set(new Uint8Array(cipherText), iv.length);
+        return btoa(String.fromCharCode(...combined));
+      } catch (e) {
+        console.error("暗号化エラー:", e);
+        return plainText;
+      }
     }
 
+    async function decryptData(base64Str) {
+      try {
+        const key = await getCryptoKey();
+        const binaryStr = atob(base64Str);
+        const bytes = new Uint8Array(binaryStr.length);
+        for (let i = 0; i < binaryStr.length; i++) {
+          bytes[i] = binaryStr.charCodeAt(i);
+        }
+        const iv = bytes.slice(0, 12);
+        const cipherText = bytes.slice(12);
+        const decrypted = await window.crypto.subtle.decrypt(
+          { name: "AES-GCM", iv: iv },
+          key,
+          cipherText
+        );
+        return new TextDecoder().decode(decrypted);
+      } catch (e) {
+        console.error("復号エラー:", e);
+        return base64Str;
+      }
+    }
+
+    // --- タブ切り替え ---
     function switchTab(tabId) {
       document.querySelectorAll('.page-section').forEach(el => el.classList.add('hidden'));
       document.querySelectorAll('.sidebar-nav-button').forEach(btn => btn.classList.remove('active'));
@@ -884,37 +1223,185 @@
       const targetContent = document.getElementById(`page-${tabId}`);
       if (targetContent) targetContent.classList.remove('hidden');
 
-      const targetBtn = document.getElementById(`sidebar-nav-${tabId}`);
-      if (targetBtn) targetBtn.classList.add('active');
+      const targetBtnPC = document.getElementById(`sidebar-nav-${tabId}`);
+      if (targetBtnPC) targetBtnPC.classList.add('active');
+
+      if (tabId === 'chat') {
+        loadChannelMessages(currentChannel);
+      }
     }
 
     function initDateStr() {
       const now = new Date();
-      document.getElementById('dashboard-date-display').textContent = now.toLocaleDateString('ja-JP', { year: 'numeric', month: 'long', day: 'numeric', weekday: 'long' });
+      const options = { year: 'numeric', month: 'long', day: 'numeric', weekday: 'long' };
+      document.getElementById('dashboard-date-display').textContent = now.toLocaleDateString('ja-JP', options);
+    }
+
+    // --- データ取得 & 描画 ---
+    async function loadDashboardData() {
+      try {
+        const [profileRes, scheduleRes, noticesRes, linksRes, calendarRes] = await Promise.all([
+          fetch('/api/profile').catch(() => ({ ok: false })),
+          fetch('/api/schedule').catch(() => ({ ok: false })),
+          fetch('/api/notices').catch(() => ({ ok: false })),
+          fetch('/api/links').catch(() => ({ ok: false })),
+          fetch('/api/calendar').catch(() => ({ ok: false }))
+        ]);
+
+        if (profileRes.status === 401) {
+          window.location.href = '/login';
+          return;
+        }
+
+        if (profileRes.ok) globalData.profile = await profileRes.json();
+        else globalData.profile = { name: 'ゲストユーザー', role: 'student', userClass: '3-A', picture: '' };
+
+        if (scheduleRes.ok) globalData.schedule = await scheduleRes.json();
+        else globalData.schedule = [{ id: 1, day: '月', period: 1, subject: '数学', room: 'A-102', teacher: '田中' }];
+
+        if (noticesRes.ok) globalData.notices = await noticesRes.json();
+        else globalData.notices = [{ id: 1, title: 'システムメンテナンス', date: '2026-08-20', content: 'お知らせのモックデータです。', priority: 'high' }];
+
+        if (linksRes.ok) globalData.links = await linksRes.json();
+        else globalData.links = [{ name: '学校HP', url: '#', description: '公式サイト' }];
+
+        if (calendarRes.ok) globalData.calendar = await calendarRes.json();
+        else globalData.calendar = [{ date: '2026-09-01', title: '始業式' }];
+
+        renderAll();
+      } catch (err) {
+        console.error('データ取得エラー:', err);
+      }
+    }
+
+    function renderAll() {
+      if (globalData.profile) {
+        const p = globalData.profile;
+        document.getElementById('sidebar-user-name').textContent = p.name || 'ユーザー';
+        if (p.picture) {
+          document.getElementById('sidebar-user-avatar').src = p.picture;
+        }
+        document.getElementById('dashboard-welcome-heading').textContent = `ようこそ、${p.name} さん`;
+        document.getElementById('dashboard-user-class').textContent = p.userClass || '未設定';
+        document.getElementById('sidebar-user-role').textContent = `権限: ${p.role === 'admin' ? '管理者' : '生徒'}`;
+        if (p.role === 'admin') {
+          const adminLink = document.getElementById('admin-panel-link');
+          if (adminLink) adminLink.classList.remove('hidden');
+        }
+      }
+
+      // ホーム：お知らせ
+      const homeNotices = document.getElementById('dashboard-notices-list');
+      homeNotices.innerHTML = globalData.notices.slice(0, 3).map(n => `
+        <div class="notice-item">
+          <div class="notice-item-icon">${n.priority === 'high' ? '🔴' : '🔵'}</div>
+          <div>
+            <div class="notice-item-title">${escapeHtml(n.title)}</div>
+            <div class="notice-item-date">${escapeHtml(n.date)}</div>
+          </div>
+        </div>
+      `).join('');
+
+      // ホーム：クイックリンク
+      const homeLinks = document.getElementById('dashboard-quicklinks-list');
+      homeLinks.innerHTML = globalData.links.slice(0, 4).map(l => `
+        <a href="${escapeHtml(l.url)}" class="quicklink-item">
+          <span>${escapeHtml(l.name)}</span>
+          <svg class="quicklink-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14"/></svg>
+        </a>
+      `).join('');
+
+      // お知らせタブ（全件）
+      document.getElementById('notices-list-full').innerHTML = globalData.notices.map(n => `
+        <div class="notice-card">
+          <div class="notice-card-header">
+            <span class="notice-card-date">${escapeHtml(n.date)}</span>
+            <h4 class="notice-card-title">${escapeHtml(n.title)}</h4>
+          </div>
+          <p class="notice-card-body">${escapeHtml(n.content)}</p>
+        </div>
+      `).join('');
+
+      // リンク集タブ
+      document.getElementById('links-grid-full').innerHTML = globalData.links.map(l => `
+        <a href="${escapeHtml(l.url)}" class="link-card">
+          <div class="link-card-name">${escapeHtml(l.name)}</div>
+          <div class="link-card-desc">${escapeHtml(l.description || '')}</div>
+        </a>
+      `).join('');
+
+      // カレンダータブ
+      document.getElementById('calendar-events-list').innerHTML = globalData.calendar.map(c => `
+        <div class="calendar-item">
+          <span class="calendar-item-title">${escapeHtml(c.title)}</span>
+          <span class="calendar-item-date">${escapeHtml(c.date)}</span>
+        </div>
+      `).join('');
+
+      filterSchedule('月');
+      renderDMUsers();
+    }
+
+    function renderDMUsers() {
+      const dmList = [
+        { id: 'u1', name: '佐藤 先生', role: '教員', avatar: 'https://placehold.co/32x32/444/fff?text=S' },
+        { id: 'u2', name: '田中 太郎', role: '生徒', avatar: 'https://placehold.co/32x32/555/fff?text=T' },
+      ];
+      window.dmUsersMap = {};
+      dmList.forEach(u => window.dmUsersMap[u.id] = u);
+
+      const container = document.getElementById('chat-dm-list');
+      container.innerHTML = dmList.map(u => `
+        <button onclick="switchChannel('dm_${u.id}', '${u.name}')" id="dm-button-${u.id}" class="channel-button dm-user-button">
+          <img src="${u.avatar}" class="dm-user-avatar" />
+          <span class="truncate">${u.name}</span>
+        </button>
+      `).join('');
     }
 
     function filterSchedule(day) {
       document.querySelectorAll('.schedule-day-button').forEach(btn => btn.classList.remove('active'));
-      document.getElementById(`schedule-day-${day}`).classList.add('active');
-      
+      const activeBtn = document.getElementById(`schedule-day-${day}`);
+      if (activeBtn) activeBtn.classList.add('active');
+
       const schedule = globalData.schedule.filter(s => s.day === day);
       const container = document.getElementById('schedule-table-wrapper');
-      
+      const homeContainer = document.getElementById('dashboard-schedule-highlights');
+
       if (schedule.length === 0) {
-        container.innerHTML = '<div class="placeholder-text">データがありません</div>';
+        const emptyMsg = `<div class="placeholder-text">データがありません</div>`;
+        container.innerHTML = emptyMsg;
+        homeContainer.innerHTML = emptyMsg;
         return;
       }
 
+      homeContainer.innerHTML = schedule.slice(0, 4).map(item => `
+        <div class="schedule-highlight-item">
+          <div class="schedule-highlight-period">${item.id || item.period}限</div>
+          <div class="min-w-0">
+            <div class="schedule-highlight-subject truncate">${escapeHtml(item.subject)}</div>
+            <div class="schedule-highlight-room truncate">${escapeHtml(item.room)}</div>
+          </div>
+        </div>
+      `).join('');
+
       container.innerHTML = `
         <table>
-          <thead><tr><th>時限</th><th>教科</th><th>担当教員</th><th>教室</th></tr></thead>
+          <thead>
+            <tr>
+              <th>時限</th>
+              <th>教科</th>
+              <th>担当教員</th>
+              <th>教室</th>
+            </tr>
+          </thead>
           <tbody>
             ${schedule.map(item => `
               <tr>
-                <td class="cell-period">${item.period}限</td>
-                <td class="cell-subject">${item.subject}</td>
-                <td class="cell-teacher">${item.teacher}</td>
-                <td class="cell-room">${item.room}</td>
+                <td class="cell-period">${item.id || item.period}限</td>
+                <td class="cell-subject">${escapeHtml(item.subject)}</td>
+                <td class="cell-teacher">${escapeHtml(item.teacher)}</td>
+                <td class="cell-room">${escapeHtml(item.room)}</td>
               </tr>
             `).join('')}
           </tbody>
@@ -922,51 +1409,138 @@
       `;
     }
 
+    // --- チャット ---
+    async function switchChannel(channelId, name = '') {
+      currentChannel = channelId;
+
+      document.querySelectorAll('.channel-button').forEach(btn => btn.classList.remove('active'));
+
+      const titleEl = document.getElementById('chat-channel-title');
+      const descEl = document.getElementById('chat-channel-description');
+
+      if (channelId === 'grade') {
+        document.getElementById('channel-button-grade')?.classList.add('active');
+        titleEl.innerHTML = '<span class="channel-hash">#</span> 学年全体チャット';
+        descEl.textContent = '学年全員で交流・情報共有するチャンネルです。';
+      } else if (channelId === 'class') {
+        document.getElementById('channel-button-class')?.classList.add('active');
+        const cls = globalData.profile?.userClass || 'クラス未設定';
+        titleEl.innerHTML = `<span class="channel-hash">#</span> ${cls} チャット`;
+        descEl.textContent = `${cls}の生徒専用の連絡・相談チャンネルです。`;
+      } else if (channelId.startsWith('dm_')) {
+        const userId = channelId.replace('dm_', '');
+        document.getElementById(`dm-button-${userId}`)?.classList.add('active');
+        titleEl.innerHTML = `<span class="channel-hash">@</span> ${name}`;
+        descEl.textContent = `${name}さんとのプライベートメッセージです。`;
+      }
+
+      await loadChannelMessages(channelId);
+    }
+
+    async function loadChannelMessages(channelId) {
+      const container = document.getElementById('chat-messages-list');
+      container.innerHTML = '<div class="chat-center-message"><div class="chat-center-message-text">メッセージを読み込んでいます...</div></div>';
+
+      try {
+        const res = await fetch(`/api/chat?channel=${encodeURIComponent(channelId)}`);
+        if (!res.ok) throw new Error('API Error');
+        const data = await res.json();
+
+        container.innerHTML = '';
+        if (!data.messages || data.messages.length === 0) {
+          container.innerHTML = '<div class="chat-center-message"><div class="chat-center-message-text">まだメッセージはありません。</div></div>';
+          return;
+        }
+
+        for (const msg of data.messages) {
+          const decryptedText = await decryptData(msg.encryptedText);
+          const isSelf = msg.sender === (globalData.profile?.name || 'あなた');
+          const timeStr = msg.timestamp ? new Date(msg.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : '12:00';
+
+          let avatarSrc = isSelf ? (globalData.profile?.picture || 'https://placehold.co/32x32/333/fff?text=Me') : 'https://placehold.co/32x32/555/fff?text=U';
+          if (!isSelf && msg.avatar) avatarSrc = msg.avatar;
+
+          const msgDiv = document.createElement('div');
+          msgDiv.className = `chat-message ${isSelf ? 'chat-message--self' : 'chat-message--other'}`;
+
+          msgDiv.innerHTML = `
+            <img src="${escapeHtml(avatarSrc)}" class="chat-message-avatar" />
+            <div class="chat-message-content ${isSelf ? 'chat-message-content--self' : 'chat-message-content--other'}">
+              ${!isSelf ? `<span class="chat-message-sender">${escapeHtml(msg.sender)}</span>` : ''}
+              <div class="chat-bubble ${isSelf ? 'chat-bubble--self' : 'chat-bubble--other'}">
+                ${escapeHtml(decryptedText)}
+              </div>
+              <span class="chat-message-time">${timeStr}</span>
+            </div>
+          `;
+          container.appendChild(msgDiv);
+        }
+        container.scrollTop = container.scrollHeight;
+      } catch (e) {
+        container.innerHTML = `
+          <div class="chat-message chat-message--other">
+             <img src="https://placehold.co/32x32/333/fff?text=S" class="chat-message-avatar" />
+             <div class="chat-message-content chat-message-content--other">
+               <span class="chat-message-sender">システム</span>
+               <div class="chat-bubble chat-bubble--other">暗号化チャットのUIテスト表示です。(サーバー未接続)</div>
+             </div>
+          </div>
+        `;
+      }
+    }
+
+    async function handleChatSubmit(event) {
+      event.preventDefault();
+      const input = document.getElementById('chat-message-input');
+      const text = input.value.trim();
+      if (!text) return;
+
+      const encryptedText = await encryptData(text);
+
+      try {
+        const res = await fetch('/api/chat', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            channel: currentChannel,
+            sender: globalData.profile?.name || 'テストユーザー',
+            avatar: globalData.profile?.picture || '',
+            encryptedText: encryptedText,
+            timestamp: new Date().toISOString()
+          })
+        });
+        if (!res.ok) throw new Error('Send failed');
+      } catch (e) {
+        console.warn('送信APIエラー、画面上のみ追加します');
+        const container = document.getElementById('chat-messages-list');
+        const msgDiv = document.createElement('div');
+        msgDiv.className = 'chat-message chat-message--self';
+        msgDiv.innerHTML = `
+          <img src="${globalData.profile?.picture || 'https://placehold.co/32x32/333/fff?text=Me'}" class="chat-message-avatar" />
+          <div class="chat-message-content chat-message-content--self">
+            <div class="chat-bubble chat-bubble--self">${escapeHtml(text)}</div>
+            <span class="chat-message-time">Now</span>
+          </div>
+        `;
+        container.appendChild(msgDiv);
+        container.scrollTop = container.scrollHeight;
+      }
+
+      input.value = '';
+    }
+
+    function handleAttachment() {
+      alert('ファイルの添付機能は現在準備中です。');
+    }
+
+    function escapeHtml(str) {
+      if (!str) return '';
+      return String(str).replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;").replace(/'/g, "&#039;");
+    }
+
     window.addEventListener('DOMContentLoaded', () => {
       initDateStr();
-      filterSchedule('月');
-      
-      // ダッシュボードへの反映
-      document.getElementById('sidebar-user-name').textContent = globalData.profile.name;
-      document.getElementById('sidebar-user-role').textContent = '権限: 生徒';
-      document.getElementById('dashboard-welcome-heading').textContent = `ようこそ、${globalData.profile.name} さん`;
-      document.getElementById('dashboard-user-class').textContent = globalData.profile.userClass;
-
-      // お知らせ一覧の描画
-      document.getElementById('dashboard-notices-list').innerHTML = globalData.notices.map(n => `
-        <div class="notice-item">
-          <div>
-            <div class="notice-item-title">${n.title}</div>
-            <div class="notice-item-date">${n.date}</div>
-          </div>
-        </div>
-      `).join('');
-
-      document.getElementById('notices-list-full').innerHTML = globalData.notices.map(n => `
-        <div class="notice-card">
-          <div class="notice-card-date">${n.date}</div>
-          <h4 class="notice-card-title">${n.title}</h4>
-          <p class="notice-card-body">${n.content}</p>
-        </div>
-      `).join('');
-
-      document.getElementById('dashboard-quicklinks-list').innerHTML = globalData.links.map(l => `
-        <a href="${l.url}" class="quicklink-item"><span>${l.name}</span></a>
-      `).join('');
-
-      document.getElementById('links-grid-full').innerHTML = globalData.links.map(l => `
-        <a href="${l.url}" class="link-card">
-          <div class="link-card-name">${l.name}</div>
-          <div class="link-card-desc">${l.description}</div>
-        </a>
-      `).join('');
-
-      document.getElementById('calendar-events-list').innerHTML = globalData.calendar.map(c => `
-        <div class="calendar-item">
-          <span class="calendar-item-title">${c.title}</span>
-          <span class="calendar-item-date">${c.date}</span>
-        </div>
-      `).join('');
+      loadDashboardData();
     });
   </script>
 </body>
