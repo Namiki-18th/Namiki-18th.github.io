@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>学校生活ダッシュボード</title>
+  <title>学校生活ダッシュボード - 並木中等教育学校18回生</title>
   <!-- Inter Font -->
   <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" />
   <!-- Socket.io Client -->
@@ -12,15 +12,17 @@
 </head>
 <body>
 
+  <!-- サイドバー -->
   <aside class="sidebar">
     <div class="sidebar-header">
       <div class="flex items-center gap-3">
         <div class="logo-badge">
           <img src="/logo.webp" alt="Logo" class="logo-badge-img" onerror="this.style.display='none'; this.nextElementSibling.style.display='inline';" />
+          <span class="logo-badge-emoji" style="display:none;">🏫</span>
         </div>
         <h1 class="font-bold text-sm sidebar-brand-name">
           並木中等教育学校18回生<br>
-          <span class="text-xs font-normal sidebar-brand-tagline">ダッシュボード</span>
+          <span class="text-xs font-normal sidebar-brand-tagline">統合ダッシュボード</span>
         </h1>
       </div>
     </div>
@@ -32,11 +34,11 @@
       </button>
       <button onclick="switchTab('schedule')" id="sidebar-nav-schedule" class="sidebar-nav-button">
         <svg class="icon-nav" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
-        時間割
+        時間割・授業
       </button>
       <button onclick="switchTab('notices')" id="sidebar-nav-notices" class="sidebar-nav-button">
         <svg class="icon-nav" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9"/></svg>
-        お知らせ
+        お知らせ・連絡
       </button>
       <button onclick="switchTab('links')" id="sidebar-nav-links" class="sidebar-nav-button">
         <svg class="icon-nav" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13.828 10.172a4 4 0 00-5.656 0l-4 4a4 4 0 105.656 5.656l1.102-1.101m-.758-4.899a4 4 0 005.656 0l4-4a4 4 0 00-5.656-5.656l-1.1 1.1"/></svg>
@@ -44,12 +46,12 @@
       </button>
       <button onclick="switchTab('calendar')" id="sidebar-nav-calendar" class="sidebar-nav-button">
         <svg class="icon-nav" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"/></svg>
-        カレンダー
+        行事カレンダー
       </button>
 
       <button onclick="switchTab('classroom')" id="sidebar-nav-classroom" class="sidebar-nav-button">
         <svg class="icon-nav" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10"/></svg>
-        Classroomスクレイピング
+        Classroom同期
       </button>
 
       <div class="sidebar-nav-divider">
@@ -71,6 +73,7 @@
       </div>
     </nav>
 
+    <!-- サイドバーフッター / ユーザーメニュー -->
     <div class="sidebar-footer">
       <div id="account-popup-menu" class="account-popup-menu">
         <button onclick="handleAdminSettings()" class="account-popup-item">
@@ -103,6 +106,7 @@
     </div>
   </aside>
 
+  <!-- メインコンテンツ領域 -->
   <div class="app-main">
     <header class="mobile-topbar">
       <div class="flex items-center gap-2">
@@ -185,8 +189,8 @@
               <h3 class="status-card-title">システムステータス</h3>
               <div class="space-y-3">
                 <div class="status-row">
-                  <span class="status-label">認証</span>
-                  <span class="status-badge-ok">OK</span>
+                  <span class="status-label">認証状態</span>
+                  <span class="status-badge-ok">正常 (Active)</span>
                 </div>
                 <div class="status-row">
                   <span class="status-label">所属クラス</span>
@@ -242,7 +246,7 @@
       <div id="page-links" class="page-section hidden fade-in space-y-6">
         <div class="app-card content-card">
           <h2 class="content-card-title">リンク集</h2>
-          <p class="content-card-subtitle">各種ポータルサイトへのリンクです。</p>
+          <p class="content-card-subtitle">各種ポータルサイトや教材への便利なリンクです。</p>
           <div id="links-grid-full" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
             <div class="empty-state-text grid-full-width">データを読み込んでいます...</div>
           </div>
@@ -253,7 +257,7 @@
       <div id="page-calendar" class="page-section hidden fade-in space-y-6">
         <div class="app-card content-card">
           <h2 class="content-card-title">年間行事カレンダー</h2>
-          <p class="content-card-subtitle">今年度の行事予定です。</p>
+          <p class="content-card-subtitle">今年度の学校行事やテスト日程の予定です。</p>
           <div id="calendar-events-list" class="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div class="empty-state-text grid-full-width">データを読み込んでいます...</div>
           </div>
@@ -393,6 +397,7 @@
     </main>
   </div>
 
+  <!-- スクリプトの実装 -->
   <script>
     let globalData = {
       profile: null,
@@ -560,20 +565,34 @@
         }
 
         if (profileRes.ok) globalData.profile = await profileRes.json();
-        else globalData.profile = { name: '山田 太郎', id: '180001', role: 'student', userClass: '3-A', picture: '' };
+        else globalData.profile = { name: '並木 太郎', id: '180001', role: 'student', userClass: '3-A', picture: '' };
 
         if (scheduleRes.ok) globalData.schedule = await scheduleRes.json();
-        else globalData.schedule = [{ id: 1, day: '月', time: '9:00-9:50', subject: '数学', room: 'A-102', teacher: '田中先生' }];
+        else globalData.schedule = [
+          { id: 1, day: '月', time: '9:00-9:50', subject: '数学特講', room: 'A-102', teacher: '田中先生' },
+          { id: 2, day: '月', time: '10:00-10:50', subject: '英語表現', room: 'A-103', teacher: 'Smith先生' },
+          { id: 3, day: '月', time: '11:00-11:50', subject: '物理', room: '理科室1', teacher: '鈴木先生' },
+          { id: 4, day: '月', time: '13:00-13:50', subject: '現代文', room: 'A-102', teacher: '佐藤先生' }
+        ];
 
         if (noticesRes.ok) globalData.notices = await noticesRes.json();
-        else globalData.notices = [{ id: 1, title: 'システムメンテナンス', date: '2026-08-20', content: 'お知らせのモックデータです。', priority: 'high' }];
+        else globalData.notices = [
+          { id: 1, title: 'システムメンテナンスのお知らせ', date: '2026-08-20', content: '8月20日22:00より、サーバーの定期メンテナンスを実施します。', priority: 'high' },
+          { id: 2, title: '第2回定期考査の時間割発表', date: '2026-08-18', content: '来月実施される定期考査の時間割が公開されました。', priority: 'normal' }
+        ];
 
         if (linksRes.ok) globalData.links = await linksRes.json();
-        else globalData.links = [{ id: 1, name: '学校LMS', url: 'https://lms.school.edu', description: '授業資料やレポート提出用システム' }];
+        else globalData.links = [
+          { id: 1, name: '学校LMSポータル', url: 'https://lms.school.edu', description: '授業資料やレポート提出用システム' },
+          { id: 2, name: 'Google Classroom', url: 'https://classroom.google.com', description: '課題の管理と連絡事項の確認' },
+          { id: 3, name: 'デジタル図書館', url: 'https://library.school.edu', description: '電子書籍・論文検索システム' }
+        ];
 
         globalData.calendar = [
-          { date: '2026-09-01', title: '始業式' },
-          { date: '2026-09-15', title: '学校祭' }
+          { date: '2026-09-01', title: '第2学期始業式' },
+          { date: '2026-09-15', title: '並木祭（文化祭）' },
+          { date: '2026-09-16', title: '並木祭（体育祭）' },
+          { date: '2026-10-05', title: '第2回定期考査開始' }
         ];
 
         renderAll();
