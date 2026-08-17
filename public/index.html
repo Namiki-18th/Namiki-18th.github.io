@@ -143,18 +143,26 @@ body {
     .lg\:col-span-2 { grid-column: span 2 / span 2; }
 }
 
-.icon-nav { width: 1.25rem; height: 1.25rem; }
-.icon-sm { width: 1rem; height: 1rem; }
-.icon-xs { width: 0.75rem; height: 0.75rem; }
+.icon-nav { width: 1.25rem; height: 1.25rem; flex-shrink: 0; }
+.icon-sm { width: 1rem; height: 1rem; flex-shrink: 0; }
+.icon-xs { width: 0.75rem; height: 0.75rem; flex-shrink: 0; }
 
+/* サイドバーの開閉・ホバーアニメーション設定 */
 .sidebar {
     display: none;
     flex-direction: column;
-    width: 16rem;
+    width: 4.5rem; /* 格納時の幅 (アイコンのみ) */
     background-color: var(--color-surface);
     border-right: 1px solid var(--color-border);
     height: 100%;
     flex-shrink: 0;
+    transition: width 0.3s ease;
+    overflow: hidden;
+    white-space: nowrap;
+    z-index: 100;
+}
+.sidebar:hover {
+    width: 16rem; /* ホバー時に展開 */
 }
 @media (min-width: 768px) {
     .sidebar { display: flex; }
@@ -215,8 +223,9 @@ body {
     height: 4rem;
     display: flex;
     align-items: center;
-    padding: 0 1.5rem;
+    padding: 0 1.25rem;
     border-bottom: 1px solid var(--color-border);
+    cursor: pointer;
 }
 
 .logo-badge {
@@ -228,6 +237,7 @@ body {
     justify-content: center;
     color: #ffffff;
     overflow: hidden;
+    flex-shrink: 0;
 }
 .logo-badge--mobile {
     width: 1.75rem;
@@ -240,10 +250,20 @@ body {
     object-fit: cover;
 }
 
+/* 格納時はテキスト要素を非表示、ホバー時（または通常時）に表示 */
+.sidebar-brand-text {
+    opacity: 0;
+    transition: opacity 0.2s ease;
+    margin-left: 0.75rem;
+}
+.sidebar:hover .sidebar-brand-text {
+    opacity: 1;
+}
+
 .sidebar-brand-name { color: var(--color-text-primary); line-height: 1.25; }
 .sidebar-brand-tagline { color: var(--color-accent-blue-light); }
 
-.sidebar-nav { flex: 1; overflow-y: auto; padding: 1rem 0.75rem; }
+.sidebar-nav { flex: 1; overflow-y: auto; padding: 1rem 0.75rem; overflow-x: hidden; }
 
 .sidebar-nav-button {
     width: 100%;
@@ -261,6 +281,7 @@ body {
     text-align: left;
     color: var(--color-text-muted);
     text-decoration: none;
+    white-space: nowrap;
 }
 .sidebar-nav-button:hover {
     color: var(--color-text-secondary);
@@ -271,6 +292,15 @@ body {
     color: var(--color-accent-blue-light);
 }
 
+/* メニューのテキスト部分 */
+.sidebar-nav-text {
+    opacity: 0;
+    transition: opacity 0.2s ease;
+}
+.sidebar:hover .sidebar-nav-text {
+    opacity: 1;
+}
+
 .sidebar-nav-divider {
     padding-top: 1rem;
     margin-top: 1rem;
@@ -278,10 +308,11 @@ body {
 }
 
 .sidebar-footer {
-    padding: 0.75rem 1rem;
+    padding: 0.75rem 0.75rem;
     border-top: 1px solid var(--color-border);
     background-color: var(--color-surface);
     position: relative;
+    overflow: hidden;
 }
 
 .sidebar-user-row {
@@ -292,6 +323,7 @@ body {
     border-radius: 0.5rem;
     cursor: pointer;
     transition: background-color 0.2s;
+    white-space: nowrap;
 }
 .sidebar-user-row:hover { background-color: var(--color-surface-hover); }
 .sidebar-avatar-image {
@@ -300,6 +332,14 @@ body {
     border-radius: 9999px;
     object-fit: cover;
     border: 1px solid var(--color-border);
+    flex-shrink: 0;
+}
+.sidebar-user-info {
+    opacity: 0;
+    transition: opacity 0.2s ease;
+}
+.sidebar:hover .sidebar-user-info {
+    opacity: 1;
 }
 .sidebar-user-name-text { color: var(--color-text-primary); font-size: 0.875rem; font-weight: 600; }
 .sidebar-user-id-text { color: var(--color-text-muted); font-size: 0.75rem; }
@@ -841,8 +881,8 @@ tbody tr:hover { background-color: var(--color-surface-hover); }
     color: var(--color-text-faint);
     font-size: 0.75rem;
 }
-.footer-links { margin-top: 0.5rem; display: flex; justify-content: center; gap: 1rem; }
-.footer-link { color: inherit; text-decoration: none; cursor: pointer; }
+.footer-links { margin-top: 0.5rem; display: flex; justify-content: center; align-items: center; gap: 1rem; }
+.footer-link { color: inherit; text-decoration: none; cursor: pointer; display: inline-flex; align-items: center; gap: 0.25rem; }
 .footer-link:hover { color: var(--color-text-body); }
   </style>
 </head>
@@ -850,13 +890,13 @@ tbody tr:hover { background-color: var(--color-surface-hover); }
 
   <!-- サイドバー -->
   <aside class="sidebar">
-    <div class="sidebar-header">
+    <div class="sidebar-header" onclick="location.href='/index'">
       <div class="flex items-center gap-3">
         <div class="logo-badge">
           <img src="/logo.webp" alt="Logo" class="logo-badge-img" onerror="this.style.display='none'; this.nextElementSibling.style.display='inline';" />
           <span class="logo-badge-emoji" style="display:none;">🏫</span>
         </div>
-        <h1 class="font-bold text-sm sidebar-brand-name">
+        <h1 class="font-bold text-sm sidebar-brand-name sidebar-brand-text">
           並木中等教育学校18回生<br>
           <span class="text-xs font-normal sidebar-brand-tagline">統合ダッシュボード</span>
         </h1>
@@ -864,47 +904,48 @@ tbody tr:hover { background-color: var(--color-surface-hover); }
     </div>
 
     <nav class="sidebar-nav">
-      <button onclick="switchTab('home')" id="sidebar-nav-home" class="sidebar-nav-button active">
+      <button onclick="switchTab('home')" id="sidebar-nav-home" class="sidebar-nav-button active" title="ホーム概要">
         <svg class="icon-nav" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6"/></svg>
-        ホーム概要
+        <span class="sidebar-nav-text">ホーム概要</span>
       </button>
-      <button onclick="switchTab('schedule')" id="sidebar-nav-schedule" class="sidebar-nav-button">
+      <button onclick="switchTab('schedule')" id="sidebar-nav-schedule" class="sidebar-nav-button" title="時間割・授業">
         <svg class="icon-nav" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
-        時間割・授業
+        <span class="sidebar-nav-text">時間割・授業</span>
       </button>
-      <button onclick="switchTab('notices')" id="sidebar-nav-notices" class="sidebar-nav-button">
+      <button onclick="switchTab('notices')" id="sidebar-nav-notices" class="sidebar-nav-button" title="お知らせ・連絡">
         <svg class="icon-nav" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9"/></svg>
-        お知らせ・連絡
+        <span class="sidebar-nav-text">お知らせ・連絡</span>
       </button>
-      <button onclick="switchTab('links')" id="sidebar-nav-links" class="sidebar-nav-button">
+      <button onclick="switchTab('links')" id="sidebar-nav-links" class="sidebar-nav-button" title="リンク集">
         <svg class="icon-nav" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13.828 10.172a4 4 0 00-5.656 0l-4 4a4 4 0 105.656 5.656l1.102-1.101m-.758-4.899a4 4 0 005.656 0l4-4a4 4 0 00-5.656-5.656l-1.1 1.1"/></svg>
-        リンク集
+        <span class="sidebar-nav-text">リンク集</span>
       </button>
-      <button onclick="switchTab('calendar')" id="sidebar-nav-calendar" class="sidebar-nav-button">
+      <button onclick="switchTab('calendar')" id="sidebar-nav-calendar" class="sidebar-nav-button" title="行事カレンダー">
         <svg class="icon-nav" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"/></svg>
-        行事カレンダー
+        <span class="sidebar-nav-text">行事カレンダー</span>
       </button>
 
-      <button onclick="switchTab('classroom')" id="sidebar-nav-classroom" class="sidebar-nav-button">
+      <button onclick="switchTab('classroom')" id="sidebar-nav-classroom" class="sidebar-nav-button" title="Classroom同期">
         <svg class="icon-nav" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10"/></svg>
-        Classroom同期
+        <span class="sidebar-nav-text">Classroom同期</span>
       </button>
 
-      <div class="sidebar-nav-divider">
-        <button onclick="switchTab('chat')" id="sidebar-nav-chat" class="sidebar-nav-button">
+      <!-- Classroom同期とメッセージの間の線を廃止 -->
+      <div class="sidebar-nav-divider" style="border-top: none; padding-top: 0; margin-top: 0.5rem;">
+        <button onclick="switchTab('chat')" id="sidebar-nav-chat" class="sidebar-nav-button" title="メッセージ (暗号化)">
           <svg class="icon-nav" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z"/></svg>
-          メッセージ (暗号化)
+          <span class="sidebar-nav-text">メッセージ (暗号化)</span>
         </button>
       </div>
 
       <div class="sidebar-nav-divider">
-        <button onclick="switchTab('privacy')" id="sidebar-nav-privacy" class="sidebar-nav-button">
+        <button onclick="switchTab('privacy')" id="sidebar-nav-privacy" class="sidebar-nav-button" title="プライバシーポリシー">
           <svg class="icon-nav" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z"/></svg>
-          プライバシーポリシー
+          <span class="sidebar-nav-text">プライバシーポリシー</span>
         </button>
-        <button onclick="switchTab('terms')" id="sidebar-nav-terms" class="sidebar-nav-button">
+        <button onclick="switchTab('terms')" id="sidebar-nav-terms" class="sidebar-nav-button" title="利用規約">
           <svg class="icon-nav" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/></svg>
-          利用規約
+          <span class="sidebar-nav-text">利用規約</span>
         </button>
       </div>
     </nav>
@@ -931,13 +972,12 @@ tbody tr:hover { background-color: var(--color-surface-hover); }
         </a>
       </div>
 
-      <div id="sidebar-user-toggle" class="sidebar-user-row" onclick="toggleAccountMenu(event)">
+      <div id="sidebar-user-toggle" class="sidebar-user-row" onclick="toggleAccountMenu(event)" title="ユーザーメニュー">
         <img id="sidebar-user-avatar" src="https://placehold.co/40x40/333/fff?text=U" alt="Avatar" class="sidebar-avatar-image" onerror="this.src='https://placehold.co/40x40/333/fff?text=U'" />
-        <div class="flex-1 min-w-0">
+        <div class="flex-1 min-w-0 sidebar-user-info">
           <p id="sidebar-user-id" class="text-xs sidebar-user-id-text truncate">学籍番号: 読み込み中...</p>
           <p id="sidebar-user-name" class="text-sm truncate sidebar-user-name-text">読み込み中...</p>
         </div>
-        <svg class="icon-sm" style="color: var(--color-text-faint);" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"/></svg>
       </div>
     </div>
   </aside>
@@ -945,7 +985,7 @@ tbody tr:hover { background-color: var(--color-surface-hover); }
   <!-- メインコンテンツ領域 -->
   <div class="app-main">
     <header class="mobile-topbar">
-      <div class="flex items-center gap-2">
+      <div class="flex items-center gap-2" onclick="location.href='/index'" style="cursor: pointer;">
         <div class="logo-badge logo-badge--mobile">
           <img src="/logo.webp" alt="Logo" class="logo-badge-img" onerror="this.style.display='none'; this.nextElementSibling.style.display='inline';" />
           <span class="logo-badge-emoji" style="display:none;">🏫</span>
@@ -1227,7 +1267,11 @@ tbody tr:hover { background-color: var(--color-surface-hover); }
         <div class="footer-links">
           <span onclick="switchTab('privacy')" class="footer-link">プライバシーポリシー</span>
           <span onclick="switchTab('terms')" class="footer-link">利用規約</span>
-          <a href="https://github.com/Namiki-18th/Namiki-18th.github.io" target="_blank" class="footer-link">GitHub</a>
+          <button onclick="toggleTheme()" class="footer-link" style="background:none; border:none; font:inherit; cursor:pointer;" title="ライト/ダークモード切替">モード切替</button>
+          <a href="https://github.com/Namiki-18th/Namiki-18th.github.io" target="_blank" class="footer-link">
+            <svg class="icon-sm" fill="currentColor" viewBox="0 0 24 24"><path fill-rule="evenodd" clip-rule="evenodd" d="M12 2C6.477 2 2 6.484 2 12.017c0 4.425 2.865 8.18 6.839 9.504.5.092.682-.217.682-.483 0-.237-.008-.868-.013-1.703-2.782.605-3.369-1.343-3.369-1.343-.454-1.158-1.11-1.466-1.11-1.466-.908-.62.069-.608.069-.608 1.003.07 1.53 1.032 1.53 1.032.892 1.53 2.341 1.088 2.91.832.092-.647.35-1.088.636-1.338-2.22-.253-4.555-1.113-4.555-4.951 0-1.093.39-1.988 1.029-2.688-.103-.253-.446-1.272.098-2.65 0 0 .84-.27 2.75 1.026A9.564 9.564 0 0112 6.844c.85.004 1.705.115 2.504.337 1.909-1.296 2.747-1.027 2.747-1.027.546 1.379.202 2.398.1 2.651.64.7 1.028 1.595 1.028 2.688 0 3.848-2.339 4.695-4.566 4.943.359.309.678.92.678 1.855 0 1.338-.012 2.419-.012 2.747 0 .268.18.58.688.482A10.019 10.019 0 0022 12.017C22 6.84 17.522 2 12 2z"/></svg>
+            GitHub
+          </a>
         </div>
       </footer>
     </main>
