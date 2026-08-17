@@ -3,6 +3,7 @@
   "version": "1.0.0",
   "description": "Google-account-style class planner dashboard for Namiki-18th.github.io",
   "main": "server.js",
+  "type": "module",
   "scripts": {
     "start": "node server.js",
     "dev": "nodemon server.js",

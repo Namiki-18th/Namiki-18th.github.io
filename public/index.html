@@ -8,39 +8,34 @@
   <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" />
   <style>
     /* ==========================================
-       CSS Variables & Design Tokens
+       1. デザイントークン（CSS変数）
        ========================================== */
     :root {
-      --app-bg: #000000;
-      --app-card: #0a0a0c;
-      --app-border: rgba(255, 255, 255, 0.12);
-      --app-hover: rgba(255, 255, 255, 0.08);
-      --app-active: rgba(255, 255, 255, 0.16);
-      
-      --color-blue-400: #60a5fa;
-      --color-blue-500: #3b82f6;
-      --color-blue-600: #2563eb;
-      --color-purple-400: #c084fc;
-      --color-purple-500: #a855f7;
-      --color-green-400: #4ade80;
-      --color-green-500: #22c55e;
-      --color-yellow-500: #eab308;
-      --color-red-400: #f87171;
-      --color-red-500: #ef4444;
+      --color-bg: #000000;
+      --color-surface: #0a0a0c;
+      --color-border: rgba(255, 255, 255, 0.12);
+      --color-surface-hover: rgba(255, 255, 255, 0.08);
+      --color-surface-active: rgba(255, 255, 255, 0.16);
 
-      --color-gray-100: #f3f4f6;
-      --color-gray-200: #e5e7eb;
-      --color-gray-300: #d1d5db;
-      --color-gray-400: #9ca3af;
-      --color-gray-500: #6b7280;
-      --color-gray-600: #4b5563;
-      --color-gray-700: #374151;
-      --color-gray-800: #1f2937;
-      --color-gray-950: #0d1117;
+      --color-accent-blue-light: #60a5fa;
+      --color-accent-blue: #3b82f6;
+      --color-accent-blue-dark: #2563eb;
+      --color-accent-purple: #c084fc;
+      --color-accent-green: #4ade80;
+      --color-accent-yellow: #eab308;
+      --color-accent-red: #f87171;
+
+      --color-text-primary: #f3f4f6;
+      --color-text-secondary: #e5e7eb;
+      --color-text-body: #d1d5db;
+      --color-text-muted: #9ca3af;
+      --color-text-faint: #6b7280;
+      --color-text-subtle: #4b5563;
+      --color-line: #1f2937;
     }
 
     /* ==========================================
-       Reset & Base Styles
+       2. リセット & ベーススタイル
        ========================================== */
     *, *::before, *::after {
       box-sizing: border-box;
@@ -50,8 +45,8 @@
 
     body {
       font-family: 'Inter', sans-serif;
-      background-color: var(--app-bg);
-      color: var(--color-gray-200);
+      background-color: var(--color-bg);
+      color: var(--color-text-secondary);
       height: 100vh;
       overflow: hidden;
       display: flex;
@@ -61,25 +56,26 @@
       background-color: rgba(59, 130, 246, 0.3);
     }
 
-    /* カスタムスクロールバー */
     ::-webkit-scrollbar { width: 8px; height: 8px; }
     ::-webkit-scrollbar-track { background: transparent; }
     ::-webkit-scrollbar-thumb { background: #374151; border-radius: 4px; }
     ::-webkit-scrollbar-thumb:hover { background: #4b5563; }
-    
-    /* 読み込み時のフェードインアニメーション */
+
     .fade-in { animation: fadeIn 0.3s ease-in-out; }
     @keyframes fadeIn {
       from { opacity: 0; transform: translateY(5px); }
-      to { opacity: 1; transform: translateY(0); }
+      to   { opacity: 1; transform: translateY(0); }
+    }
+    @keyframes pulse {
+      0%, 100% { opacity: 1; }
+      50%      { opacity: 0.5; }
     }
 
     /* ==========================================
-       Utility / Helper Classes
+       3. 汎用ユーティリティ
        ========================================== */
     .hidden { display: none !important; }
     .flex { display: flex; }
-    .inline-flex { display: inline-flex; }
     .grid { display: grid; }
     .flex-col { flex-direction: column; }
     .flex-row { flex-direction: row; }
@@ -90,7 +86,7 @@
     .justify-between { justify-content: space-between; }
     .justify-center { justify-content: center; }
     .flex-1 { flex: 1; }
-    .flex-shrink-0, .shrink-0 { flex-shrink: 0; }
+    .shrink-0 { flex-shrink: 0; }
     .overflow-hidden { overflow: hidden; }
     .overflow-y-auto { overflow-y: auto; }
     .overflow-x-auto { overflow-x: auto; }
@@ -113,26 +109,56 @@
     .text-center { text-align: center; }
     .truncate { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
     .whitespace-nowrap { white-space: nowrap; }
-    .border-collapse { border-collapse: collapse; }
-    .font-mono { font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace; }
+    .grid-full-width { grid-column: 1 / -1; }
+
+    .space-y-1 > * + * { margin-top: 0.25rem; }
+    .space-y-2 > * + * { margin-top: 0.5rem; }
+    .space-y-3 > * + * { margin-top: 0.75rem; }
+    .space-y-4 > * + * { margin-top: 1rem; }
+    .space-y-5 > * + * { margin-top: 1.25rem; }
+    .space-y-6 > * + * { margin-top: 1.5rem; }
+    .gap-1 { gap: 0.25rem; }
+    .gap-2 { gap: 0.5rem; }
+    .gap-3 { gap: 0.75rem; }
+    .gap-4 { gap: 1rem; }
+    .gap-6 { gap: 1.5rem; }
+
+    .grid-cols-1 { grid-template-columns: repeat(1, minmax(0, 1fr)); }
+    @media (min-width: 640px) {
+      .sm\:grid-cols-2 { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+    }
+    @media (min-width: 768px) {
+      .md\:grid-cols-2 { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+      .md\:flex-row { flex-direction: row; }
+      .md\:items-center { align-items: center; }
+    }
+    @media (min-width: 1024px) {
+      .lg\:grid-cols-3 { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+      .lg\:col-span-2 { grid-column: span 2 / span 2; }
+    }
+
+    /* アイコン共通サイズ */
+    .icon-nav { width: 1.25rem; height: 1.25rem; }
+    .icon-sm { width: 1rem; height: 1rem; }
+    .icon-xs { width: 0.75rem; height: 0.75rem; }
 
     /* ==========================================
-       Component & Layout Custom Classes
+       4. レイアウト骨格（サイドバー・ヘッダー）
        ========================================== */
-    aside {
+    .sidebar {
       display: none;
       flex-direction: column;
       width: 16rem;
-      background-color: var(--app-card);
-      border-right: 1px solid var(--app-border);
+      background-color: var(--color-surface);
+      border-right: 1px solid var(--color-border);
       height: 100%;
       flex-shrink: 0;
     }
     @media (min-width: 768px) {
-      aside { display: flex; }
+      .sidebar { display: flex; }
     }
 
-    .main-layout {
+    .app-main {
       flex: 1;
       display: flex;
       flex-direction: column;
@@ -141,36 +167,37 @@
       overflow: hidden;
     }
 
-    .mobile-header {
+    .mobile-topbar {
       display: flex;
       align-items: center;
       justify-content: space-between;
       height: 3.5rem;
       padding: 0 1rem;
-      background-color: var(--app-card);
-      border-bottom: 1px solid var(--app-border);
+      background-color: var(--color-surface);
+      border-bottom: 1px solid var(--color-border);
       z-index: 10;
     }
     @media (min-width: 768px) {
-      .mobile-header { display: none; }
+      .mobile-topbar { display: none; }
     }
 
-    .mobile-nav {
+    .mobile-tab-bar {
       display: flex;
       overflow-x: auto;
       gap: 0.25rem;
       padding: 0.5rem;
       background-color: rgba(10, 10, 12, 0.8);
       backdrop-filter: blur(8px);
-      border-bottom: 1px solid var(--app-border);
+      border-bottom: 1px solid var(--color-border);
       z-index: 10;
+      scrollbar-width: none;
     }
+    .mobile-tab-bar::-webkit-scrollbar { display: none; }
     @media (min-width: 768px) {
-      .mobile-nav { display: none; }
+      .mobile-tab-bar { display: none; }
     }
-    .mobile-nav::-webkit-scrollbar { display: none; }
 
-    .main-content-area {
+    .content-area {
       flex: 1;
       overflow-y: auto;
       padding: 1rem;
@@ -179,11 +206,58 @@
       margin: 0 auto;
     }
     @media (min-width: 768px) {
-      .main-content-area { padding: 2rem; }
+      .content-area { padding: 2rem; }
     }
 
-    /* Buttons & Nav items */
-    .nav-btn {
+    /* ==========================================
+       5. サイドバー各パーツ
+       ========================================== */
+    .sidebar-header {
+      height: 4rem;
+      display: flex;
+      align-items: center;
+      padding: 0 1.5rem;
+      border-bottom: 1px solid var(--color-border);
+    }
+
+    .logo-badge {
+      width: 2rem;
+      height: 2rem;
+      border-radius: 0.5rem;
+      background-color: var(--color-accent-blue-dark);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: #ffffff;
+      box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.3);
+      overflow: hidden;
+    }
+    .logo-badge--mobile {
+      width: 1.75rem;
+      height: 1.75rem;
+      border-radius: 0.375rem;
+    }
+    .logo-badge-img {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+    }
+
+    .sidebar-brand-name {
+      color: #ffffff;
+      line-height: 1.25;
+    }
+    .sidebar-brand-tagline {
+      color: var(--color-accent-blue-light);
+    }
+
+    .sidebar-nav {
+      flex: 1;
+      overflow-y: auto;
+      padding: 1rem 0.75rem;
+    }
+
+    .sidebar-nav-button {
       width: 100%;
       display: flex;
       align-items: center;
@@ -197,19 +271,95 @@
       border: none;
       cursor: pointer;
       text-align: left;
-      color: var(--color-gray-400);
+      color: var(--color-text-muted);
       text-decoration: none;
     }
-    .nav-btn:hover {
-      color: var(--color-gray-200);
-      background-color: var(--app-hover);
+    .sidebar-nav-button:hover {
+      color: var(--color-text-secondary);
+      background-color: var(--color-surface-hover);
     }
-    .nav-btn.active {
+    .sidebar-nav-button.active {
       background-color: rgba(59, 130, 246, 0.1);
-      color: var(--color-blue-400);
+      color: var(--color-accent-blue-light);
     }
 
-    .mobile-tab-btn {
+    .sidebar-nav-divider {
+      padding-top: 1rem;
+      margin-top: 1rem;
+      border-top: 1px solid var(--color-border);
+    }
+
+    .sidebar-footer {
+      padding: 1rem;
+      border-top: 1px solid var(--color-border);
+      background-color: var(--color-surface);
+    }
+
+    .admin-panel-button {
+      display: block;
+      width: 100%;
+      margin-bottom: 0.75rem;
+      text-align: center;
+      font-size: 0.75rem;
+      background-color: rgba(168, 85, 247, 0.1);
+      color: var(--color-accent-purple);
+      border: 1px solid rgba(168, 85, 247, 0.2);
+      padding: 0.5rem;
+      border-radius: 0.5rem;
+      font-weight: 500;
+      transition: background-color 0.2s;
+      text-decoration: none;
+    }
+    .admin-panel-button:hover {
+      background-color: rgba(168, 85, 247, 0.2);
+    }
+
+    .sidebar-user-row {
+      display: flex;
+      align-items: center;
+      gap: 0.75rem;
+      margin-bottom: 1rem;
+    }
+    .sidebar-avatar-image {
+      width: 2.5rem;
+      height: 2.5rem;
+      border-radius: 9999px;
+      object-fit: cover;
+      border: 1px solid var(--color-border);
+    }
+    .sidebar-user-name-text { color: var(--color-text-primary); }
+    .sidebar-user-role-text { color: var(--color-text-muted); }
+
+    .logout-button {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 0.5rem;
+      width: 100%;
+      padding: 0.5rem;
+      background-color: rgba(239, 68, 68, 0.1);
+      color: var(--color-accent-red);
+      border-radius: 0.5rem;
+      font-size: 0.875rem;
+      font-weight: 500;
+      transition: background-color 0.2s;
+      border: 1px solid rgba(239, 68, 68, 0.2);
+      text-decoration: none;
+    }
+    .logout-button:hover {
+      background-color: rgba(239, 68, 68, 0.2);
+    }
+
+    /* モバイルヘッダー */
+    .mobile-brand-name { color: #ffffff; }
+    .mobile-avatar-image {
+      width: 1.75rem;
+      height: 1.75rem;
+      border-radius: 9999px;
+      border: 1px solid var(--color-border);
+    }
+
+    .mobile-nav-button {
       padding: 0.375rem 1rem;
       border-radius: 9999px;
       font-size: 0.75rem;
@@ -218,81 +368,110 @@
       background: transparent;
       border: none;
       cursor: pointer;
-      color: var(--color-gray-400);
+      color: var(--color-text-muted);
     }
-    .mobile-tab-btn.active {
+    .mobile-nav-button.active {
       background-color: rgba(59, 130, 246, 0.2);
-      color: var(--color-blue-400);
+      color: var(--color-accent-blue-light);
     }
 
-    /* Cards & Containers */
+    /* ==========================================
+       6. 共通カード & バッジ
+       ========================================== */
     .app-card {
-      background-color: var(--app-card);
-      border: 1px solid var(--app-border);
+      background-color: var(--color-surface);
+      border: 1px solid var(--color-border);
       border-radius: 1rem;
       padding: 1.5rem;
     }
-    .app-card-hover {
-      background-color: var(--app-hover);
-      border: 1px solid var(--app-border);
-      border-radius: 0.75rem;
-      padding: 0.75rem 1rem;
-      transition: background-color 0.2s;
+
+    .card-header-row {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: 1.25rem;
+    }
+    .card-title {
+      font-size: 1rem;
+      font-weight: 600;
+      color: #ffffff;
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+    }
+    .card-icon--yellow { color: var(--color-accent-yellow); }
+    .card-icon--green  { color: var(--color-accent-green); }
+    .card-icon--purple { color: var(--color-accent-purple); }
+
+    .card-link-button {
+      color: var(--color-accent-blue-light);
+      background: none;
+      border: none;
+      cursor: pointer;
+      font-size: 0.75rem;
+      font-weight: 500;
     }
 
-    /* Grid layouts */
-    .grid-cols-1 { grid-template-columns: repeat(1, minmax(0, 1fr)); }
-    @media (min-width: 640px) {
-      .sm\:grid-cols-2 { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+    .skeleton-loader-row {
+      display: flex;
+      gap: 1rem;
+      animation: pulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
     }
-    @media (min-width: 1024px) {
-      .lg\:grid-cols-3 { grid-template-columns: repeat(3, minmax(0, 1fr)); }
-      .lg\:col-span-2 { grid-column: span 2 / span 2; }
+    .skeleton-bar {
+      height: 1rem;
+      background-color: var(--color-surface-hover);
+      border-radius: 0.25rem;
     }
-    @media (min-width: 768px) {
-      .md\:grid-cols-2 { grid-template-columns: repeat(2, minmax(0, 1fr)); }
-      .md\:flex-row { flex-direction: row; }
-      .md\:items-center { align-items: center; }
+    .skeleton-bar--lg { width: 75%; }
+    .skeleton-bar--sm { width: 50%; }
+
+    .placeholder-text {
+      color: var(--color-text-faint);
+      padding: 0.5rem 0;
+      font-size: 0.875rem;
     }
-    @media (min-width: 1024px) {
-      .lg\:grid-cols-3 { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+    .empty-state-text {
+      padding: 2.5rem 0;
+      color: var(--color-text-faint);
+      text-align: center;
     }
 
-    /* Gaps & Spacing */
-    .space-y-1 > * + * { margin-top: 0.25rem; }
-    .space-y-2 > * + * { margin-top: 0.5rem; }
-    .space-y-3 > * + * { margin-top: 0.75rem; }
-    .space-y-4 > * + * { margin-top: 1rem; }
-    .space-y-5 > * + * { margin-top: 1.25rem; }
-    .space-y-6 > * + * { margin-top: 1.5rem; }
-    .gap-1 { gap: 0.25rem; }
-    .gap-2 { gap: 0.5rem; }
-    .gap-3 { gap: 0.75rem; }
-    .gap-4 { gap: 1rem; }
-    .gap-6 { gap: 1.5rem; }
-
-    /* Specific element helpers */
-    .welcome-banner {
-      background: linear-gradient(to right, var(--app-hover), var(--app-card));
-      border: 1px solid var(--app-border);
-      border-radius: 1rem;
-      padding: 1.5rem;
-      position: relative;
-      overflow: hidden;
+    .status-card { padding: 1.25rem; }
+    .status-card-title {
+      color: var(--color-text-muted);
+      margin-bottom: 1rem;
+      font-size: 0.75rem;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
     }
+    .status-row {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 0.25rem 0;
+      font-size: 0.875rem;
+    }
+    .status-row--divider {
+      border-top: 1px solid var(--color-border);
+      padding-top: 0.75rem;
+      margin-top: 0.25rem;
+    }
+    .status-label { color: var(--color-text-muted); }
+    .status-value { color: var(--color-text-secondary); font-weight: 500; }
 
-    .badge-ok {
+    .status-badge-ok {
       padding: 0.125rem 0.5rem;
       border-radius: 0.25rem;
-      color: var(--color-green-400);
+      color: var(--color-accent-green);
       background-color: rgba(74, 222, 128, 0.1);
       font-size: 0.75rem;
       font-weight: 500;
     }
 
-    .badge-crypto {
+    .encryption-badge {
       background-color: rgba(34, 197, 94, 0.1);
-      color: var(--color-green-400);
+      color: var(--color-accent-green);
       padding: 0.25rem 0.5rem;
       border-radius: 0.25rem;
       border: 1px solid rgba(34, 197, 94, 0.2);
@@ -303,9 +482,9 @@
       gap: 0.25rem;
     }
 
-    .primary-btn {
-      background-color: var(--color-blue-600);
-      color: white;
+    .button-primary {
+      background-color: var(--color-accent-blue-dark);
+      color: #ffffff;
       padding: 0.625rem 1.25rem;
       font-size: 0.875rem;
       font-weight: 500;
@@ -319,59 +498,156 @@
       gap: 0.5rem;
       text-decoration: none;
     }
-    .primary-btn:hover {
-      background-color: var(--color-blue-500);
+    .button-primary:hover {
+      background-color: var(--color-accent-blue);
     }
 
-    .admin-link-btn {
-      display: block;
-      width: 100%;
-      margin-bottom: 0.75rem;
-      text-align: center;
-      font-size: 0.75rem;
-      background-color: rgba(168, 85, 247, 0.1);
-      color: var(--color-purple-400);
-      border: 1px solid rgba(168, 85, 247, 0.2);
-      padding: 0.5rem;
-      border-radius: 0.5rem;
+    /* ==========================================
+       7. ホームタブ（ようこそバナー・各種リスト）
+       ========================================== */
+    .welcome-banner {
+      background: linear-gradient(to right, var(--color-surface-hover), var(--color-surface));
+      border: 1px solid var(--color-border);
+      border-radius: 1rem;
+      padding: 1.5rem;
+      position: relative;
+      overflow: hidden;
+    }
+    .welcome-banner-glow {
+      position: absolute;
+      right: 0;
+      top: 0;
+      width: 16rem;
+      height: 16rem;
+      background-color: rgba(59, 130, 246, 0.05);
+      border-radius: 9999px;
+      filter: blur(48px);
+      pointer-events: none;
+      transform: translate(50%, -50%);
+    }
+    .welcome-date-text {
+      color: var(--color-accent-blue-light);
+      margin-bottom: 0.25rem;
+      font-size: 0.875rem;
       font-weight: 500;
+    }
+    .welcome-heading-text {
+      color: #ffffff;
+      font-size: 1.5rem;
+      font-weight: 700;
+    }
+    @media (min-width: 640px) {
+      .welcome-heading-text { font-size: 1.875rem; }
+      .welcome-banner-row { flex-direction: row; align-items: center; }
+    }
+    .welcome-banner-row {
+      display: flex;
+      flex-direction: column;
+      justify-content: space-between;
+      align-items: flex-start;
+      gap: 1rem;
+      position: relative;
+      z-index: 1;
+    }
+
+    .notice-item {
+      display: flex;
+      align-items: flex-start;
+      gap: 0.75rem;
+      padding: 0.75rem;
+      border-radius: 0.75rem;
+      background-color: var(--color-surface-hover);
+      border: 1px solid var(--color-border);
+    }
+    .notice-item-icon { margin-top: 0.125rem; }
+    .notice-item-title { color: var(--color-text-secondary); font-size: 0.875rem; font-weight: 500; }
+    .notice-item-date { color: var(--color-text-faint); font-size: 0.75rem; margin-top: 0.25rem; }
+
+    .quicklink-item {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 0.5rem 0.75rem;
+      border-radius: 0.5rem;
       transition: background-color 0.2s;
+      font-size: 0.875rem;
+      color: var(--color-text-body);
       text-decoration: none;
     }
-    .admin-link-btn:hover {
-      background-color: rgba(168, 85, 247, 0.2);
-    }
+    .quicklink-item:hover { background-color: var(--color-surface-hover); }
+    .quicklink-icon { width: 1rem; height: 1rem; color: var(--color-text-subtle); }
 
-    .logout-btn {
+    .schedule-highlight-item {
+      padding: 0.75rem;
+      border-radius: 0.75rem;
+      background-color: var(--color-surface-hover);
+      border: 1px solid var(--color-border);
+      display: flex;
+      align-items: center;
+      gap: 0.75rem;
+    }
+    .schedule-highlight-period {
+      width: 2rem;
+      height: 2rem;
+      border-radius: 0.25rem;
+      background-color: var(--color-surface-active);
       display: flex;
       align-items: center;
       justify-content: center;
-      gap: 0.5rem;
-      width: 100%;
-      padding: 0.5rem;
-      background-color: rgba(239, 68, 68, 0.1);
-      color: var(--color-red-400);
+      font-size: 0.75rem;
+      font-weight: 700;
+      color: var(--color-text-body);
+      flex-shrink: 0;
+    }
+    .schedule-highlight-subject { color: var(--color-text-secondary); font-size: 0.875rem; font-weight: 600; }
+    .schedule-highlight-room { color: var(--color-text-faint); font-size: 0.75rem; }
+
+    /* ==========================================
+       8. 時間割タブ
+       ========================================== */
+    .schedule-card { padding: 1.5rem; }
+    @media (min-width: 768px) {
+      .schedule-card { padding: 2rem; }
+    }
+    .schedule-header {
+      display: flex;
+      flex-direction: column;
+      gap: 1rem;
+      margin-bottom: 1.5rem;
+      border-bottom: 1px solid var(--color-border);
+      padding-bottom: 1.5rem;
+    }
+    @media (min-width: 768px) {
+      .schedule-header { flex-direction: row; align-items: center; justify-content: space-between; }
+    }
+    .schedule-title { color: #ffffff; font-size: 1.25rem; font-weight: 700; }
+    .schedule-subtitle { color: var(--color-text-muted); font-size: 0.875rem; margin-top: 0.25rem; }
+
+    .schedule-day-tabs {
+      display: flex;
+      background-color: var(--color-bg);
+      padding: 0.25rem;
+      border-radius: 0.75rem;
+      border: 1px solid var(--color-border);
+      align-self: flex-start;
+    }
+    .schedule-day-button {
+      padding: 0.375rem 1rem;
       border-radius: 0.5rem;
       font-size: 0.875rem;
       font-weight: 500;
-      transition: background-color 0.2s;
-      border: 1px solid rgba(239, 68, 68, 0.2);
-      text-decoration: none;
+      transition: all 0.2s;
+      color: var(--color-text-muted);
+      background: transparent;
+      border: none;
+      cursor: pointer;
     }
-    .logout-btn:hover {
-      background-color: rgba(239, 68, 68, 0.2);
-    }
-
-    /* Chat window layout sizes */
-    .chat-container-wrap {
-      height: calc(100vh - 140px);
-      min-height: 500px;
-    }
-    @media (min-width: 768px) {
-      .chat-container-wrap { height: calc(100vh - 100px); }
+    .schedule-day-button:hover { color: var(--color-text-secondary); }
+    .schedule-day-button.active {
+      background-color: var(--color-surface-hover);
+      color: #ffffff;
     }
 
-    /* Table styles */
     table {
       width: 100%;
       text-align: left;
@@ -381,201 +657,408 @@
     th {
       padding: 0.75rem 1rem;
       font-weight: 500;
-      color: var(--color-gray-500);
+      color: var(--color-text-faint);
       font-size: 0.75rem;
       text-transform: uppercase;
       letter-spacing: 0.05em;
-      border-bottom: 1px solid var(--app-border);
+      border-bottom: 1px solid var(--color-border);
     }
-    td {
+    td { padding: 0.75rem 1rem; font-size: 0.875rem; }
+    tbody tr { border-bottom: 1px solid var(--color-line); transition: background-color 0.2s; }
+    tbody tr:hover { background-color: rgba(255, 255, 255, 0.04); }
+    .cell-period { color: var(--color-text-muted); font-weight: 600; }
+    .cell-subject { color: var(--color-text-secondary); font-weight: 600; }
+    .cell-teacher { color: var(--color-text-muted); }
+    .cell-room { color: var(--color-text-faint); font-family: ui-monospace, monospace; font-size: 0.75rem; }
+
+    /* ==========================================
+       9. お知らせ・リンク集・カレンダー タブ
+       ========================================== */
+    .content-card { padding: 1.5rem; }
+    .content-card-title { color: #ffffff; font-size: 1.25rem; font-weight: 700; margin-bottom: 0.25rem; }
+    .content-card-subtitle {
+      color: var(--color-text-muted);
+      font-size: 0.875rem;
+      margin-bottom: 1.5rem;
+      border-bottom: 1px solid var(--color-border);
+      padding-bottom: 1.5rem;
+    }
+
+    .notice-card {
+      padding: 1rem;
+      border-radius: 0.75rem;
+      background-color: var(--color-surface-hover);
+      border: 1px solid var(--color-border);
+      margin-bottom: 0.75rem;
+    }
+    .notice-card-header { display: flex; align-items: center; gap: 0.5rem; margin-bottom: 0.5rem; }
+    .notice-card-date {
+      font-size: 0.75rem;
+      padding: 0.125rem 0.5rem;
+      border-radius: 0.25rem;
+      background-color: var(--color-surface-active);
+      color: var(--color-text-body);
+    }
+    .notice-card-title { color: var(--color-text-secondary); font-weight: 700; }
+    .notice-card-body { color: var(--color-text-muted); font-size: 0.875rem; }
+
+    .link-card {
+      padding: 1rem;
+      border-radius: 0.75rem;
+      background-color: var(--color-surface-hover);
+      border: 1px solid var(--color-border);
+      display: block;
+      text-decoration: none;
+    }
+    .link-card-name { color: var(--color-accent-blue-light); font-weight: 600; margin-bottom: 0.25rem; }
+    .link-card-desc { color: var(--color-text-muted); font-size: 0.75rem; }
+
+    .calendar-item {
+      padding: 1rem;
+      border-radius: 0.75rem;
+      background-color: var(--color-surface-hover);
+      border: 1px solid var(--color-border);
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+    .calendar-item-title { color: var(--color-text-secondary); font-weight: 500; }
+    .calendar-item-date { color: var(--color-text-faint); font-size: 0.875rem; font-family: ui-monospace, monospace; }
+
+    /* ==========================================
+       10. チャットタブ
+       ========================================== */
+    .chat-page-wrapper {
+      height: calc(100vh - 140px);
+      min-height: 500px;
+    }
+    @media (min-width: 768px) {
+      .chat-page-wrapper { height: calc(100vh - 100px); }
+    }
+
+    .chat-card {
+      padding: 0;
+      display: flex;
+      flex-direction: column;
+      height: 100%;
+      overflow: hidden;
+      box-shadow: 0 1px 2px 0 rgba(0, 0, 0, 0.05);
+    }
+    @media (min-width: 768px) {
+      .chat-card { flex-direction: row; }
+    }
+
+    .chat-sidebar {
+      width: 100%;
+      display: flex;
+      flex-direction: column;
+      background-color: var(--color-surface);
+      border-bottom: 1px solid var(--color-border);
+    }
+    @media (min-width: 768px) {
+      .chat-sidebar { width: 16rem; border-bottom: none; border-right: 1px solid var(--color-border); }
+    }
+
+    .chat-sidebar-header { padding: 1rem; border-bottom: 1px solid var(--color-border); }
+    .chat-sidebar-title { color: var(--color-text-secondary); font-size: 0.875rem; font-weight: 700; }
+    .chat-sidebar-body { flex: 1; overflow-y: auto; padding: 0.75rem; }
+    .chat-section-label {
+      color: var(--color-text-faint);
+      margin-bottom: 0.5rem;
+      padding: 0 0.5rem;
+      font-size: 0.75rem;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+    }
+
+    .channel-button {
+      width: 100%;
+      text-align: left;
+      padding: 0.5rem 0.75rem;
+      border-radius: 0.5rem;
+      font-size: 0.875rem;
+      font-weight: 500;
+      transition: background-color 0.2s;
+      color: var(--color-text-muted);
+      background: transparent;
+      border: none;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+    }
+    .channel-button:hover { background-color: var(--color-surface-hover); }
+    .channel-button.active { background-color: var(--color-surface-hover); color: #ffffff; }
+    .channel-hash { color: var(--color-text-muted); }
+    .dm-user-avatar { width: 1.25rem; height: 1.25rem; border-radius: 9999px; object-fit: cover; }
+    .dm-loading-text { color: var(--color-text-subtle); padding: 0 0.5rem; font-size: 0.75rem; }
+
+    .chat-main { flex: 1; display: flex; flex-direction: column; height: 100%; background-color: var(--color-bg); }
+
+    .chat-header {
+      height: 4rem;
+      padding: 0 1.5rem;
+      border-bottom: 1px solid var(--color-border);
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      background-color: rgba(10, 10, 12, 0.8);
+      backdrop-filter: blur(8px);
+      flex-shrink: 0;
+    }
+    .chat-header-title { color: #ffffff; font-size: 1rem; font-weight: 700; display: flex; align-items: center; gap: 0.5rem; }
+    .chat-header-desc { color: var(--color-text-muted); font-size: 0.75rem; display: none; }
+    @media (min-width: 640px) {
+      .chat-header-desc { display: block; }
+    }
+
+    .chat-messages-area { flex: 1; overflow-y: auto; padding: 1.5rem; display: flex; flex-direction: column; gap: 1.25rem; }
+    .chat-center-message { display: flex; align-items: center; justify-content: center; height: 100%; }
+    .chat-center-message-text { color: var(--color-text-faint); font-size: 0.875rem; }
+
+    .chat-message { display: flex; gap: 0.75rem; }
+    .chat-message--self { flex-direction: row-reverse; }
+    .chat-message--other { flex-direction: row; }
+    .chat-message-avatar {
+      width: 2rem;
+      height: 2rem;
+      border-radius: 9999px;
+      background-color: var(--color-surface-hover);
+      flex-shrink: 0;
+      margin-top: 0.25rem;
+    }
+    .chat-message-content { display: flex; flex-direction: column; max-width: 80%; }
+    .chat-message-content--self { align-items: flex-end; }
+    .chat-message-content--other { align-items: flex-start; }
+    .chat-message-sender { color: var(--color-text-faint); font-size: 0.75rem; margin-bottom: 0.25rem; margin-left: 0.25rem; }
+    .chat-bubble { padding: 0.625rem 1rem; border-radius: 1rem; font-size: 0.875rem; box-shadow: 0 1px 2px 0 rgba(0, 0, 0, 0.05); }
+    .chat-bubble--self { background-color: var(--color-accent-blue-dark); color: #ffffff; border-top-right-radius: 0.125rem; }
+    .chat-bubble--other { background-color: var(--color-surface-hover); color: var(--color-text-secondary); border-top-left-radius: 0.125rem; }
+    .chat-message-time { font-size: 0.625rem; color: var(--color-text-faint); margin-top: 0.25rem; margin-left: 0.25rem; margin-right: 0.25rem; }
+
+    .chat-input-bar { padding: 1rem; background-color: var(--color-surface); border-top: 1px solid var(--color-border); flex-shrink: 0; }
+    .chat-input-form { display: flex; align-items: flex-end; gap: 0.5rem; max-width: 56rem; margin: 0 auto; }
+    .chat-attach-button {
+      padding: 0.625rem;
+      color: var(--color-text-muted);
+      background: none;
+      border: none;
+      cursor: pointer;
+      border-radius: 0.5rem;
+      margin-bottom: 0.125rem;
+    }
+    .chat-attach-button:hover { color: var(--color-text-secondary); background-color: var(--color-surface-hover); }
+    .chat-input-wrapper {
+      flex: 1;
+      overflow: hidden;
+      background-color: var(--color-bg);
+      border: 1px solid var(--color-border);
+      border-radius: 0.75rem;
+      transition: border-color 0.2s;
+    }
+    .chat-input-wrapper:focus-within { border-color: var(--color-accent-blue); }
+    .chat-text-input {
+      width: 100%;
+      background: transparent;
       padding: 0.75rem 1rem;
+      font-size: 0.875rem;
+      color: var(--color-text-primary);
+      border: none;
+      outline: none;
     }
-    tbody tr {
-      border-bottom: 1px solid var(--color-gray-800);
+    .chat-text-input::placeholder { color: var(--color-text-faint); }
+    .chat-send-button {
+      padding: 0.75rem;
+      background-color: var(--color-accent-blue-dark);
+      color: #ffffff;
+      border-radius: 0.75rem;
+      border: none;
+      cursor: pointer;
+      box-shadow: 0 1px 2px 0 rgba(0, 0, 0, 0.05);
+      margin-bottom: 0.125rem;
       transition: background-color 0.2s;
     }
-    tbody tr:hover {
-      background-color: rgba(255, 255, 255, 0.04);
+    .chat-send-button:hover { background-color: var(--color-accent-blue); }
+
+    /* ==========================================
+       11. フッター
+       ========================================== */
+    .site-footer {
+      margin-top: 3rem;
+      padding: 1.5rem 0;
+      border-top: 1px solid var(--color-border);
+      text-align: center;
+      color: var(--color-text-faint);
+      font-size: 0.75rem;
     }
+    .footer-links { margin-top: 0.5rem; display: flex; justify-content: center; gap: 1rem; }
+    .footer-link { color: inherit; text-decoration: none; }
+    .footer-link:hover { color: var(--color-text-body); }
   </style>
 </head>
 <body>
 
-  <!-- Sidebar (PC) -->
-  <aside>
-    <!-- ロゴ・タイトル -->
-    <div style="height: 4rem; display: flex; align-items: center; padding: 0 1.5rem; border-bottom: 1px solid var(--app-border);">
+  <!-- ========== サイドバー（PC） ========== -->
+  <aside class="sidebar">
+    <div class="sidebar-header">
       <div class="flex items-center gap-3">
-        <div style="width: 2rem; height: 2rem; border-radius: 0.5rem; background-color: var(--color-blue-600); display: flex; align-items: center; justify-content: center; color: white; box-shadow: 0 10px 15px -3px rgba(0,0,0,0.3);">
-          <span style="font-size: 1.125rem; line-height: 1;">🏫</span>
+        <div class="logo-badge">
+          <img src="/logo.webp" alt="Logo" class="logo-badge-img" onerror="this.style.display='none'; this.nextElementSibling.style.display='inline';" />
+          <span class="logo-badge-emoji" style="display:none;">🏫</span>
         </div>
-        <h1 class="font-bold text-sm" style="color: white; line-height: 1.25;">
+        <h1 class="font-bold text-sm sidebar-brand-name">
           Namiki Portal<br>
-          <span class="text-xs font-normal" style="color: var(--color-blue-400);">ダッシュボード</span>
+          <span class="text-xs font-normal sidebar-brand-tagline">ダッシュボード</span>
         </h1>
       </div>
     </div>
 
-    <!-- ナビゲーションメニュー -->
-    <nav class="flex-1 overflow-y-auto" style="padding: 1rem 0.75rem;">
-      <button onclick="switchTab('home')" id="tab-btn-home" class="nav-btn active">
-        <svg style="width: 1.25rem; height: 1.25rem;" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6"/></svg>
+    <nav class="sidebar-nav">
+      <button onclick="switchTab('home')" id="sidebar-nav-home" class="sidebar-nav-button active">
+        <svg class="icon-nav" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6"/></svg>
         ホーム概要
       </button>
-      <button onclick="switchTab('schedule')" id="tab-btn-schedule" class="nav-btn">
-        <svg style="width: 1.25rem; height: 1.25rem;" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+      <button onclick="switchTab('schedule')" id="sidebar-nav-schedule" class="sidebar-nav-button">
+        <svg class="icon-nav" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
         時間割
       </button>
-      <button onclick="switchTab('notices')" id="tab-btn-notices" class="nav-btn">
-        <svg style="width: 1.25rem; height: 1.25rem;" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9"/></svg>
+      <button onclick="switchTab('notices')" id="sidebar-nav-notices" class="sidebar-nav-button">
+        <svg class="icon-nav" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9"/></svg>
         お知らせ
       </button>
-      <button onclick="switchTab('links')" id="tab-btn-links" class="nav-btn">
-        <svg style="width: 1.25rem; height: 1.25rem;" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13.828 10.172a4 4 0 00-5.656 0l-4 4a4 4 0 105.656 5.656l1.102-1.101m-.758-4.899a4 4 0 005.656 0l4-4a4 4 0 00-5.656-5.656l-1.1 1.1"/></svg>
+      <button onclick="switchTab('links')" id="sidebar-nav-links" class="sidebar-nav-button">
+        <svg class="icon-nav" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13.828 10.172a4 4 0 00-5.656 0l-4 4a4 4 0 105.656 5.656l1.102-1.101m-.758-4.899a4 4 0 005.656 0l4-4a4 4 0 00-5.656-5.656l-1.1 1.1"/></svg>
         リンク集
       </button>
-      <button onclick="switchTab('calendar')" id="tab-btn-calendar" class="nav-btn">
-        <svg style="width: 1.25rem; height: 1.25rem;" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"/></svg>
+      <button onclick="switchTab('calendar')" id="sidebar-nav-calendar" class="sidebar-nav-button">
+        <svg class="icon-nav" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"/></svg>
         カレンダー
       </button>
-      
-      <div style="padding-top: 1rem; margin-top: 1rem; border-top: 1px solid var(--app-border);">
-        <button onclick="switchTab('chat')" id="tab-btn-chat" class="nav-btn">
-          <svg style="width: 1.25rem; height: 1.25rem;" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z"/></svg>
+
+      <div class="sidebar-nav-divider">
+        <button onclick="switchTab('chat')" id="sidebar-nav-chat" class="sidebar-nav-button">
+          <svg class="icon-nav" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z"/></svg>
           メッセージ (暗号化)
         </button>
       </div>
     </nav>
 
-    <!-- ユーザープロフィール & ログアウト -->
-    <div style="padding: 1rem; border-top: 1px solid var(--app-border); background-color: var(--app-card);">
-      <a href="admin.html" id="admin-link" class="admin-link-btn hidden">
+    <div class="sidebar-footer">
+      <a href="admin.html" id="admin-panel-link" class="admin-panel-button hidden">
         ⚙️ 管理画面へ
       </a>
-      <div class="flex items-center gap-3" style="margin-bottom: 1rem;">
-        <img id="user-avatar" src="https://placehold.co/40x40/333/fff?text=U" alt="Avatar" style="width: 2.5rem; height: 2.5rem; border-radius: 9999px; object-fit: cover; border: 1px solid var(--app-border);" onerror="this.src='https://placehold.co/40x40/333/fff?text=U'" />
+      <div class="sidebar-user-row">
+        <img id="sidebar-user-avatar" src="https://placehold.co/40x40/333/fff?text=U" alt="Avatar" class="sidebar-avatar-image" onerror="this.src='https://placehold.co/40x40/333/fff?text=U'" />
         <div class="flex-1 min-w-0">
-          <p id="user-name" class="text-sm font-semibold truncate" style="color: var(--color-gray-100);">読み込み中...</p>
-          <p id="user-role-badge" class="text-xs truncate" style="color: var(--color-gray-400);">権限: 読込中</p>
+          <p id="sidebar-user-name" class="text-sm font-semibold truncate sidebar-user-name-text">読み込み中...</p>
+          <p id="sidebar-user-role" class="text-xs truncate sidebar-user-role-text">権限: 読込中</p>
         </div>
       </div>
-      <a href="/logout" class="logout-btn">
-        <svg style="width: 1rem; height: 1rem;" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1"/></svg>
+      <a href="/logout" class="logout-button">
+        <svg class="icon-sm" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1"/></svg>
         ログアウト
       </a>
     </div>
   </aside>
 
-  <!-- Main Content Area -->
-  <div class="main-layout">
-    
-    <!-- Mobile Header -->
-    <header class="mobile-header">
+  <!-- ========== メインエリア ========== -->
+  <div class="app-main">
+
+    <header class="mobile-topbar">
       <div class="flex items-center gap-2">
-        <div style="width: 1.75rem; height: 1.75rem; border-radius: 0.375rem; background-color: var(--color-blue-600); display: flex; align-items: center; justify-content: center; color: white;">🏫</div>
-        <h1 class="font-bold text-sm" style="color: white;">Namiki Portal</h1>
+        <div class="logo-badge logo-badge--mobile">
+          <img src="/logo.webp" alt="Logo" class="logo-badge-img" onerror="this.style.display='none'; this.nextElementSibling.style.display='inline';" />
+          <span class="logo-badge-emoji" style="display:none;">🏫</span>
+        </div>
+        <h1 class="font-bold text-sm mobile-brand-name">並木中等教育学校18回生</h1>
       </div>
       <div class="flex items-center gap-3">
-        <img id="user-avatar-mobile" src="https://placehold.co/32x32/333/fff?text=U" style="width: 1.75rem; height: 1.75rem; border-radius: 9999px; border: 1px solid var(--app-border);" />
+        <img id="mobile-user-avatar" src="https://placehold.co/32x32/333/fff?text=U" class="mobile-avatar-image" />
       </div>
     </header>
 
-    <!-- Mobile Navigation Tabs -->
-    <div class="mobile-nav">
-      <button onclick="switchTab('home')" id="tab-btn-home-m" class="mobile-tab-btn active">ホーム</button>
-      <button onclick="switchTab('schedule')" id="tab-btn-schedule-m" class="mobile-tab-btn">時間割</button>
-      <button onclick="switchTab('notices')" id="tab-btn-notices-m" class="mobile-tab-btn">お知らせ</button>
-      <button onclick="switchTab('links')" id="tab-btn-links-m" class="mobile-tab-btn">リンク</button>
-      <button onclick="switchTab('calendar')" id="tab-btn-calendar-m" class="mobile-tab-btn">カレンダー</button>
-      <button onclick="switchTab('chat')" id="tab-btn-chat-m" class="mobile-tab-btn">チャット</button>
+    <div class="mobile-tab-bar">
+      <button onclick="switchTab('home')" id="mobile-nav-home" class="mobile-nav-button active">ホーム</button>
+      <button onclick="switchTab('schedule')" id="mobile-nav-schedule" class="mobile-nav-button">時間割</button>
+      <button onclick="switchTab('notices')" id="mobile-nav-notices" class="mobile-nav-button">お知らせ</button>
+      <button onclick="switchTab('links')" id="mobile-nav-links" class="mobile-nav-button">リンク</button>
+      <button onclick="switchTab('calendar')" id="mobile-nav-calendar" class="mobile-nav-button">カレンダー</button>
+      <button onclick="switchTab('chat')" id="mobile-nav-chat" class="mobile-nav-button">チャット</button>
     </div>
 
-    <!-- Scrollable Content -->
-    <main class="main-content-area">
-      
-      <!-- 1. HOME TAB -->
-      <div id="tab-home" class="tab-content fade-in space-y-6">
-        
-        <!-- Welcome Banner -->
-        <div class="welcome-banner shadow-sm">
-          <div style="position: absolute; right: 0; top: 0; width: 16rem; height: 16rem; background-color: rgba(59, 130, 246, 0.05); border-radius: 9999px; filter: blur(48px); pointer-events: none; transform: translate(50%, -50%);"></div>
-          <div class="relative z-10 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+    <main class="content-area">
+
+      <!-- 1. ホームタブ -->
+      <div id="page-home" class="page-section fade-in space-y-6">
+
+        <div class="welcome-banner">
+          <div class="welcome-banner-glow"></div>
+          <div class="welcome-banner-row">
             <div>
-              <p id="current-date-str" class="text-sm font-medium" style="color: var(--color-blue-400); margin-bottom: 0.25rem;">日付を読み込んでいます...</p>
-              <h2 id="welcome-title" class="text-2xl sm:text-3xl font-bold" style="color: white;">ようこそ、ダッシュボードへ</h2>
+              <p id="dashboard-date-display" class="welcome-date-text">日付を読み込んでいます...</p>
+              <h2 id="dashboard-welcome-heading" class="welcome-heading-text">ようこそ、ダッシュボードへ</h2>
             </div>
-            <button onclick="switchTab('schedule')" class="primary-btn">
+            <button onclick="switchTab('schedule')" class="button-primary">
               📅 今日の時間割を見る
             </button>
           </div>
         </div>
 
         <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
-          <!-- Left Column (Wider) -->
           <div class="lg:col-span-2 space-y-6">
-            
-            <!-- お知らせカード -->
+
             <div class="app-card">
-              <div class="flex items-center justify-between" style="margin-bottom: 1.25rem;">
-                <h3 class="text-base font-semibold flex items-center gap-2" style="color: white;">
-                  <span style="color: var(--color-yellow-500);">🔔</span> 最新のお知らせ
-                </h3>
-                <button onclick="switchTab('notices')" class="text-xs font-medium" style="color: var(--color-blue-400); background: none; border: none; cursor: pointer;">すべて見る &rarr;</button>
+              <div class="card-header-row">
+                <h3 class="card-title"><span class="card-icon--yellow">🔔</span> 最新のお知らせ</h3>
+                <button onclick="switchTab('notices')" class="card-link-button">すべて見る &rarr;</button>
               </div>
-              <div id="home-notices-list" class="space-y-3">
-                <div style="display: flex; gap: 1rem; animation: pulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;">
-                  <div class="flex-1 space-y-3" style="padding: 0.25rem 0;">
-                    <div style="height: 1rem; background-color: var(--app-hover); border-radius: 0.25rem; width: 75%;"></div>
-                    <div style="height: 1rem; background-color: var(--app-hover); border-radius: 0.25rem; width: 50%;"></div>
+              <div id="dashboard-notices-list" class="space-y-3">
+                <div class="skeleton-loader-row">
+                  <div class="flex-1 space-y-3">
+                    <div class="skeleton-bar skeleton-bar--lg"></div>
+                    <div class="skeleton-bar skeleton-bar--sm"></div>
                   </div>
                 </div>
               </div>
             </div>
 
-            <!-- 本日の時間割カード -->
             <div class="app-card">
-              <div class="flex items-center justify-between" style="margin-bottom: 1.25rem;">
-                <h3 class="text-base font-semibold flex items-center gap-2" style="color: white;">
-                  <span style="color: var(--color-green-400);">📅</span> 本日のハイライト
-                </h3>
-                <button onclick="switchTab('schedule')" class="text-xs font-medium" style="color: var(--color-blue-400); background: none; border: none; cursor: pointer;">詳細 &rarr;</button>
+              <div class="card-header-row">
+                <h3 class="card-title"><span class="card-icon--green">📅</span> 本日のハイライト</h3>
+                <button onclick="switchTab('schedule')" class="card-link-button">詳細 &rarr;</button>
               </div>
-              <div id="home-schedule-list" class="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                 <div class="text-sm" style="color: var(--color-gray-500); padding: 0.5rem 0;">読み込み中...</div>
+              <div id="dashboard-schedule-highlights" class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                <div class="placeholder-text">読み込み中...</div>
               </div>
             </div>
           </div>
 
-          <!-- Right Column -->
           <div class="space-y-6">
-            <!-- リンク集カード -->
             <div class="app-card">
-              <div class="flex items-center justify-between" style="margin-bottom: 1.25rem;">
-                <h3 class="text-base font-semibold flex items-center gap-2" style="color: white;">
-                  <span style="color: var(--color-purple-400);">🔗</span> クイックリンク
-                </h3>
+              <div class="card-header-row">
+                <h3 class="card-title"><span class="card-icon--purple">🔗</span> クイックリンク</h3>
               </div>
-              <div id="home-links-list" class="space-y-2">
-                <div class="text-sm" style="color: var(--color-gray-500); padding: 0.5rem 0;">読み込み中...</div>
+              <div id="dashboard-quicklinks-list" class="space-y-2">
+                <div class="placeholder-text">読み込み中...</div>
               </div>
             </div>
 
-            <!-- ステータスカード -->
-            <div class="app-card" style="padding: 1.25rem;">
-              <h3 class="text-xs font-semibold uppercase tracking-wider" style="color: var(--color-gray-400); margin-bottom: 1rem;">システムステータス</h3>
-              <div class="space-y-3 text-sm">
-                <div class="flex justify-between items-center" style="padding: 0.25rem 0;">
-                  <span style="color: var(--color-gray-400);">認証</span>
-                  <span class="badge-ok">OK</span>
+            <div class="app-card status-card">
+              <h3 class="status-card-title">システムステータス</h3>
+              <div class="space-y-3">
+                <div class="status-row">
+                  <span class="status-label">認証</span>
+                  <span class="status-badge-ok">OK</span>
                 </div>
-                <div class="flex justify-between items-center" style="padding: 0.25rem 0;">
-                  <span style="color: var(--color-gray-400);">所属クラス</span>
-                  <span id="user-class-label" class="font-medium" style="color: var(--color-gray-200);">読込中</span>
+                <div class="status-row">
+                  <span class="status-label">所属クラス</span>
+                  <span id="dashboard-user-class" class="status-value">読込中</span>
                 </div>
-                <div class="flex justify-between items-center" style="border-top: 1px solid var(--app-border); padding-top: 0.75rem; margin-top: 0.25rem;">
-                  <span style="color: var(--color-gray-400);">チャット暗号化</span>
-                  <span class="badge-crypto">
-                    <svg style="width: 0.75rem; height: 0.75rem;" fill="currentColor" viewBox="0 0 20 20"><path d="M5 9V7a5 5 0 0110 0v2a2 2 0 012 2v5a2 2 0 01-2 2H5a2 2 0 01-2-2v-5a2 2 0 012-2zm8-2v2H7V7a3 3 0 016 0z" clip-rule="evenodd" fill-rule="evenodd"></path></svg>
+                <div class="status-row status-row--divider">
+                  <span class="status-label">チャット暗号化</span>
+                  <span class="encryption-badge">
+                    <svg class="icon-xs" fill="currentColor" viewBox="0 0 20 20"><path d="M5 9V7a5 5 0 0110 0v2a2 2 0 012 2v5a2 2 0 01-2 2H5a2 2 0 01-2-2v-5a2 2 0 012-2zm8-2v2H7V7a3 3 0 016 0z" clip-rule="evenodd" fill-rule="evenodd"></path></svg>
                     AES-GCM
                   </span>
                 </div>
@@ -585,132 +1068,121 @@
         </div>
       </div>
 
-      <!-- 2. SCHEDULE TAB -->
-      <div id="tab-schedule" class="tab-content hidden fade-in space-y-6">
-        <div class="app-card" style="padding: 1.5rem;">
-          @media (min-width: 768px) { padding: 2rem; }
-          <div class="flex flex-col md:flex-row md:items-center justify-between gap-4" style="margin-bottom: 1.5rem; border-bottom: 1px solid var(--app-border); padding-bottom: 1.5rem;">
+      <!-- 2. 時間割タブ -->
+      <div id="page-schedule" class="page-section hidden fade-in space-y-6">
+        <div class="app-card schedule-card">
+          <div class="schedule-header">
             <div>
-              <h2 class="text-xl font-bold" style="color: white;">時間割一覧</h2>
-              <p class="text-sm" style="color: var(--color-gray-400); margin-top: 0.25rem;">曜日ごとの授業スケジュールを確認できます。</p>
+              <h2 class="schedule-title">時間割一覧</h2>
+              <p class="schedule-subtitle">曜日ごとの授業スケジュールを確認できます。</p>
             </div>
-            <!-- 曜日切り替えタブ -->
-            <div class="flex" style="background-color: var(--app-bg); padding: 0.25rem; border-radius: 0.75rem; border: 1px solid var(--app-border); align-self: flex-start;">
-              <button onclick="filterSchedule('月')" id="sched-btn-月" class="sched-day-btn" style="padding: 0.375rem 1rem; border-radius: 0.5rem; font-size: 0.875rem; font-weight: 500; transition: all 0.2s; background-color: var(--app-hover); color: white; border: none; cursor: pointer;">月</button>
-              <button onclick="filterSchedule('火')" id="sched-btn-火" class="sched-day-btn" style="padding: 0.375rem 1rem; border-radius: 0.5rem; font-size: 0.875rem; font-weight: 500; transition: all 0.2s; color: var(--color-gray-400); background: none; border: none; cursor: pointer;">火</button>
-              <button onclick="filterSchedule('水')" id="sched-btn-水" class="sched-day-btn" style="padding: 0.375rem 1rem; border-radius: 0.5rem; font-size: 0.875rem; font-weight: 500; transition: all 0.2s; color: var(--color-gray-400); background: none; border: none; cursor: pointer;">水</button>
-              <button onclick="filterSchedule('木')" id="sched-btn-木" class="sched-day-btn" style="padding: 0.375rem 1rem; border-radius: 0.5rem; font-size: 0.875rem; font-weight: 500; transition: all 0.2s; color: var(--color-gray-400); background: none; border: none; cursor: pointer;">木</button>
-              <button onclick="filterSchedule('金')" id="sched-btn-金" class="sched-day-btn" style="padding: 0.375rem 1rem; border-radius: 0.5rem; font-size: 0.875rem; font-weight: 500; transition: all 0.2s; color: var(--color-gray-400); background: none; border: none; cursor: pointer;">金</button>
+            <div class="schedule-day-tabs">
+              <button onclick="filterSchedule('月')" id="schedule-day-月" class="schedule-day-button active">月</button>
+              <button onclick="filterSchedule('火')" id="schedule-day-火" class="schedule-day-button">火</button>
+              <button onclick="filterSchedule('水')" id="schedule-day-水" class="schedule-day-button">水</button>
+              <button onclick="filterSchedule('木')" id="schedule-day-木" class="schedule-day-button">木</button>
+              <button onclick="filterSchedule('金')" id="schedule-day-金" class="schedule-day-button">金</button>
             </div>
           </div>
-          <div id="schedule-table-container" class="overflow-x-auto">
-            <div class="text-center" style="padding: 2.5rem 0; color: var(--color-gray-500);">データを読み込んでいます...</div>
+          <div id="schedule-table-wrapper" class="overflow-x-auto">
+            <div class="empty-state-text">データを読み込んでいます...</div>
           </div>
         </div>
       </div>
 
-      <!-- 3. NOTICES TAB -->
-      <div id="tab-notices" class="tab-content hidden fade-in space-y-6">
-        <div class="app-card" style="padding: 1.5rem;">
-          <h2 class="text-xl font-bold" style="color: white; margin-bottom: 0.25rem;">お知らせ・連絡事項</h2>
-          <p class="text-sm" style="color: var(--color-gray-400); margin-bottom: 1.5rem; border-bottom: 1px solid var(--app-border); padding-bottom: 1.5rem;">学校生活に関する重要なお知らせ一覧です。</p>
-          <div id="notices-full-list" class="space-y-4">
-             <div class="text-center" style="padding: 2.5rem 0; color: var(--color-gray-500);">データを読み込んでいます...</div>
+      <!-- 3. お知らせタブ -->
+      <div id="page-notices" class="page-section hidden fade-in space-y-6">
+        <div class="app-card content-card">
+          <h2 class="content-card-title">お知らせ・連絡事項</h2>
+          <p class="content-card-subtitle">学校生活に関する重要なお知らせ一覧です。</p>
+          <div id="notices-list-full" class="space-y-4">
+            <div class="empty-state-text">データを読み込んでいます...</div>
           </div>
         </div>
       </div>
 
-      <!-- 4. LINKS TAB -->
-      <div id="tab-links" class="tab-content hidden fade-in space-y-6">
-        <div class="app-card" style="padding: 1.5rem;">
-          <h2 class="text-xl font-bold" style="color: white; margin-bottom: 0.25rem;">リンク集</h2>
-          <p class="text-sm" style="color: var(--color-gray-400); margin-bottom: 1.5rem; border-bottom: 1px solid var(--app-border); padding-bottom: 1.5rem;">各種ポータルサイトへのリンクです。</p>
-          <div id="links-grid" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-             <div class="text-center" style="padding: 2.5rem 0; color: var(--color-gray-500); grid-column: span 1 / -1;">データを読み込んでいます...</div>
+      <!-- 4. リンク集タブ -->
+      <div id="page-links" class="page-section hidden fade-in space-y-6">
+        <div class="app-card content-card">
+          <h2 class="content-card-title">リンク集</h2>
+          <p class="content-card-subtitle">各種ポータルサイトへのリンクです。</p>
+          <div id="links-grid-full" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+            <div class="empty-state-text grid-full-width">データを読み込んでいます...</div>
           </div>
         </div>
       </div>
 
-      <!-- 5. CALENDAR TAB -->
-      <div id="tab-calendar" class="tab-content hidden fade-in space-y-6">
-        <div class="app-card" style="padding: 1.5rem;">
-          <h2 class="text-xl font-bold" style="color: white; margin-bottom: 0.25rem;">年間行事カレンダー</h2>
-          <p class="text-sm" style="color: var(--color-gray-400); margin-bottom: 1.5rem; border-bottom: 1px solid var(--app-border); padding-bottom: 1.5rem;">今年度の行事予定です。</p>
-          <div id="calendar-list" class="grid grid-cols-1 md:grid-cols-2 gap-4">
-             <div class="text-center" style="padding: 2.5rem 0; color: var(--color-gray-500); grid-column: span 1 / -1;">データを読み込んでいます...</div>
+      <!-- 5. カレンダータブ -->
+      <div id="page-calendar" class="page-section hidden fade-in space-y-6">
+        <div class="app-card content-card">
+          <h2 class="content-card-title">年間行事カレンダー</h2>
+          <p class="content-card-subtitle">今年度の行事予定です。</p>
+          <div id="calendar-events-list" class="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div class="empty-state-text grid-full-width">データを読み込んでいます...</div>
           </div>
         </div>
       </div>
 
-      <!-- 6. CHAT TAB -->
-      <div id="tab-chat" class="tab-content hidden fade-in chat-container-wrap">
-        <div class="app-card flex flex-col md:flex-row h-full overflow-hidden shadow-sm" style="padding: 0;">
-          
-          <!-- Chat Sidebar (Channels) -->
-          <div class="w-full md:w-64 border-b md:border-b-0" style="border-right: 1px solid var(--app-border); display: flex; flex-direction: column; background-color: var(--app-card);">
-            <div style="padding: 1rem; border-bottom: 1px solid var(--app-border);">
-              <h3 class="text-sm font-bold" style="color: var(--color-gray-200);">メッセージ</h3>
+      <!-- 6. チャットタブ -->
+      <div id="page-chat" class="page-section hidden fade-in chat-page-wrapper">
+        <div class="app-card chat-card">
+
+          <div class="chat-sidebar">
+            <div class="chat-sidebar-header">
+              <h3 class="chat-sidebar-title">メッセージ</h3>
             </div>
-            <div class="flex-1 overflow-y-auto space-y-6" style="padding: 0.75rem;">
-              
-              <!-- Channels -->
+            <div class="chat-sidebar-body space-y-6">
               <div>
-                <h4 class="text-xs font-semibold uppercase tracking-wider" style="color: var(--color-gray-500); margin-bottom: 0.5rem; padding: 0 0.5rem;">チャンネル</h4>
+                <h4 class="chat-section-label">チャンネル</h4>
                 <div class="space-y-1">
-                  <button onclick="switchChannel('grade')" id="chan-btn-grade" style="width: 100%; text-align: left; padding: 0.5rem 0.75rem; border-radius: 0.5rem; font-size: 0.875rem; font-weight: 500; transition: background-color 0.2s; background-color: var(--app-hover); color: white; border: none; cursor: pointer; display: flex; align-items: center; gap: 0.5rem;">
-                    <span style="color: var(--color-gray-400);">#</span> 学年全体
+                  <button onclick="switchChannel('grade')" id="channel-button-grade" class="channel-button active">
+                    <span class="channel-hash">#</span> 学年全体
                   </button>
-                  <button onclick="switchChannel('class')" id="chan-btn-class" style="width: 100%; text-align: left; padding: 0.5rem 0.75rem; border-radius: 0.5rem; font-size: 0.875rem; font-weight: 500; transition: background-color 0.2s; color: var(--color-gray-400); background: none; border: none; cursor: pointer; display: flex; align-items: center; gap: 0.5rem;">
-                    <span style="color: var(--color-gray-400);">#</span> クラス
+                  <button onclick="switchChannel('class')" id="channel-button-class" class="channel-button">
+                    <span class="channel-hash">#</span> クラス
                   </button>
                 </div>
               </div>
 
-              <!-- DMs -->
               <div>
-                <h4 class="text-xs font-semibold uppercase tracking-wider" style="color: var(--color-gray-500); margin-bottom: 0.5rem; padding: 0 0.5rem;">ダイレクトメッセージ</h4>
-                <div id="dm-users-list" class="space-y-1">
-                  <div class="text-xs" style="color: var(--color-gray-600); padding: 0 0.5rem;">読み込み中...</div>
+                <h4 class="chat-section-label">ダイレクトメッセージ</h4>
+                <div id="chat-dm-list" class="space-y-1">
+                  <div class="dm-loading-text">読み込み中...</div>
                 </div>
               </div>
-
             </div>
           </div>
 
-          <!-- Main Chat Area -->
-          <div class="flex-1 flex flex-col h-full" style="background-color: var(--app-bg);">
-            <!-- Chat Header -->
-            <div style="height: 4rem; padding: 0 1.5rem; border-bottom: 1px solid var(--app-border); display: flex; align-items: center; justify-content: space-between; background-color: rgba(10, 10, 12, 0.8); backdrop-filter: blur(8px); flex-shrink: 0;">
+          <div class="chat-main">
+            <div class="chat-header">
               <div>
-                <h3 id="current-channel-title" class="text-base font-bold flex items-center gap-2" style="color: white;"># 学年全体チャット</h3>
-                <p id="current-channel-desc" class="text-xs hidden sm:block" style="color: var(--color-gray-400);">学年全員で交流・情報共有するチャンネルです。</p>
+                <h3 id="chat-channel-title" class="chat-header-title"># 学年全体チャット</h3>
+                <p id="chat-channel-description" class="chat-header-desc">学年全員で交流・情報共有するチャンネルです。</p>
               </div>
               <div class="flex items-center gap-2" title="このチャットはエンドツーエンドで暗号化されています">
-                <span class="badge-crypto">
-                  <svg style="width: 0.75rem; height: 0.75rem;" fill="currentColor" viewBox="0 0 20 20"><path d="M5 9V7a5 5 0 0110 0v2a2 2 0 012 2v5a2 2 0 01-2 2H5a2 2 0 01-2-2v-5a2 2 0 012-2zm8-2v2H7V7a3 3 0 016 0z" clip-rule="evenodd" fill-rule="evenodd"></path></svg>
+                <span class="encryption-badge">
+                  <svg class="icon-xs" fill="currentColor" viewBox="0 0 20 20"><path d="M5 9V7a5 5 0 0110 0v2a2 2 0 012 2v5a2 2 0 01-2 2H5a2 2 0 01-2-2v-5a2 2 0 012-2zm8-2v2H7V7a3 3 0 016 0z" clip-rule="evenodd" fill-rule="evenodd"></path></svg>
                   AES-GCM
                 </span>
               </div>
             </div>
 
-            <!-- Messages List -->
-            <div id="chat-messages" class="flex-1 overflow-y-auto space-y-5" style="padding: 1.5rem;">
-              <div class="flex items-center justify-center h-full">
-                <div class="text-sm" style="color: var(--color-gray-500);">暗号化メッセージを読み込んでいます...</div>
+            <div id="chat-messages-list" class="chat-messages-area">
+              <div class="chat-center-message">
+                <div class="chat-center-message-text">暗号化メッセージを読み込んでいます...</div>
               </div>
             </div>
 
-            <!-- Chat Input Form -->
-            <div style="padding: 1rem; background-color: var(--app-card); border-top: 1px solid var(--app-border); flex-shrink: 0;">
-              <form id="chat-form" onsubmit="handleChatSubmit(event)" style="display: flex; align-items: flex-end; gap: 0.5rem; max-width: 56rem; margin: 0 auto;">
-                <button type="button" onclick="handleAttachment()" style="padding: 0.625rem; color: var(--color-gray-400); background: none; border: none; cursor: pointer; border-radius: 0.5rem; margin-bottom: 0.125rem;">
-                  <svg style="width: 1.25rem; height: 1.25rem;" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15.172 7l-6.586 6.586a2 2 0 102.828 2.828l6.414-6.586a4 4 0 00-5.656-5.656l-6.415 6.585a6 6 0 108.486 8.486L20.5 13"/></svg>
+            <div class="chat-input-bar">
+              <form id="chat-message-form" onsubmit="handleChatSubmit(event)" class="chat-input-form">
+                <button type="button" onclick="handleAttachment()" class="chat-attach-button">
+                  <svg class="icon-nav" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15.172 7l-6.586 6.586a2 2 0 102.828 2.828l6.414-6.586a4 4 0 00-5.656-5.656l-6.415 6.585a6 6 0 108.486 8.486L20.5 13"/></svg>
                 </button>
-                <div class="flex-1 overflow-hidden" style="background-color: var(--app-bg); border: 1px solid var(--app-border); border-radius: 0.75rem;">
-                  <input type="text" id="chat-input" placeholder="メッセージを入力..." style="width: 100%; background: transparent; padding: 0.75rem 1rem; font-size: 0.875rem; color: var(--color-gray-100); border: none; outline: none;" autocomplete="off" />
+                <div class="chat-input-wrapper">
+                  <input type="text" id="chat-message-input" placeholder="メッセージを入力..." class="chat-text-input" autocomplete="off" />
                 </div>
-                <button type="submit" style="padding: 0.75rem; background-color: var(--color-blue-600); color: white; border-radius: 0.75rem; border: none; cursor: pointer; box-shadow: 0 1px 2px 0 rgba(0,0,0,0.05); margin-bottom: 0.125rem;">
-                  <svg style="width: 1.25rem; height: 1.25rem;" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 19l9 2-9-18-9 18 9-2zm0 0v-8"/></svg>
+                <button type="submit" class="chat-send-button">
+                  <svg class="icon-nav" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 19l9 2-9-18-9 18 9-2zm0 0v-8"/></svg>
                 </button>
               </form>
             </div>
@@ -719,12 +1191,11 @@
         </div>
       </div>
 
-      <!-- Footer -->
-      <footer style="margin-top: 3rem; padding: 1.5rem 0; border-top: 1px solid var(--app-border); text-align: center; color: var(--color-gray-500); font-size: 0.75rem;">
+      <footer class="site-footer">
         <p>&copy; 2026 学校生活ダッシュボード. All rights reserved.</p>
-        <div style="margin-top: 0.5rem; display: flex; justify-content: center; gap: 1rem;">
-          <a href="/privacy" style="color: inherit; text-decoration: none;">プライバシーポリシー</a>
-          <a href="https://github.com/Namiki-18th/Namiki-18th.github.io" target="_blank" style="color: inherit; text-decoration: none;">GitHub</a>
+        <div class="footer-links">
+          <a href="/privacy" class="footer-link">プライバシーポリシー</a>
+          <a href="https://github.com/Namiki-18th/Namiki-18th.github.io" target="_blank" class="footer-link">GitHub</a>
         </div>
       </footer>
 
@@ -740,9 +1211,9 @@
       calendar: []
     };
 
-    let currentChannel = 'grade'; 
+    let currentChannel = 'grade';
 
-    // --- Encryption Helpers (Web Crypto API - AES-GCM) ---
+    // --- 暗号化ヘルパー (Web Crypto API - AES-GCM) ---
     const ENCRYPTION_SECRET = "NamikiPortalSecureKey2026";
 
     async function getCryptoKey() {
@@ -810,30 +1281,19 @@
       }
     }
 
-    // --- UI Navigation Logic ---
+    // --- タブ切り替え ---
     function switchTab(tabId) {
-      // 全コンテンツ非表示
-      document.querySelectorAll('.tab-content').forEach(el => el.classList.add('hidden'));
-      
-      // PCサイドバーボタンのリセット
-      document.querySelectorAll('.nav-btn').forEach(btn => {
-        btn.classList.remove('active');
-      });
-      // モバイルボタンのリセット
-      document.querySelectorAll('.mobile-tab-btn').forEach(btn => {
-        btn.classList.remove('active');
-      });
+      document.querySelectorAll('.page-section').forEach(el => el.classList.add('hidden'));
+      document.querySelectorAll('.sidebar-nav-button').forEach(btn => btn.classList.remove('active'));
+      document.querySelectorAll('.mobile-nav-button').forEach(btn => btn.classList.remove('active'));
 
-      // ターゲットの表示
-      const targetContent = document.getElementById(`tab-${tabId}`);
+      const targetContent = document.getElementById(`page-${tabId}`);
       if (targetContent) targetContent.classList.remove('hidden');
 
-      // アクティブ状態の付与
-      const targetBtnPC = document.getElementById(`tab-btn-${tabId}`);
-      if (targetBtnPC) {
-        targetBtnPC.classList.add('active');
-      }
-      const targetBtnM = document.getElementById(`tab-btn-${tabId}-m`);
+      const targetBtnPC = document.getElementById(`sidebar-nav-${tabId}`);
+      if (targetBtnPC) targetBtnPC.classList.add('active');
+
+      const targetBtnM = document.getElementById(`mobile-nav-${tabId}`);
       if (targetBtnM) {
         targetBtnM.classList.add('active');
         targetBtnM.scrollIntoView({ behavior: 'smooth', block: 'nearest', inline: 'center' });
@@ -847,18 +1307,18 @@
     function initDateStr() {
       const now = new Date();
       const options = { year: 'numeric', month: 'long', day: 'numeric', weekday: 'long' };
-      document.getElementById('current-date-str').textContent = now.toLocaleDateString('ja-JP', options);
+      document.getElementById('dashboard-date-display').textContent = now.toLocaleDateString('ja-JP', options);
     }
 
-    // --- Data Fetching & Rendering ---
+    // --- データ取得 & 描画 ---
     async function loadDashboardData() {
       try {
         const [profileRes, scheduleRes, noticesRes, linksRes, calendarRes] = await Promise.all([
-          fetch('/api/profile').catch(() => ({ok: false})),
-          fetch('/api/schedule').catch(() => ({ok: false})),
-          fetch('/api/notices').catch(() => ({ok: false})),
-          fetch('/api/links').catch(() => ({ok: false})),
-          fetch('/api/calendar').catch(() => ({ok: false}))
+          fetch('/api/profile').catch(() => ({ ok: false })),
+          fetch('/api/schedule').catch(() => ({ ok: false })),
+          fetch('/api/notices').catch(() => ({ ok: false })),
+          fetch('/api/links').catch(() => ({ ok: false })),
+          fetch('/api/calendar').catch(() => ({ ok: false }))
         ]);
 
         if (profileRes.status === 401) {
@@ -866,19 +1326,19 @@
           return;
         }
 
-        if(profileRes.ok) globalData.profile = await profileRes.json();
+        if (profileRes.ok) globalData.profile = await profileRes.json();
         else globalData.profile = { name: 'ゲストユーザー', role: 'student', userClass: '3-A', picture: '' };
-        
-        if(scheduleRes.ok) globalData.schedule = await scheduleRes.json();
+
+        if (scheduleRes.ok) globalData.schedule = await scheduleRes.json();
         else globalData.schedule = [{ id: 1, day: '月', period: 1, subject: '数学', room: 'A-102', teacher: '田中' }];
 
-        if(noticesRes.ok) globalData.notices = await noticesRes.json();
-        else globalData.notices = [{ id: 1, title: 'システムメンテナンス', date: '2026-08-20', content: 'お知らせのモックデータです。', priority: 'high'}];
+        if (noticesRes.ok) globalData.notices = await noticesRes.json();
+        else globalData.notices = [{ id: 1, title: 'システムメンテナンス', date: '2026-08-20', content: 'お知らせのモックデータです。', priority: 'high' }];
 
-        if(linksRes.ok) globalData.links = await linksRes.json();
+        if (linksRes.ok) globalData.links = await linksRes.json();
         else globalData.links = [{ name: '学校HP', url: '#', description: '公式サイト' }];
 
-        if(calendarRes.ok) globalData.calendar = await calendarRes.json();
+        if (calendarRes.ok) globalData.calendar = await calendarRes.json();
         else globalData.calendar = [{ date: '2026-09-01', title: '始業式' }];
 
         renderAll();
@@ -890,63 +1350,65 @@
     function renderAll() {
       if (globalData.profile) {
         const p = globalData.profile;
-        document.getElementById('user-name').textContent = p.name || 'ユーザー';
+        document.getElementById('sidebar-user-name').textContent = p.name || 'ユーザー';
         if (p.picture) {
-          document.getElementById('user-avatar').src = p.picture;
-          document.getElementById('user-avatar-mobile').src = p.picture;
+          document.getElementById('sidebar-user-avatar').src = p.picture;
+          document.getElementById('mobile-user-avatar').src = p.picture;
         }
-        document.getElementById('welcome-title').textContent = `ようこそ、${p.name} さん`;
-        document.getElementById('user-class-label').textContent = p.userClass || '未設定';
-        document.getElementById('user-role-badge').textContent = `権限: ${p.role === 'admin' ? '管理者' : '生徒'}`;
+        document.getElementById('dashboard-welcome-heading').textContent = `ようこそ、${p.name} さん`;
+        document.getElementById('dashboard-user-class').textContent = p.userClass || '未設定';
+        document.getElementById('sidebar-user-role').textContent = `権限: ${p.role === 'admin' ? '管理者' : '生徒'}`;
         if (p.role === 'admin') {
-          const adminLink = document.getElementById('admin-link');
-          if(adminLink) adminLink.classList.remove('hidden');
+          const adminLink = document.getElementById('admin-panel-link');
+          if (adminLink) adminLink.classList.remove('hidden');
         }
       }
 
-      // Home Notices
-      const homeNotices = document.getElementById('home-notices-list');
-      homeNotices.innerHTML = globalData.notices.slice(0,3).map(n => `
-        <div style="display: flex; align-items: flex-start; gap: 0.75rem; padding: 0.75rem; border-radius: 0.75rem; background-color: var(--app-hover); border: 1px solid var(--app-border);">
-          <div style="margin-top: 0.125rem;">${n.priority === 'high' ? '🔴' : '🔵'}</div>
+      // ホーム：お知らせ
+      const homeNotices = document.getElementById('dashboard-notices-list');
+      homeNotices.innerHTML = globalData.notices.slice(0, 3).map(n => `
+        <div class="notice-item">
+          <div class="notice-item-icon">${n.priority === 'high' ? '🔴' : '🔵'}</div>
           <div>
-            <div class="text-sm font-medium" style="color: var(--color-gray-200);">${escapeHtml(n.title)}</div>
-            <div class="text-xs" style="color: var(--color-gray-500); margin-top: 0.25rem;">${escapeHtml(n.date)}</div>
+            <div class="notice-item-title">${escapeHtml(n.title)}</div>
+            <div class="notice-item-date">${escapeHtml(n.date)}</div>
           </div>
         </div>
       `).join('');
 
-      // Home Links
-      const homeLinks = document.getElementById('home-links-list');
-      homeLinks.innerHTML = globalData.links.slice(0,4).map(l => `
-        <a href="${escapeHtml(l.url)}" style="display: flex; align-items: center; justify-content: between; padding: 0.5rem 0.75rem; border-radius: 0.5rem; transition: background-color 0.2s; font-size: 0.875rem; color: var(--color-gray-300); text-decoration: none;">
+      // ホーム：クイックリンク
+      const homeLinks = document.getElementById('dashboard-quicklinks-list');
+      homeLinks.innerHTML = globalData.links.slice(0, 4).map(l => `
+        <a href="${escapeHtml(l.url)}" class="quicklink-item">
           <span>${escapeHtml(l.name)}</span>
-          <svg style="width: 1rem; height: 1rem; color: var(--color-gray-600);" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14"/></svg>
+          <svg class="quicklink-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14"/></svg>
         </a>
       `).join('');
 
-      // Render Full Lists
-      document.getElementById('notices-full-list').innerHTML = globalData.notices.map(n => `
-        <div style="padding: 1rem; border-radius: 0.75rem; background-color: var(--app-hover); border: 1px solid var(--app-border); margin-bottom: 0.75rem;">
-          <div style="display: flex; align-items: center; gap: 0.5rem; margin-bottom: 0.5rem;">
-            <span class="text-xs" style="padding: 0.125rem 0.5rem; border-radius: 0.25rem; background-color: var(--app-active); color: var(--color-gray-300);">${escapeHtml(n.date)}</span>
-            <h4 class="font-bold" style="color: var(--color-gray-200);">${escapeHtml(n.title)}</h4>
+      // お知らせタブ（全件）
+      document.getElementById('notices-list-full').innerHTML = globalData.notices.map(n => `
+        <div class="notice-card">
+          <div class="notice-card-header">
+            <span class="notice-card-date">${escapeHtml(n.date)}</span>
+            <h4 class="notice-card-title">${escapeHtml(n.title)}</h4>
           </div>
-          <p class="text-sm" style="color: var(--color-gray-400);">${escapeHtml(n.content)}</p>
+          <p class="notice-card-body">${escapeHtml(n.content)}</p>
         </div>
       `).join('');
 
-      document.getElementById('links-grid').innerHTML = globalData.links.map(l => `
-        <a href="${escapeHtml(l.url)}" style="padding: 1rem; border-radius: 0.75rem; background-color: var(--app-hover); border: 1px solid var(--app-border); display: block; text-decoration: none;">
-          <div class="font-semibold" style="color: var(--color-blue-400); margin-bottom: 0.25rem;">${escapeHtml(l.name)}</div>
-          <div class="text-xs" style="color: var(--color-gray-400);">${escapeHtml(l.description || '')}</div>
+      // リンク集タブ
+      document.getElementById('links-grid-full').innerHTML = globalData.links.map(l => `
+        <a href="${escapeHtml(l.url)}" class="link-card">
+          <div class="link-card-name">${escapeHtml(l.name)}</div>
+          <div class="link-card-desc">${escapeHtml(l.description || '')}</div>
         </a>
       `).join('');
 
-      document.getElementById('calendar-list').innerHTML = globalData.calendar.map(c => `
-        <div style="padding: 1rem; border-radius: 0.75rem; background-color: var(--app-hover); border: 1px solid var(--app-border); display: flex; align-items: center; justify-content: space-between;">
-          <span class="font-medium" style="color: var(--color-gray-200);">${escapeHtml(c.title)}</span>
-          <span class="text-sm font-mono" style="color: var(--color-gray-500);">${escapeHtml(c.date)}</span>
+      // カレンダータブ
+      document.getElementById('calendar-events-list').innerHTML = globalData.calendar.map(c => `
+        <div class="calendar-item">
+          <span class="calendar-item-title">${escapeHtml(c.title)}</span>
+          <span class="calendar-item-date">${escapeHtml(c.date)}</span>
         </div>
       `).join('');
 
@@ -962,43 +1424,37 @@
       window.dmUsersMap = {};
       dmList.forEach(u => window.dmUsersMap[u.id] = u);
 
-      const container = document.getElementById('dm-users-list');
+      const container = document.getElementById('chat-dm-list');
       container.innerHTML = dmList.map(u => `
-        <button onclick="switchChannel('dm_${u.id}', '${u.name}')" style="width: 100%; text-align: left; padding: 0.5rem 0.75rem; border-radius: 0.5rem; font-size: 0.875rem; transition: background-color 0.2s; color: var(--color-gray-400); background: none; border: none; cursor: pointer; display: flex; align-items: center; gap: 0.5rem;">
-          <img src="${u.avatar}" style="width: 1.25rem; height: 1.25rem; border-radius: 9999px; object-fit: cover;" />
+        <button onclick="switchChannel('dm_${u.id}', '${u.name}')" id="dm-button-${u.id}" class="channel-button dm-user-button">
+          <img src="${u.avatar}" class="dm-user-avatar" />
           <span class="truncate">${u.name}</span>
         </button>
       `).join('');
     }
 
     function filterSchedule(day) {
-      document.querySelectorAll('.sched-day-btn').forEach(btn => {
-        btn.style.backgroundColor = 'transparent';
-        btn.style.color = 'var(--color-gray-400)';
-      });
-      const activeBtn = document.getElementById(`sched-btn-${day}`);
-      if(activeBtn) {
-        activeBtn.style.backgroundColor = 'var(--app-hover)';
-        activeBtn.style.color = 'white';
-      }
+      document.querySelectorAll('.schedule-day-button').forEach(btn => btn.classList.remove('active'));
+      const activeBtn = document.getElementById(`schedule-day-${day}`);
+      if (activeBtn) activeBtn.classList.add('active');
 
       const schedule = globalData.schedule.filter(s => s.day === day);
-      const container = document.getElementById('schedule-table-container');
-      const homeContainer = document.getElementById('home-schedule-list');
-      
+      const container = document.getElementById('schedule-table-wrapper');
+      const homeContainer = document.getElementById('dashboard-schedule-highlights');
+
       if (schedule.length === 0) {
-        const emptyMsg = `<div class="text-sm" style="color: var(--color-gray-500); padding: 1rem 0;">データがありません</div>`;
+        const emptyMsg = `<div class="placeholder-text">データがありません</div>`;
         container.innerHTML = emptyMsg;
         homeContainer.innerHTML = emptyMsg;
         return;
       }
 
-      homeContainer.innerHTML = schedule.slice(0,4).map(item => `
-        <div style="padding: 0.75rem; border-radius: 0.75rem; background-color: var(--app-hover); border: 1px solid var(--app-border); display: flex; align-items: center; gap: 0.75rem;">
-          <div style="width: 2rem; height: 2rem; border-radius: 0.25rem; background-color: var(--app-active); display: flex; align-items: center; justify-content: center; font-size: 0.75rem; font-weight: 700; color: var(--color-gray-300); flex-shrink: 0;">${item.id || item.period}限</div>
+      homeContainer.innerHTML = schedule.slice(0, 4).map(item => `
+        <div class="schedule-highlight-item">
+          <div class="schedule-highlight-period">${item.id || item.period}限</div>
           <div class="min-w-0">
-            <div class="text-sm font-semibold truncate" style="color: var(--color-gray-200);">${escapeHtml(item.subject)}</div>
-            <div class="text-xs truncate" style="color: var(--color-gray-500);">${escapeHtml(item.room)}</div>
+            <div class="schedule-highlight-subject truncate">${escapeHtml(item.subject)}</div>
+            <div class="schedule-highlight-room truncate">${escapeHtml(item.room)}</div>
           </div>
         </div>
       `).join('');
@@ -1013,13 +1469,13 @@
               <th>教室</th>
             </tr>
           </thead>
-          <tbody style="font-size: 0.875rem;">
+          <tbody>
             ${schedule.map(item => `
               <tr>
-                <td class="font-semibold" style="color: var(--color-gray-400);">${item.id || item.period}限</td>
-                <td class="font-semibold" style="color: var(--color-gray-200);">${escapeHtml(item.subject)}</td>
-                <td style="color: var(--color-gray-400);">${escapeHtml(item.teacher)}</td>
-                <td class="font-mono text-xs" style="color: var(--color-gray-500);">${escapeHtml(item.room)}</td>
+                <td class="cell-period">${item.id || item.period}限</td>
+                <td class="cell-subject">${escapeHtml(item.subject)}</td>
+                <td class="cell-teacher">${escapeHtml(item.teacher)}</td>
+                <td class="cell-room">${escapeHtml(item.room)}</td>
               </tr>
             `).join('')}
           </tbody>
@@ -1027,32 +1483,28 @@
       `;
     }
 
+    // --- チャット ---
     async function switchChannel(channelId, name = '') {
       currentChannel = channelId;
-      
-      document.querySelectorAll('#tab-chat button').forEach(btn => {
-        if (!btn.id.startsWith('tab-btn')) {
-          btn.style.backgroundColor = 'transparent';
-          btn.style.color = 'var(--color-gray-400)';
-        }
-      });
 
-      const titleEl = document.getElementById('current-channel-title');
-      const descEl = document.getElementById('current-channel-desc');
+      document.querySelectorAll('.channel-button').forEach(btn => btn.classList.remove('active'));
+
+      const titleEl = document.getElementById('chat-channel-title');
+      const descEl = document.getElementById('chat-channel-description');
 
       if (channelId === 'grade') {
-        const btn = document.getElementById('chan-btn-grade');
-        if(btn) { btn.style.backgroundColor = 'var(--app-hover)'; btn.style.color = 'white'; }
-        titleEl.innerHTML = '<span style="color: var(--color-gray-500); margin-right: 0.25rem;">#</span> 学年全体チャット';
+        document.getElementById('channel-button-grade')?.classList.add('active');
+        titleEl.innerHTML = '<span class="channel-hash">#</span> 学年全体チャット';
         descEl.textContent = '学年全員で交流・情報共有するチャンネルです。';
       } else if (channelId === 'class') {
-        const btn = document.getElementById('chan-btn-class');
-        if(btn) { btn.style.backgroundColor = 'var(--app-hover)'; btn.style.color = 'white'; }
+        document.getElementById('channel-button-class')?.classList.add('active');
         const cls = globalData.profile?.userClass || 'クラス未設定';
-        titleEl.innerHTML = `<span style="color: var(--color-gray-500); margin-right: 0.25rem;">#</span> ${cls} チャット`;
+        titleEl.innerHTML = `<span class="channel-hash">#</span> ${cls} チャット`;
         descEl.textContent = `${cls}の生徒専用の連絡・相談チャンネルです。`;
       } else if (channelId.startsWith('dm_')) {
-        titleEl.innerHTML = `<span style="color: var(--color-gray-500); margin-right: 0.25rem;">@</span> ${name}`;
+        const userId = channelId.replace('dm_', '');
+        document.getElementById(`dm-button-${userId}`)?.classList.add('active');
+        titleEl.innerHTML = `<span class="channel-hash">@</span> ${name}`;
         descEl.textContent = `${name}さんとのプライベートメッセージです。`;
       }
 
@@ -1060,8 +1512,8 @@
     }
 
     async function loadChannelMessages(channelId) {
-      const container = document.getElementById('chat-messages');
-      container.innerHTML = '<div class="flex h-full items-center justify-center"><div class="text-sm" style="color: var(--color-gray-500);">メッセージを読み込んでいます...</div></div>';
+      const container = document.getElementById('chat-messages-list');
+      container.innerHTML = '<div class="chat-center-message"><div class="chat-center-message-text">メッセージを読み込んでいます...</div></div>';
 
       try {
         const res = await fetch(`/api/chat?channel=${encodeURIComponent(channelId)}`);
@@ -1070,7 +1522,7 @@
 
         container.innerHTML = '';
         if (!data.messages || data.messages.length === 0) {
-          container.innerHTML = '<div class="flex h-full items-center justify-center"><div class="text-sm" style="color: var(--color-gray-500);">まだメッセージはありません。</div></div>';
+          container.innerHTML = '<div class="chat-center-message"><div class="chat-center-message-text">まだメッセージはありません。</div></div>';
           return;
         }
 
@@ -1078,23 +1530,21 @@
           const decryptedText = await decryptData(msg.encryptedText);
           const isSelf = msg.sender === (globalData.profile?.name || 'あなた');
           const timeStr = msg.timestamp ? new Date(msg.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : '12:00';
-          
+
           let avatarSrc = isSelf ? (globalData.profile?.picture || 'https://placehold.co/32x32/333/fff?text=Me') : 'https://placehold.co/32x32/555/fff?text=U';
           if (!isSelf && msg.avatar) avatarSrc = msg.avatar;
 
           const msgDiv = document.createElement('div');
-          msgDiv.style.display = 'flex';
-          msgDiv.style.gap = '0.75rem';
-          msgDiv.style.flexDirection = isSelf ? 'row-reverse' : 'row';
-          
+          msgDiv.className = `chat-message ${isSelf ? 'chat-message--self' : 'chat-message--other'}`;
+
           msgDiv.innerHTML = `
-            <img src="${escapeHtml(avatarSrc)}" style="width: 2rem; height: 2rem; border-radius: 9999px; background-color: var(--app-hover); flex-shrink: 0; margin-top: 0.25rem;" />
-            <div style="display: flex; flex-direction: column; align-items: ${isSelf ? 'flex-end' : 'flex-start'}; max-width: 80%;">
-              ${!isSelf ? `<span class="text-xs" style="color: var(--color-gray-500); margin-bottom: 0.25rem; margin-left: 0.25rem;">${escapeHtml(msg.sender)}</span>` : ''}
-              <div style="padding: 0.625rem 1rem; border-radius: 1rem; font-size: 0.875rem; ${isSelf ? 'background-color: var(--color-blue-600); color: white; border-top-right-radius: 0.125rem;' : 'background-color: var(--app-hover); color: var(--color-gray-200); border-top-left-radius: 0.125rem;'} box-shadow: 0 1px 2px 0 rgba(0,0,0,0.05);">
+            <img src="${escapeHtml(avatarSrc)}" class="chat-message-avatar" />
+            <div class="chat-message-content ${isSelf ? 'chat-message-content--self' : 'chat-message-content--other'}">
+              ${!isSelf ? `<span class="chat-message-sender">${escapeHtml(msg.sender)}</span>` : ''}
+              <div class="chat-bubble ${isSelf ? 'chat-bubble--self' : 'chat-bubble--other'}">
                 ${escapeHtml(decryptedText)}
               </div>
-              <span style="font-size: 0.625rem; color: var(--color-gray-500); margin-top: 0.25rem; margin-left: 0.25rem; margin-right: 0.25rem;">${timeStr}</span>
+              <span class="chat-message-time">${timeStr}</span>
             </div>
           `;
           container.appendChild(msgDiv);
@@ -1102,11 +1552,11 @@
         container.scrollTop = container.scrollHeight;
       } catch (e) {
         container.innerHTML = `
-          <div style="display: flex; gap: 0.75rem;">
-             <img src="https://placehold.co/32x32/333/fff?text=S" style="width: 2rem; height: 2rem; border-radius: 9999px; background-color: var(--app-hover); flex-shrink: 0; margin-top: 0.25rem;" />
-             <div style="display: flex; flex-direction: column; align-items: flex-start; max-width: 80%;">
-               <span class="text-xs" style="color: var(--color-gray-500); margin-bottom: 0.25rem; margin-left: 0.25rem;">システム</span>
-               <div style="padding: 0.625rem 1rem; border-radius: 1rem; font-size: 0.875rem; background-color: var(--app-hover); color: var(--color-gray-200); border-top-left-radius: 0.125rem;">暗号化チャットのUIテスト表示です。(サーバー未接続)</div>
+          <div class="chat-message chat-message--other">
+             <img src="https://placehold.co/32x32/333/fff?text=S" class="chat-message-avatar" />
+             <div class="chat-message-content chat-message-content--other">
+               <span class="chat-message-sender">システム</span>
+               <div class="chat-bubble chat-bubble--other">暗号化チャットのUIテスト表示です。(サーバー未接続)</div>
              </div>
           </div>
         `;
@@ -1115,12 +1565,12 @@
 
     async function handleChatSubmit(event) {
       event.preventDefault();
-      const input = document.getElementById('chat-input');
+      const input = document.getElementById('chat-message-input');
       const text = input.value.trim();
       if (!text) return;
 
       const encryptedText = await encryptData(text);
-      
+
       try {
         const res = await fetch('/api/chat', {
           method: 'POST',
@@ -1136,22 +1586,20 @@
         if (!res.ok) throw new Error('Send failed');
       } catch (e) {
         console.warn('送信APIエラー、画面上のみ追加します');
-        const container = document.getElementById('chat-messages');
+        const container = document.getElementById('chat-messages-list');
         const msgDiv = document.createElement('div');
-        msgDiv.style.display = 'flex';
-        msgDiv.style.gap = '0.75rem';
-        msgDiv.style.flexDirection = 'row-reverse';
+        msgDiv.className = 'chat-message chat-message--self';
         msgDiv.innerHTML = `
-          <img src="${globalData.profile?.picture || 'https://placehold.co/32x32/333/fff?text=Me'}" style="width: 2rem; height: 2rem; border-radius: 9999px; background-color: var(--app-hover); flex-shrink: 0; margin-top: 0.25rem;" />
-          <div style="display: flex; flex-direction: column; align-items: flex-end; max-width: 80%;">
-            <div style="padding: 0.625rem 1rem; border-radius: 1rem; font-size: 0.875rem; background-color: var(--color-blue-600); color: white; border-top-right-radius: 0.125rem; box-shadow: 0 1px 2px 0 rgba(0,0,0,0.05);">${escapeHtml(text)}</div>
-            <span style="font-size: 0.625rem; color: var(--color-gray-500); margin-top: 0.25rem; margin-left: 0.25rem; margin-right: 0.25rem;">Now</span>
+          <img src="${globalData.profile?.picture || 'https://placehold.co/32x32/333/fff?text=Me'}" class="chat-message-avatar" />
+          <div class="chat-message-content chat-message-content--self">
+            <div class="chat-bubble chat-bubble--self">${escapeHtml(text)}</div>
+            <span class="chat-message-time">Now</span>
           </div>
         `;
         container.appendChild(msgDiv);
         container.scrollTop = container.scrollHeight;
       }
-      
+
       input.value = '';
     }
 
@@ -1160,7 +1608,7 @@
     }
 
     function escapeHtml(str) {
-      if(!str) return '';
+      if (!str) return '';
       return String(str).replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;").replace(/'/g, "&#039;");
     }
 
