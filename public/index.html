@@ -160,7 +160,6 @@
 
     /* ==========================================
        サイドバー展開・格納アニメーション
-       （overflow:hidden を使わずに実装することでポップアップメニューの表示崩れを防ぐ）
     ========================================== */
     .sidebar {
         display: none;
@@ -324,10 +323,10 @@
     }
 
     .sidebar-footer {
-        padding: 0.75rem 0.75rem;
+        padding: 0.75rem;
         border-top: 1px solid var(--color-border);
         background-color: var(--color-surface);
-        position: relative; /* overflow: hidden; は設定しない */
+        position: relative;
     }
 
     .sidebar-user-row {
@@ -352,26 +351,37 @@
     .sidebar-user-name-text { color: var(--color-text-primary); font-size: 0.875rem; font-weight: 600; }
     .sidebar-user-id-text { color: var(--color-text-muted); font-size: 0.75rem; }
 
-    /* アカウントメニューのポップアップ */
+    /* ==========================================
+       下からスライドするポップアップアニメーション
+    ========================================== */
     .account-popup-menu {
         position: absolute;
-        bottom: calc(100% + 0.5rem);
-        left: 0.75rem;
-        width: 14.5rem; /* 固定幅 */
+        bottom: 100%; /* フッターのすぐ上 */
+        left: 0.5rem;
+        right: 0.5rem;
+        width: calc(100% - 1rem); /* 余白分調整 */
         background-color: var(--color-surface);
         border: 1px solid var(--color-border);
         border-radius: 0.75rem;
         box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.5);
         padding: 0.5rem;
         z-index: 50;
-        display: none;
+
+        /* スライドアップアニメーションのための初期状態 */
+        visibility: hidden;
         opacity: 0;
-        transition: opacity 0.2s ease;
+        pointer-events: none; /* 隠れている時はクリック不可 */
+        transform: translateY(1rem); /* 初期は少し下に沈める */
+        transition: opacity 0.25s ease, transform 0.25s cubic-bezier(0.2, 0.8, 0.2, 1), visibility 0.25s;
     }
     .account-popup-menu.show { 
-        display: block; 
+        visibility: visible;
         opacity: 1;
+        pointer-events: auto;
+        transform: translateY(-0.25rem); /* 表示時は上にスライドして配置 */
     }
+
+    /* 各種メニューボタンのデザイン */
     .account-popup-item {
         display: flex;
         align-items: center;
@@ -395,6 +405,37 @@
     }
     .account-popup-item.text-red { color: var(--color-accent-red); }
     .account-popup-item.text-red:hover { background-color: rgba(239, 68, 68, 0.1); }
+
+    /* モード切替のトグルスイッチのデザイン */
+    .toggle-row {
+        justify-content: space-between; /* テキストとスイッチを両端に */
+    }
+    .toggle-switch {
+        width: 2.25rem;
+        height: 1.25rem;
+        background-color: var(--color-surface-active);
+        border-radius: 9999px;
+        position: relative;
+        transition: background-color 0.3s ease;
+        flex-shrink: 0;
+    }
+    .toggle-switch.on {
+        background-color: var(--color-accent-blue-dark);
+    }
+    .toggle-circle {
+        width: 1rem;
+        height: 1rem;
+        background-color: #ffffff;
+        border-radius: 50%;
+        position: absolute;
+        top: 0.125rem;
+        left: 0.125rem;
+        transition: transform 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+        box-shadow: 0 1px 2px rgba(0,0,0,0.2);
+    }
+    .toggle-switch.on .toggle-circle {
+        transform: translateX(1rem); /* 右へスライド */
+    }
 
     .mobile-brand-name { color: var(--color-text-primary); }
     .mobile-avatar-image {
@@ -597,13 +638,6 @@
         <span class="sidebar-nav-text">メッセージ (暗号化)</span>
       </button>
 
-      <div class="sidebar-nav-divider" style="padding-top: 0.5rem; margin-top: 0.5rem;">
-        <button onclick="toggleTheme()" class="sidebar-nav-button" title="モード切替 (ダーク/ライト)">
-          <svg class="icon-nav" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 3v1m0 16v1m9-9h-1M4 12H3m15.364 6.364l-.707-.707M6.343 6.343l-.707-.707m12.728 0l-.707.707M6.343 17.657l-.707.707M16 12a4 4 0 11-8 0 4 4 0 018 0z"/></svg>
-          <span class="sidebar-nav-text">モード切替</span>
-        </button>
-      </div>
-
       <div class="sidebar-nav-divider">
         <button onclick="switchTab('privacy')" id="sidebar-nav-privacy" class="sidebar-nav-button" title="プライバシーポリシー">
           <svg class="icon-nav" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z"/></svg>
@@ -617,6 +651,7 @@
     </nav>
 
     <div class="sidebar-footer">
+      
       <div id="account-popup-menu" class="account-popup-menu">
         <button onclick="handleAdminSettings()" class="account-popup-item">
           <svg class="icon-sm" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z"/><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/></svg>
@@ -626,10 +661,17 @@
           <svg class="icon-sm" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"/></svg>
           個人用設定
         </button>
-        <button onclick="toggleTheme()" class="account-popup-item">
-          <svg class="icon-sm" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 3v1m0 16v1m9-9h-1M4 12H3m15.364 6.364l-.707-.707M6.343 6.343l-.707-.707m12.728 0l-.707.707M6.343 17.657l-.707.707M16 12a4 4 0 11-8 0 4 4 0 018 0z"/></svg>
-          モード切替 (ダーク/ライト)
+        
+        <button class="account-popup-item toggle-row" onclick="toggleTheme()">
+          <div class="flex items-center gap-2">
+            <svg class="icon-sm" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 3v1m0 16v1m9-9h-1M4 12H3m15.364 6.364l-.707-.707M6.343 6.343l-.707-.707m12.728 0l-.707.707M6.343 17.657l-.707.707M16 12a4 4 0 11-8 0 4 4 0 018 0z"/></svg>
+            ダークモード
+          </div>
+          <div class="toggle-switch" id="theme-toggle-switch">
+            <div class="toggle-circle"></div>
+          </div>
         </button>
+
         <div style="border-top: 1px solid var(--color-border); margin: 0.25rem 0;"></div>
         <a href="/logout" class="account-popup-item text-red">
           <svg class="icon-sm" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1"/></svg>
@@ -639,7 +681,7 @@
 
       <div id="sidebar-user-toggle" class="sidebar-user-row" onclick="toggleAccountMenu(event)" title="ユーザーメニュー">
         <img id="sidebar-user-avatar" src="https://placehold.co/40x40/333/fff?text=U" alt="Avatar" class="sidebar-avatar-image" onerror="this.src='https://placehold.co/40x40/333/fff?text=U'" />
-        <div class="sidebar-user-info">
+        <div class="flex-1 min-w-0 sidebar-user-info">
           <p id="sidebar-user-id" class="text-xs sidebar-user-id-text truncate">学籍番号: 読み込み中...</p>
           <p id="sidebar-user-name" class="text-sm truncate sidebar-user-name-text">読み込み中...</p>
         </div>
@@ -953,7 +995,7 @@
     // アカウントポップアップ・モード切替の制御
     // ==========================================
     function toggleAccountMenu(event) {
-      if (event) event.stopPropagation(); // イベント伝播を止めて即閉じを防ぐ
+      if (event) event.stopPropagation();
       const menu = document.getElementById('account-popup-menu');
       if (menu) {
         menu.classList.toggle('show');
@@ -965,23 +1007,38 @@
       const menu = document.getElementById('account-popup-menu');
       const toggleBtn = document.getElementById('sidebar-user-toggle');
       if (menu && menu.classList.contains('show')) {
-        // メニューの中身でも、トグルボタンでもない場所がクリックされたら閉じる
         if (!menu.contains(event.target) && !toggleBtn.contains(event.target)) {
           menu.classList.remove('show');
         }
       }
     });
 
+    // テーマの初期化とトグルスイッチUIの同期
+    function initThemeToggle() {
+      const toggleSwitch = document.getElementById('theme-toggle-switch');
+      if(toggleSwitch) {
+        if (document.documentElement.classList.contains('dark')) {
+          toggleSwitch.classList.add('on');
+        } else {
+          toggleSwitch.classList.remove('on');
+        }
+      }
+    }
+
     function toggleTheme() {
       const htmlEl = document.documentElement;
+      const toggleSwitch = document.getElementById('theme-toggle-switch');
+      
       if (htmlEl.classList.contains('dark')) {
         htmlEl.classList.remove('dark');
         htmlEl.classList.add('light');
         localStorage.setItem('namiki-theme', 'light');
+        if (toggleSwitch) toggleSwitch.classList.remove('on');
       } else {
         htmlEl.classList.remove('light');
         htmlEl.classList.add('dark');
         localStorage.setItem('namiki-theme', 'dark');
+        if (toggleSwitch) toggleSwitch.classList.add('on');
       }
     }
 
@@ -1341,6 +1398,7 @@
     window.addEventListener('DOMContentLoaded', () => {
       initDateStr();
       loadDashboardData();
+      initThemeToggle(); // トグルボタンの初期化
     });
   </script>
 </body>
