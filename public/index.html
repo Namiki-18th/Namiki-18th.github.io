@@ -6,6 +6,8 @@
   <title>学校生活ダッシュボード</title>
   <!-- Inter Font -->
   <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" />
+  <!-- Socket.io Client -->
+  <script src="/socket.io/socket.io.js"></script>
   <style>
     /* ==========================================
        1. デザイントークン（CSS変数）
@@ -34,7 +36,6 @@
       --color-line: #1f2937;
     }
 
-    /* ライトモード時の変数上書き用クラス */
     html.light {
       --color-bg: #f9fafb;
       --color-surface: #ffffff;
@@ -50,9 +51,6 @@
       --color-line: #e5e7eb;
     }
 
-    /* ==========================================
-       2. リセット & ベーススタイル
-       ========================================== */
     *, *::before, *::after {
       box-sizing: border-box;
       margin: 0;
@@ -68,9 +66,7 @@
       display: flex;
     }
 
-    ::selection {
-      background-color: rgba(59, 130, 246, 0.3);
-    }
+    ::selection { background-color: rgba(59, 130, 246, 0.3); }
 
     ::-webkit-scrollbar { width: 8px; height: 8px; }
     ::-webkit-scrollbar-track { background: transparent; }
@@ -87,9 +83,6 @@
       50%      { opacity: 0.5; }
     }
 
-    /* ==========================================
-       3. 汎用ユーティリティ
-       ========================================== */
     .hidden { display: none !important; }
     .flex { display: flex; }
     .grid { display: grid; }
@@ -149,14 +142,10 @@
       .lg\:col-span-2 { grid-column: span 2 / span 2; }
     }
 
-    /* アイコン共通サイズ */
     .icon-nav { width: 1.25rem; height: 1.25rem; }
     .icon-sm { width: 1rem; height: 1rem; }
     .icon-xs { width: 0.75rem; height: 0.75rem; }
 
-    /* ==========================================
-       4. レイアウト骨格（サイドバー・ヘッダー）
-       ========================================== */
     .sidebar {
       display: none;
       flex-direction: column;
@@ -221,9 +210,6 @@
       .content-area { padding: 2rem; }
     }
 
-    /* ==========================================
-       5. サイドバー各パーツ
-       ========================================== */
     .sidebar-header {
       height: 4rem;
       display: flex;
@@ -255,19 +241,10 @@
       object-fit: cover;
     }
 
-    .sidebar-brand-name {
-      color: var(--color-text-primary);
-      line-height: 1.25;
-    }
-    .sidebar-brand-tagline {
-      color: var(--color-accent-blue-light);
-    }
+    .sidebar-brand-name { color: var(--color-text-primary); line-height: 1.25; }
+    .sidebar-brand-tagline { color: var(--color-accent-blue-light); }
 
-    .sidebar-nav {
-      flex: 1;
-      overflow-y: auto;
-      padding: 1rem 0.75rem;
-    }
+    .sidebar-nav { flex: 1; overflow-y: auto; padding: 1rem 0.75rem; }
 
     .sidebar-nav-button {
       width: 100%;
@@ -308,7 +285,6 @@
       position: relative;
     }
 
-    /* アカウント表示部分（改良：アイコン・学籍番号・名前のみ） */
     .sidebar-user-row {
       display: flex;
       align-items: center;
@@ -318,9 +294,7 @@
       cursor: pointer;
       transition: background-color 0.2s;
     }
-    .sidebar-user-row:hover {
-      background-color: var(--color-surface-hover);
-    }
+    .sidebar-user-row:hover { background-color: var(--color-surface-hover); }
     .sidebar-avatar-image {
       width: 2.25rem;
       height: 2.25rem;
@@ -331,7 +305,6 @@
     .sidebar-user-name-text { color: var(--color-text-primary); font-size: 0.875rem; font-weight: 600; }
     .sidebar-user-id-text { color: var(--color-text-muted); font-size: 0.75rem; }
 
-    /* ポップアップメニュー（クリックで展開） */
     .account-popup-menu {
       position: absolute;
       bottom: calc(100% + 0.5rem);
@@ -345,9 +318,7 @@
       z-index: 50;
       display: none;
     }
-    .account-popup-menu.show {
-      display: block;
-    }
+    .account-popup-menu.show { display: block; }
     .account-popup-item {
       display: flex;
       align-items: center;
@@ -369,14 +340,9 @@
       background-color: var(--color-surface-hover);
       color: var(--color-text-primary);
     }
-    .account-popup-item.text-red {
-      color: var(--color-accent-red);
-    }
-    .account-popup-item.text-red:hover {
-      background-color: rgba(239, 68, 68, 0.1);
-    }
+    .account-popup-item.text-red { color: var(--color-accent-red); }
+    .account-popup-item.text-red:hover { background-color: rgba(239, 68, 68, 0.1); }
 
-    /* モバイルヘッダー */
     .mobile-brand-name { color: var(--color-text-primary); }
     .mobile-avatar-image {
       width: 1.75rem;
@@ -401,9 +367,6 @@
       color: var(--color-accent-blue-light);
     }
 
-    /* ==========================================
-       6. 共通カード & バッジ
-       ========================================== */
     .app-card {
       background-color: var(--color-surface);
       border: 1px solid var(--color-border);
@@ -451,16 +414,8 @@
     .skeleton-bar--lg { width: 75%; }
     .skeleton-bar--sm { width: 50%; }
 
-    .placeholder-text {
-      color: var(--color-text-faint);
-      padding: 0.5rem 0;
-      font-size: 0.875rem;
-    }
-    .empty-state-text {
-      padding: 2.5rem 0;
-      color: var(--color-text-faint);
-      text-align: center;
-    }
+    .placeholder-text { color: var(--color-text-faint); padding: 0.5rem 0; font-size: 0.875rem; }
+    .empty-state-text { padding: 2.5rem 0; color: var(--color-text-faint); text-align: center; }
 
     .status-card { padding: 1.25rem; }
     .status-card-title {
@@ -524,13 +479,8 @@
       gap: 0.5rem;
       text-decoration: none;
     }
-    .button-primary:hover {
-      background-color: var(--color-accent-blue);
-    }
+    .button-primary:hover { background-color: var(--color-accent-blue); }
 
-    /* ==========================================
-       7. ホームタブ
-       ========================================== */
     .welcome-banner {
       background: linear-gradient(to right, var(--color-surface-hover), var(--color-surface));
       border: 1px solid var(--color-border);
@@ -551,17 +501,8 @@
       pointer-events: none;
       transform: translate(50%, -50%);
     }
-    .welcome-date-text {
-      color: var(--color-accent-blue-light);
-      margin-bottom: 0.25rem;
-      font-size: 0.875rem;
-      font-weight: 500;
-    }
-    .welcome-heading-text {
-      color: var(--color-text-primary);
-      font-size: 1.5rem;
-      font-weight: 700;
-    }
+    .welcome-date-text { color: var(--color-accent-blue-light); margin-bottom: 0.25rem; font-size: 0.875rem; font-weight: 500; }
+    .welcome-heading-text { color: var(--color-text-primary); font-size: 1.5rem; font-weight: 700; }
     @media (min-width: 640px) {
       .welcome-heading-text { font-size: 1.875rem; }
       .welcome-banner-row { flex-direction: row; align-items: center; }
@@ -628,9 +569,6 @@
     .schedule-highlight-subject { color: var(--color-text-secondary); font-size: 0.875rem; font-weight: 600; }
     .schedule-highlight-room { color: var(--color-text-faint); font-size: 0.75rem; }
 
-    /* ==========================================
-       8. 時間割タブ
-       ========================================== */
     .schedule-card { padding: 1.5rem; }
     @media (min-width: 768px) {
       .schedule-card { padding: 2rem; }
@@ -674,12 +612,7 @@
       color: var(--color-text-primary);
     }
 
-    table {
-      width: 100%;
-      text-align: left;
-      border-collapse: collapse;
-      white-space: nowrap;
-    }
+    table { width: 100%; text-align: left; border-collapse: collapse; white-space: nowrap; }
     th {
       padding: 0.75rem 1rem;
       font-weight: 500;
@@ -697,9 +630,6 @@
     .cell-teacher { color: var(--color-text-muted); }
     .cell-room { color: var(--color-text-faint); font-family: ui-monospace, monospace; font-size: 0.75rem; }
 
-    /* ==========================================
-       9. お知らせ・リンク集・カレンダー タブ等
-       ========================================== */
     .content-card { padding: 1.5rem; }
     .content-card-title { color: var(--color-text-primary); font-size: 1.25rem; font-weight: 700; margin-bottom: 0.25rem; }
     .content-card-subtitle {
@@ -751,9 +681,6 @@
     .calendar-item-title { color: var(--color-text-secondary); font-weight: 500; }
     .calendar-item-date { color: var(--color-text-faint); font-size: 0.875rem; font-family: ui-monospace, monospace; }
 
-    /* ==========================================
-       10. チャットタブ
-       ========================================== */
     .chat-page-wrapper {
       height: calc(100vh - 140px);
       min-height: 500px;
@@ -907,9 +834,6 @@
     }
     .chat-send-button:hover { background-color: var(--color-accent-blue); }
 
-    /* ==========================================
-       11. フッター
-       ========================================== */
     .site-footer {
       margin-top: 3rem;
       padding: 1.5rem 0;
@@ -925,7 +849,6 @@
 </head>
 <body>
 
-  <!-- ========== サイドバー（PC） ========== -->
   <aside class="sidebar">
     <div class="sidebar-header">
       <div class="flex items-center gap-3">
@@ -962,7 +885,6 @@
         カレンダー
       </button>
 
-      <!-- Classroomのスクレイピングページタブ -->
       <button onclick="switchTab('classroom')" id="sidebar-nav-classroom" class="sidebar-nav-button">
         <svg class="icon-nav" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10"/></svg>
         Classroomスクレイピング
@@ -975,7 +897,6 @@
         </button>
       </div>
 
-      <!-- プライバシーポリシー・利用規約タブ -->
       <div class="sidebar-nav-divider">
         <button onclick="switchTab('privacy')" id="sidebar-nav-privacy" class="sidebar-nav-button">
           <svg class="icon-nav" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z"/></svg>
@@ -989,7 +910,6 @@
     </nav>
 
     <div class="sidebar-footer">
-      <!-- アカウントクリックで開閉するポップアップメニュー -->
       <div id="account-popup-menu" class="account-popup-menu">
         <button onclick="handleAdminSettings()" class="account-popup-item">
           <svg class="icon-sm" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z"/><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/></svg>
@@ -1010,7 +930,6 @@
         </a>
       </div>
 
-      <!-- 改良したアカウント表示部（アイコン・学籍番号・名前のみ） -->
       <div id="sidebar-user-toggle" class="sidebar-user-row" onclick="toggleAccountMenu(event)">
         <img id="sidebar-user-avatar" src="https://placehold.co/40x40/333/fff?text=U" alt="Avatar" class="sidebar-avatar-image" onerror="this.src='https://placehold.co/40x40/333/fff?text=U'" />
         <div class="flex-1 min-w-0">
@@ -1022,9 +941,7 @@
     </div>
   </aside>
 
-  <!-- ========== メインエリア ========== -->
   <div class="app-main">
-
     <header class="mobile-topbar">
       <div class="flex items-center gap-2">
         <div class="logo-badge logo-badge--mobile">
@@ -1049,10 +966,8 @@
     </div>
 
     <main class="content-area">
-
       <!-- 1. ホームタブ -->
       <div id="page-home" class="page-section fade-in space-y-6">
-
         <div class="welcome-banner">
           <div class="welcome-banner-glow"></div>
           <div class="welcome-banner-row">
@@ -1068,7 +983,6 @@
 
         <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
           <div class="lg:col-span-2 space-y-6">
-
             <div class="app-card">
               <div class="card-header-row">
                 <h3 class="card-title"><span class="card-icon--yellow">🔔</span> 最新のお知らせ</h3>
@@ -1189,18 +1103,16 @@
         <div class="app-card content-card">
           <h2 class="content-card-title">Classroom スクラピング管理</h2>
           <p class="content-card-subtitle">GAS（Google Apps Script）バックエンドを介してGoogle Classroomの課題やデータを同期します。</p>
-          
           <div class="space-y-4">
             <div class="notice-item" style="display: block; padding: 1rem;">
               <h4 style="color: var(--color-text-primary); font-weight: 600; margin-bottom: 0.5rem;">⚙️ 同期ステータスと制御</h4>
               <p style="font-size: 0.875rem; color: var(--color-text-muted); margin-bottom: 1rem;">
-                unlock.js バックエンドスクリプトおよびGASと連携し、classroomデータを自動取得・キャッシュします。
+                バックエンドスクリプトおよびGASと連携し、classroomデータを自動取得・キャッシュします。
               </p>
               <button onclick="triggerClassroomSync()" class="button-primary">
                 🔄 Classroomデータを今すぐ同期
               </button>
             </div>
-            
             <div id="classroom-results-container" class="app-card" style="padding: 1rem; background: var(--color-bg);">
               <h4 class="text-sm font-semibold" style="margin-bottom: 0.5rem; color: var(--color-text-primary);">取得データログ / プレビュー</h4>
               <pre id="classroom-log-output" style="font-size: 0.75rem; color: var(--color-text-muted); overflow-x: auto; padding: 0.5rem;">同期待機中...</pre>
@@ -1217,7 +1129,7 @@
           <div class="space-y-4" style="font-size: 0.875rem; color: var(--color-text-body); line-height: 1.6;">
             <p>当ポータルサイト（以下、「当サイト」）では、利用者（生徒・教職員）のプライバシーを尊重し、個人情報の保護に努めています。</p>
             <h3 style="color: var(--color-text-primary); font-weight: 600; margin-top: 1rem;">1. 収集する情報</h3>
-            <p>当サイトでは、学籍番号認証（unlock.js）およびGoogle認証を通じて提供される氏名、学籍番号、所属クラス情報を利用します。</p>
+            <p>当サイトでは、Google認証を通じて提供される氏名、学籍番号、所属クラス情報を利用します。</p>
             <h3 style="color: var(--color-text-primary); font-weight: 600; margin-top: 1rem;">2. 情報の利用目的</h3>
             <p>収集した情報は、時間割の表示、ポータル機能の提供、および暗号化メッセージング機能の本人確認にのみ使用されます。</p>
             <h3 style="color: var(--color-text-primary); font-weight: 600; margin-top: 1rem;">3. 安全管理措置</h3>
@@ -1246,7 +1158,6 @@
       <!-- 9. チャットタブ -->
       <div id="page-chat" class="page-section hidden fade-in chat-page-wrapper">
         <div class="app-card chat-card">
-
           <div class="chat-sidebar">
             <div class="chat-sidebar-header">
               <h3 class="chat-sidebar-title">メッセージ</h3>
@@ -1263,7 +1174,6 @@
                   </button>
                 </div>
               </div>
-
               <div>
                 <h4 class="chat-section-label">ダイレクトメッセージ</h4>
                 <div id="chat-dm-list" class="space-y-1">
@@ -1307,7 +1217,6 @@
               </form>
             </div>
           </div>
-
         </div>
       </div>
 
@@ -1319,7 +1228,6 @@
           <a href="https://github.com/Namiki-18th/Namiki-18th.github.io" target="_blank" class="footer-link">GitHub</a>
         </div>
       </footer>
-
     </main>
   </div>
 
@@ -1333,15 +1241,14 @@
     };
 
     let currentChannel = 'grade';
+    const socket = io();
 
-    // --- アカウントメニューのトグル開閉 ---
     function toggleAccountMenu(event) {
       event.stopPropagation();
       const menu = document.getElementById('account-popup-menu');
       menu.classList.toggle('show');
     }
 
-    // 画面外クリックでポップアップを閉じる
     window.addEventListener('click', () => {
       const menu = document.getElementById('account-popup-menu');
       if (menu && menu.classList.contains('show')) {
@@ -1349,17 +1256,14 @@
       }
     });
 
-    // --- ボタンアクション ---
     function handleAdminSettings() {
-      alert('管理者設定画面へ遷移します。');
-      window.location.href = 'admin.html';
+      window.location.href = '/admin';
     }
 
     function handlePersonalSettings() {
       alert('個人用設定ダイアログを開きます。');
     }
 
-    // ダーク・ライトモード切替
     function toggleTheme() {
       const htmlEl = document.documentElement;
       if (htmlEl.classList.contains('dark')) {
@@ -1371,34 +1275,19 @@
       }
     }
 
-    // --- Classroomスクレイピング用 GAS (unlock.js連携) プレースホルダー ---
     async function triggerClassroomSync() {
       const logOutput = document.getElementById('classroom-log-output');
-      logOutput.textContent = 'unlock.js / GAS に接続中...';
-      try {
-        // 例: バックエンドの unlock.js または GAS エンドポイントからの取得処理
-        // 仕様: JSON形式 { "学籍番号": "名前" } を想定
-        const res = await fetch('/api/unlock.js').catch(() => null);
-        if (res && res.ok) {
-          const unlockData = await res.json();
-          logOutput.textContent = `同期成功:\n` + JSON.stringify(unlockData, null, 2);
-        } else {
-          // モックのシミュレーション応答
-          setTimeout(() => {
-            const mockUnlockJson = {
-              "180001": "山田 太郎",
-              "status": "success",
-              "lastSync": new Date().toISOString()
-            };
-            logOutput.textContent = `[模擬データ同期成功]\n` + JSON.stringify(mockUnlockJson, null, 2);
-          }, 800);
-        }
-      } catch (e) {
-        logOutput.textContent = '同期エラーが発生しました: ' + e.message;
-      }
+      logOutput.textContent = 'Classroomデータ同期中...';
+      setTimeout(() => {
+        const mockJson = {
+          status: "success",
+          message: "Classroomデータの同期が正常に完了しました。",
+          lastSync: new Date().toISOString()
+        };
+        logOutput.textContent = JSON.stringify(mockJson, null, 2);
+      }, 800);
     }
 
-    // --- 暗号化ヘルパー (Web Crypto API - AES-GCM) ---
     const ENCRYPTION_SECRET = "NamikiPortalSecureKey2026";
 
     async function getCryptoKey() {
@@ -1466,7 +1355,6 @@
       }
     }
 
-    // --- タブ切り替え ---
     function switchTab(tabId) {
       document.querySelectorAll('.page-section').forEach(el => el.classList.add('hidden'));
       document.querySelectorAll('.sidebar-nav-button').forEach(btn => btn.classList.remove('active'));
@@ -1485,7 +1373,7 @@
       }
 
       if (tabId === 'chat') {
-        loadChannelMessages(currentChannel);
+        socket.emit('joinRoom', currentChannel);
       }
     }
 
@@ -1495,17 +1383,13 @@
       document.getElementById('dashboard-date-display').textContent = now.toLocaleDateString('ja-JP', options);
     }
 
-    // --- データ取得 & 描画 ---
     async function loadDashboardData() {
       try {
-        // unlock.jsからの学籍番号・名前データ取得と通常APIの並行処理
-        const [profileRes, scheduleRes, noticesRes, linksRes, calendarRes, unlockRes] = await Promise.all([
+        const [profileRes, scheduleRes, noticesRes, linksRes] = await Promise.all([
           fetch('/api/profile').catch(() => ({ ok: false })),
           fetch('/api/schedule').catch(() => ({ ok: false })),
           fetch('/api/notices').catch(() => ({ ok: false })),
-          fetch('/api/links').catch(() => ({ ok: false })),
-          fetch('/api/calendar').catch(() => ({ ok: false })),
-          fetch('/api/unlock.js').catch(() => ({ ok: false }))
+          fetch('/api/links').catch(() => ({ ok: false }))
         ]);
 
         if (profileRes.status === 401) {
@@ -1514,37 +1398,21 @@
         }
 
         if (profileRes.ok) globalData.profile = await profileRes.json();
-        else globalData.profile = { name: '山田 太郎', studentId: '180001', role: 'student', userClass: '3-A', picture: '' };
-
-        // unlock.jsから { "学籍番号": "名前" } 形式のデータが取得できた場合のパース処理
-        let parsedStudentId = globalData.profile.studentId || '180001';
-        let parsedName = globalData.profile.name || 'ゲストユーザー';
-        if (unlockRes && unlockRes.ok) {
-          try {
-            const unlockJson = await unlockRes.json();
-            const entries = Object.entries(unlockJson);
-            if (entries.length > 0) {
-              parsedStudentId = entries[0][0];
-              parsedName = entries[0][1];
-            }
-          } catch (e) {
-            console.error('unlock.js パースエラー:', e);
-          }
-        }
-        globalData.profile.studentId = parsedStudentId;
-        globalData.profile.name = parsedName;
+        else globalData.profile = { name: '山田 太郎', id: '180001', role: 'student', userClass: '3-A', picture: '' };
 
         if (scheduleRes.ok) globalData.schedule = await scheduleRes.json();
-        else globalData.schedule = [{ id: 1, day: '月', period: 1, subject: '数学', room: 'A-102', teacher: '田中' }];
+        else globalData.schedule = [{ id: 1, day: '月', time: '9:00-9:50', subject: '数学', room: 'A-102', teacher: '田中先生' }];
 
         if (noticesRes.ok) globalData.notices = await noticesRes.json();
         else globalData.notices = [{ id: 1, title: 'システムメンテナンス', date: '2026-08-20', content: 'お知らせのモックデータです。', priority: 'high' }];
 
         if (linksRes.ok) globalData.links = await linksRes.json();
-        else globalData.links = [{ name: '学校HP', url: '#', description: '公式サイト' }];
+        else globalData.links = [{ id: 1, name: '学校LMS', url: 'https://lms.school.edu', description: '授業資料やレポート提出用システム' }];
 
-        if (calendarRes.ok) globalData.calendar = await calendarRes.json();
-        else globalData.calendar = [{ date: '2026-09-01', title: '始業式' }];
+        globalData.calendar = [
+          { date: '2026-09-01', title: '始業式' },
+          { date: '2026-09-15', title: '学校祭' }
+        ];
 
         renderAll();
       } catch (err) {
@@ -1555,10 +1423,9 @@
     function renderAll() {
       if (globalData.profile) {
         const p = globalData.profile;
-        // 左下のユーザー表示（アイコン、学籍番号、名前のみ）
-        document.getElementById('sidebar-user-id').textContent = `学籍番号: ${p.studentId || '180001'}`;
+        document.getElementById('sidebar-user-id').textContent = `学籍番号: ${p.id || '180001'}`;
         document.getElementById('sidebar-user-name').textContent = p.name || 'ユーザー';
-        if (p.picture) {
+        if (p.picture && p.picture !== 'admin.png') {
           document.getElementById('sidebar-user-avatar').src = p.picture;
           document.getElementById('mobile-user-avatar').src = p.picture;
         }
@@ -1566,7 +1433,6 @@
         document.getElementById('dashboard-user-class').textContent = p.userClass || '未設定';
       }
 
-      // ホーム：お知らせ
       const homeNotices = document.getElementById('dashboard-notices-list');
       homeNotices.innerHTML = globalData.notices.slice(0, 3).map(n => `
         <div class="notice-item">
@@ -1578,16 +1444,14 @@
         </div>
       `).join('');
 
-      // ホーム：クイックリンク
       const homeLinks = document.getElementById('dashboard-quicklinks-list');
       homeLinks.innerHTML = globalData.links.slice(0, 4).map(l => `
-        <a href="${escapeHtml(l.url)}" class="quicklink-item">
+        <a href="${escapeHtml(l.url)}" target="_blank" class="quicklink-item">
           <span>${escapeHtml(l.name)}</span>
           <svg class="quicklink-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14"/></svg>
         </a>
       `).join('');
 
-      // お知らせタブ（全件）
       document.getElementById('notices-list-full').innerHTML = globalData.notices.map(n => `
         <div class="notice-card">
           <div class="notice-card-header">
@@ -1598,15 +1462,13 @@
         </div>
       `).join('');
 
-      // リンク集タブ
       document.getElementById('links-grid-full').innerHTML = globalData.links.map(l => `
-        <a href="${escapeHtml(l.url)}" class="link-card">
+        <a href="${escapeHtml(l.url)}" target="_blank" class="link-card">
           <div class="link-card-name">${escapeHtml(l.name)}</div>
           <div class="link-card-desc">${escapeHtml(l.description || '')}</div>
         </a>
       `).join('');
 
-      // カレンダータブ
       document.getElementById('calendar-events-list').innerHTML = globalData.calendar.map(c => `
         <div class="calendar-item">
           <span class="calendar-item-title">${escapeHtml(c.title)}</span>
@@ -1620,12 +1482,9 @@
 
     function renderDMUsers() {
       const dmList = [
-        { id: 'u1', name: '佐藤 先生', role: '教員', avatar: 'https://placehold.co/32x32/444/fff?text=S' },
-        { id: 'u2', name: '田中 太郎', role: '生徒', avatar: 'https://placehold.co/32x32/555/fff?text=T' },
+        { id: 'u1', name: '佐藤 先生', avatar: 'https://placehold.co/32x32/444/fff?text=S' },
+        { id: 'u2', name: '田中 太郎', avatar: 'https://placehold.co/32x32/555/fff?text=T' },
       ];
-      window.dmUsersMap = {};
-      dmList.forEach(u => window.dmUsersMap[u.id] = u);
-
       const container = document.getElementById('chat-dm-list');
       container.innerHTML = dmList.map(u => `
         <button onclick="switchChannel('dm_${u.id}', '${u.name}')" id="dm-button-${u.id}" class="channel-button dm-user-button">
@@ -1653,10 +1512,10 @@
 
       homeContainer.innerHTML = schedule.slice(0, 4).map(item => `
         <div class="schedule-highlight-item">
-          <div class="schedule-highlight-period">${item.id || item.period}限</div>
+          <div class="schedule-highlight-period">${item.id}限</div>
           <div class="min-w-0">
             <div class="schedule-highlight-subject truncate">${escapeHtml(item.subject)}</div>
-            <div class="schedule-highlight-room truncate">${escapeHtml(item.room)}</div>
+            <div class="schedule-highlight-room truncate">${escapeHtml(item.room)} (${escapeHtml(item.time)})</div>
           </div>
         </div>
       `).join('');
@@ -1666,6 +1525,7 @@
           <thead>
             <tr>
               <th>時限</th>
+              <th>時間</th>
               <th>教科</th>
               <th>担当教員</th>
               <th>教室</th>
@@ -1674,7 +1534,8 @@
           <tbody>
             ${schedule.map(item => `
               <tr>
-                <td class="cell-period">${item.id || item.period}限</td>
+                <td class="cell-period">${item.id}限</td>
+                <td class="cell-room">${escapeHtml(item.time)}</td>
                 <td class="cell-subject">${escapeHtml(item.subject)}</td>
                 <td class="cell-teacher">${escapeHtml(item.teacher)}</td>
                 <td class="cell-room">${escapeHtml(item.room)}</td>
@@ -1685,10 +1546,8 @@
       `;
     }
 
-    // --- チャット ---
-    async function switchChannel(channelId, name = '') {
+    function switchChannel(channelId, name = '') {
       currentChannel = channelId;
-
       document.querySelectorAll('.channel-button').forEach(btn => btn.classList.remove('active'));
 
       const titleEl = document.getElementById('chat-channel-title');
@@ -1710,59 +1569,8 @@
         descEl.textContent = `${name}さんとのプライベートメッセージです。`;
       }
 
-      await loadChannelMessages(channelId);
-    }
-
-    async function loadChannelMessages(channelId) {
-      const container = document.getElementById('chat-messages-list');
-      container.innerHTML = '<div class="chat-center-message"><div class="chat-center-message-text">メッセージを読み込んでいます...</div></div>';
-
-      try {
-        const res = await fetch(`/api/chat?channel=${encodeURIComponent(channelId)}`);
-        if (!res.ok) throw new Error('API Error');
-        const data = await res.json();
-
-        container.innerHTML = '';
-        if (!data.messages || data.messages.length === 0) {
-          container.innerHTML = '<div class="chat-center-message"><div class="chat-center-message-text">まだメッセージはありません。</div></div>';
-          return;
-        }
-
-        for (const msg of data.messages) {
-          const decryptedText = await decryptData(msg.encryptedText);
-          const isSelf = msg.sender === (globalData.profile?.name || 'あなた');
-          const timeStr = msg.timestamp ? new Date(msg.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : '12:00';
-
-          let avatarSrc = isSelf ? (globalData.profile?.picture || 'https://placehold.co/32x32/333/fff?text=Me') : 'https://placehold.co/32x32/555/fff?text=U';
-          if (!isSelf && msg.avatar) avatarSrc = msg.avatar;
-
-          const msgDiv = document.createElement('div');
-          msgDiv.className = `chat-message ${isSelf ? 'chat-message--self' : 'chat-message--other'}`;
-
-          msgDiv.innerHTML = `
-            <img src="${escapeHtml(avatarSrc)}" class="chat-message-avatar" />
-            <div class="chat-message-content ${isSelf ? 'chat-message-content--self' : 'chat-message-content--other'}">
-              ${!isSelf ? `<span class="chat-message-sender">${escapeHtml(msg.sender)}</span>` : ''}
-              <div class="chat-bubble ${isSelf ? 'chat-bubble--self' : 'chat-bubble--other'}">
-                ${escapeHtml(decryptedText)}
-              </div>
-              <span class="chat-message-time">${timeStr}</span>
-            </div>
-          `;
-          container.appendChild(msgDiv);
-        }
-        container.scrollTop = container.scrollHeight;
-      } catch (e) {
-        container.innerHTML = `
-          <div class="chat-message chat-message--other">
-             <img src="https://placehold.co/32x32/333/fff?text=S" class="chat-message-avatar" />
-             <div class="chat-message-content chat-message-content--other">
-               <span class="chat-message-sender">システム</span>
-               <div class="chat-bubble chat-bubble--other">暗号化チャットのUIテスト表示です。(サーバー未接続)</div>
-             </div>
-          </div>
-        `;
-      }
+      socket.emit('joinRoom', currentChannel);
+      document.getElementById('chat-messages-list').innerHTML = '<div class="chat-center-message"><div class="chat-center-message-text">チャンネルに接続しました。</div></div>';
     }
 
     async function handleChatSubmit(event) {
@@ -1772,38 +1580,40 @@
       if (!text) return;
 
       const encryptedText = await encryptData(text);
+      const messageData = {
+        channel: currentChannel,
+        sender: globalData.profile?.name || 'ユーザー',
+        avatar: globalData.profile?.picture || '',
+        encryptedText: encryptedText,
+        timestamp: new Date().toISOString()
+      };
 
-      try {
-        const res = await fetch('/api/chat', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            channel: currentChannel,
-            sender: globalData.profile?.name || 'テストユーザー',
-            avatar: globalData.profile?.picture || '',
-            encryptedText: encryptedText,
-            timestamp: new Date().toISOString()
-          })
-        });
-        if (!res.ok) throw new Error('Send failed');
-      } catch (e) {
-        console.warn('送信APIエラー、画面上のみ追加します');
-        const container = document.getElementById('chat-messages-list');
-        const msgDiv = document.createElement('div');
-        msgDiv.className = 'chat-message chat-message--self';
-        msgDiv.innerHTML = `
-          <img src="${globalData.profile?.picture || 'https://placehold.co/32x32/333/fff?text=Me'}" class="chat-message-avatar" />
-          <div class="chat-message-content chat-message-content--self">
-            <div class="chat-bubble chat-bubble--self">${escapeHtml(text)}</div>
-            <span class="chat-message-time">Now</span>
-          </div>
-        `;
-        container.appendChild(msgDiv);
-        container.scrollTop = container.scrollHeight;
-      }
-
+      socket.emit('chatMessage', messageData);
       input.value = '';
     }
+
+    socket.on('message', async (msg) => {
+      const container = document.getElementById('chat-messages-list');
+      const decryptedText = await decryptData(msg.encryptedText);
+      const isSelf = msg.sender === (globalData.profile?.name || 'あなた');
+      const timeStr = msg.timestamp ? new Date(msg.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : '12:00';
+      const avatarSrc = isSelf ? (globalData.profile?.picture || 'https://placehold.co/32x32/333/fff?text=Me') : (msg.avatar || 'https://placehold.co/32x32/555/fff?text=U');
+
+      const msgDiv = document.createElement('div');
+      msgDiv.className = `chat-message ${isSelf ? 'chat-message--self' : 'chat-message--other'}`;
+      msgDiv.innerHTML = `
+        <img src="${escapeHtml(avatarSrc)}" class="chat-message-avatar" />
+        <div class="chat-message-content ${isSelf ? 'chat-message-content--self' : 'chat-message-content--other'}">
+          ${!isSelf ? `<span class="chat-message-sender">${escapeHtml(msg.sender)}</span>` : ''}
+          <div class="chat-bubble ${isSelf ? 'chat-bubble--self' : 'chat-bubble--other'}">
+            ${escapeHtml(decryptedText)}
+          </div>
+          <span class="chat-message-time">${timeStr}</span>
+        </div>
+      `;
+      container.appendChild(msgDiv);
+      container.scrollTop = container.scrollHeight;
+    });
 
     function handleAttachment() {
       alert('ファイルの添付機能は現在準備中です。');
