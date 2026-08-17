@@ -1674,6 +1674,28 @@ tbody tr:hover { background-color: var(--color-surface-hover); }
       container.appendChild(msgDiv);
       container.scrollTop = container.scrollHeight;
     });
+    
+    // アカウントポップアップの開閉を制御する関数
+    function toggleAccountMenu(event) {
+      if (event) event.stopPropagation(); // イベントの親要素への伝播を防止
+      const menu = document.getElementById('account-popup-menu');
+      if (menu) {
+        menu.classList.toggle('show');
+      }
+    }
+
+    // ポップアップが開いているときに、メニューの外側をクリックしたら閉じる処理
+    document.addEventListener('click', (event) => {
+      const menu = document.getElementById('account-popup-menu');
+      const toggleBtn = document.getElementById('sidebar-user-toggle');
+      
+      if (menu && menu.classList.contains('show')) {
+        // メニューの内側でもトグルボタンでもない場所をクリックした場合に閉じる
+        if (!menu.contains(event.target) && !toggleBtn.contains(event.target)) {
+          menu.classList.remove('show');
+        }
+      }
+    });
 
     function handleAttachment() {
       alert('ファイルの添付機能は現在準備中です。');
