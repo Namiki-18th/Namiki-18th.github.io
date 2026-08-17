@@ -34,6 +34,22 @@
       --color-line: #1f2937;
     }
 
+    /* ライトモード時の変数上書き用クラス */
+    html.light {
+      --color-bg: #f9fafb;
+      --color-surface: #ffffff;
+      --color-border: rgba(0, 0, 0, 0.1);
+      --color-surface-hover: rgba(0, 0, 0, 0.04);
+      --color-surface-active: rgba(0, 0, 0, 0.08);
+      --color-text-primary: #111827;
+      --color-text-secondary: #1f2937;
+      --color-text-body: #374151;
+      --color-text-muted: #6b7280;
+      --color-text-faint: #9ca3af;
+      --color-text-subtle: #d1d5db;
+      --color-line: #e5e7eb;
+    }
+
     /* ==========================================
        2. リセット & ベーススタイル
        ========================================== */
@@ -79,12 +95,8 @@
     .grid { display: grid; }
     .flex-col { flex-direction: column; }
     .flex-row { flex-direction: row; }
-    .flex-row-reverse { flex-direction: row-reverse; }
     .items-center { align-items: center; }
-    .items-start { align-items: flex-start; }
-    .items-end { align-items: flex-end; }
     .justify-between { justify-content: space-between; }
-    .justify-center { justify-content: center; }
     .flex-1 { flex: 1; }
     .shrink-0 { flex-shrink: 0; }
     .overflow-hidden { overflow: hidden; }
@@ -186,7 +198,7 @@
       overflow-x: auto;
       gap: 0.25rem;
       padding: 0.5rem;
-      background-color: rgba(10, 10, 12, 0.8);
+      background-color: var(--color-surface);
       backdrop-filter: blur(8px);
       border-bottom: 1px solid var(--color-border);
       z-index: 10;
@@ -244,7 +256,7 @@
     }
 
     .sidebar-brand-name {
-      color: #ffffff;
+      color: var(--color-text-primary);
       line-height: 1.25;
     }
     .sidebar-brand-tagline {
@@ -290,68 +302,82 @@
     }
 
     .sidebar-footer {
-      padding: 1rem;
+      padding: 0.75rem 1rem;
       border-top: 1px solid var(--color-border);
       background-color: var(--color-surface);
+      position: relative;
     }
 
-    .admin-panel-button {
-      display: block;
-      width: 100%;
-      margin-bottom: 0.75rem;
-      text-align: center;
-      font-size: 0.75rem;
-      background-color: rgba(168, 85, 247, 0.1);
-      color: var(--color-accent-purple);
-      border: 1px solid rgba(168, 85, 247, 0.2);
-      padding: 0.5rem;
-      border-radius: 0.5rem;
-      font-weight: 500;
-      transition: background-color 0.2s;
-      text-decoration: none;
-    }
-    .admin-panel-button:hover {
-      background-color: rgba(168, 85, 247, 0.2);
-    }
-
+    /* アカウント表示部分（改良：アイコン・学籍番号・名前のみ） */
     .sidebar-user-row {
       display: flex;
       align-items: center;
       gap: 0.75rem;
-      margin-bottom: 1rem;
+      padding: 0.5rem;
+      border-radius: 0.5rem;
+      cursor: pointer;
+      transition: background-color 0.2s;
+    }
+    .sidebar-user-row:hover {
+      background-color: var(--color-surface-hover);
     }
     .sidebar-avatar-image {
-      width: 2.5rem;
-      height: 2.5rem;
+      width: 2.25rem;
+      height: 2.25rem;
       border-radius: 9999px;
       object-fit: cover;
       border: 1px solid var(--color-border);
     }
-    .sidebar-user-name-text { color: var(--color-text-primary); }
-    .sidebar-user-role-text { color: var(--color-text-muted); }
+    .sidebar-user-name-text { color: var(--color-text-primary); font-size: 0.875rem; font-weight: 600; }
+    .sidebar-user-id-text { color: var(--color-text-muted); font-size: 0.75rem; }
 
-    .logout-button {
+    /* ポップアップメニュー（クリックで展開） */
+    .account-popup-menu {
+      position: absolute;
+      bottom: calc(100% + 0.5rem);
+      left: 1rem;
+      right: 1rem;
+      background-color: var(--color-surface);
+      border: 1px solid var(--color-border);
+      border-radius: 0.75rem;
+      box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.3);
+      padding: 0.5rem;
+      z-index: 50;
+      display: none;
+    }
+    .account-popup-menu.show {
+      display: block;
+    }
+    .account-popup-item {
       display: flex;
       align-items: center;
-      justify-content: center;
       gap: 0.5rem;
       width: 100%;
-      padding: 0.5rem;
-      background-color: rgba(239, 68, 68, 0.1);
-      color: var(--color-accent-red);
-      border-radius: 0.5rem;
+      padding: 0.625rem 0.75rem;
       font-size: 0.875rem;
       font-weight: 500;
-      transition: background-color 0.2s;
-      border: 1px solid rgba(239, 68, 68, 0.2);
+      color: var(--color-text-secondary);
+      background: transparent;
+      border: none;
+      border-radius: 0.375rem;
+      cursor: pointer;
+      text-align: left;
       text-decoration: none;
+      transition: background-color 0.2s;
     }
-    .logout-button:hover {
-      background-color: rgba(239, 68, 68, 0.2);
+    .account-popup-item:hover {
+      background-color: var(--color-surface-hover);
+      color: var(--color-text-primary);
+    }
+    .account-popup-item.text-red {
+      color: var(--color-accent-red);
+    }
+    .account-popup-item.text-red:hover {
+      background-color: rgba(239, 68, 68, 0.1);
     }
 
     /* モバイルヘッダー */
-    .mobile-brand-name { color: #ffffff; }
+    .mobile-brand-name { color: var(--color-text-primary); }
     .mobile-avatar-image {
       width: 1.75rem;
       height: 1.75rem;
@@ -394,7 +420,7 @@
     .card-title {
       font-size: 1rem;
       font-weight: 600;
-      color: #ffffff;
+      color: var(--color-text-primary);
       display: flex;
       align-items: center;
       gap: 0.5rem;
@@ -503,7 +529,7 @@
     }
 
     /* ==========================================
-       7. ホームタブ（ようこそバナー・各種リスト）
+       7. ホームタブ
        ========================================== */
     .welcome-banner {
       background: linear-gradient(to right, var(--color-surface-hover), var(--color-surface));
@@ -532,7 +558,7 @@
       font-weight: 500;
     }
     .welcome-heading-text {
-      color: #ffffff;
+      color: var(--color-text-primary);
       font-size: 1.5rem;
       font-weight: 700;
     }
@@ -620,7 +646,7 @@
     @media (min-width: 768px) {
       .schedule-header { flex-direction: row; align-items: center; justify-content: space-between; }
     }
-    .schedule-title { color: #ffffff; font-size: 1.25rem; font-weight: 700; }
+    .schedule-title { color: var(--color-text-primary); font-size: 1.25rem; font-weight: 700; }
     .schedule-subtitle { color: var(--color-text-muted); font-size: 0.875rem; margin-top: 0.25rem; }
 
     .schedule-day-tabs {
@@ -645,7 +671,7 @@
     .schedule-day-button:hover { color: var(--color-text-secondary); }
     .schedule-day-button.active {
       background-color: var(--color-surface-hover);
-      color: #ffffff;
+      color: var(--color-text-primary);
     }
 
     table {
@@ -665,17 +691,17 @@
     }
     td { padding: 0.75rem 1rem; font-size: 0.875rem; }
     tbody tr { border-bottom: 1px solid var(--color-line); transition: background-color 0.2s; }
-    tbody tr:hover { background-color: rgba(255, 255, 255, 0.04); }
+    tbody tr:hover { background-color: var(--color-surface-hover); }
     .cell-period { color: var(--color-text-muted); font-weight: 600; }
     .cell-subject { color: var(--color-text-secondary); font-weight: 600; }
     .cell-teacher { color: var(--color-text-muted); }
     .cell-room { color: var(--color-text-faint); font-family: ui-monospace, monospace; font-size: 0.75rem; }
 
     /* ==========================================
-       9. お知らせ・リンク集・カレンダー タブ
+       9. お知らせ・リンク集・カレンダー タブ等
        ========================================== */
     .content-card { padding: 1.5rem; }
-    .content-card-title { color: #ffffff; font-size: 1.25rem; font-weight: 700; margin-bottom: 0.25rem; }
+    .content-card-title { color: var(--color-text-primary); font-size: 1.25rem; font-weight: 700; margin-bottom: 0.25rem; }
     .content-card-subtitle {
       color: var(--color-text-muted);
       font-size: 0.875rem;
@@ -789,7 +815,7 @@
       gap: 0.5rem;
     }
     .channel-button:hover { background-color: var(--color-surface-hover); }
-    .channel-button.active { background-color: var(--color-surface-hover); color: #ffffff; }
+    .channel-button.active { background-color: var(--color-surface-hover); color: var(--color-text-primary); }
     .channel-hash { color: var(--color-text-muted); }
     .dm-user-avatar { width: 1.25rem; height: 1.25rem; border-radius: 9999px; object-fit: cover; }
     .dm-loading-text { color: var(--color-text-subtle); padding: 0 0.5rem; font-size: 0.75rem; }
@@ -803,11 +829,11 @@
       display: flex;
       align-items: center;
       justify-content: space-between;
-      background-color: rgba(10, 10, 12, 0.8);
+      background-color: var(--color-surface);
       backdrop-filter: blur(8px);
       flex-shrink: 0;
     }
-    .chat-header-title { color: #ffffff; font-size: 1rem; font-weight: 700; display: flex; align-items: center; gap: 0.5rem; }
+    .chat-header-title { color: var(--color-text-primary); font-size: 1rem; font-weight: 700; display: flex; align-items: center; gap: 0.5rem; }
     .chat-header-desc { color: var(--color-text-muted); font-size: 0.75rem; display: none; }
     @media (min-width: 640px) {
       .chat-header-desc { display: block; }
@@ -893,7 +919,7 @@
       font-size: 0.75rem;
     }
     .footer-links { margin-top: 0.5rem; display: flex; justify-content: center; gap: 1rem; }
-    .footer-link { color: inherit; text-decoration: none; }
+    .footer-link { color: inherit; text-decoration: none; cursor: pointer; }
     .footer-link:hover { color: var(--color-text-body); }
   </style>
 </head>
@@ -936,29 +962,63 @@
         カレンダー
       </button>
 
+      <!-- Classroomのスクレイピングページタブ -->
+      <button onclick="switchTab('classroom')" id="sidebar-nav-classroom" class="sidebar-nav-button">
+        <svg class="icon-nav" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10"/></svg>
+        Classroomスクレイピング
+      </button>
+
       <div class="sidebar-nav-divider">
         <button onclick="switchTab('chat')" id="sidebar-nav-chat" class="sidebar-nav-button">
           <svg class="icon-nav" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z"/></svg>
           メッセージ (暗号化)
         </button>
       </div>
+
+      <!-- プライバシーポリシー・利用規約タブ -->
+      <div class="sidebar-nav-divider">
+        <button onclick="switchTab('privacy')" id="sidebar-nav-privacy" class="sidebar-nav-button">
+          <svg class="icon-nav" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z"/></svg>
+          プライバシーポリシー
+        </button>
+        <button onclick="switchTab('terms')" id="sidebar-nav-terms" class="sidebar-nav-button">
+          <svg class="icon-nav" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/></svg>
+          利用規約
+        </button>
+      </div>
     </nav>
 
     <div class="sidebar-footer">
-      <a href="admin.html" id="admin-panel-link" class="admin-panel-button hidden">
-        ⚙️ 管理画面へ
-      </a>
-      <div class="sidebar-user-row">
+      <!-- アカウントクリックで開閉するポップアップメニュー -->
+      <div id="account-popup-menu" class="account-popup-menu">
+        <button onclick="handleAdminSettings()" class="account-popup-item">
+          <svg class="icon-sm" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z"/><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/></svg>
+          管理者設定
+        </button>
+        <button onclick="handlePersonalSettings()" class="account-popup-item">
+          <svg class="icon-sm" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"/></svg>
+          個人用設定
+        </button>
+        <button onclick="toggleTheme()" class="account-popup-item">
+          <svg class="icon-sm" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 3v1m0 16v1m9-9h-1M4 12H3m15.364 6.364l-.707-.707M6.343 6.343l-.707-.707m12.728 0l-.707.707M6.343 17.657l-.707.707M16 12a4 4 0 11-8 0 4 4 0 018 0z"/></svg>
+          モード切替 (ダーク/ライト)
+        </button>
+        <div style="border-top: 1px solid var(--color-border); margin: 0.25rem 0;"></div>
+        <a href="/logout" class="account-popup-item text-red">
+          <svg class="icon-sm" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1"/></svg>
+          ログアウト
+        </a>
+      </div>
+
+      <!-- 改良したアカウント表示部（アイコン・学籍番号・名前のみ） -->
+      <div id="sidebar-user-toggle" class="sidebar-user-row" onclick="toggleAccountMenu(event)">
         <img id="sidebar-user-avatar" src="https://placehold.co/40x40/333/fff?text=U" alt="Avatar" class="sidebar-avatar-image" onerror="this.src='https://placehold.co/40x40/333/fff?text=U'" />
         <div class="flex-1 min-w-0">
-          <p id="sidebar-user-name" class="text-sm font-semibold truncate sidebar-user-name-text">読み込み中...</p>
-          <p id="sidebar-user-role" class="text-xs truncate sidebar-user-role-text">権限: 読込中</p>
+          <p id="sidebar-user-id" class="text-xs sidebar-user-id-text truncate">学籍番号: 読み込み中...</p>
+          <p id="sidebar-user-name" class="text-sm truncate sidebar-user-name-text">読み込み中...</p>
         </div>
+        <svg class="icon-sm" style="color: var(--color-text-faint);" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"/></svg>
       </div>
-      <a href="/logout" class="logout-button">
-        <svg class="icon-sm" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1"/></svg>
-        ログアウト
-      </a>
     </div>
   </aside>
 
@@ -984,6 +1044,7 @@
       <button onclick="switchTab('notices')" id="mobile-nav-notices" class="mobile-nav-button">お知らせ</button>
       <button onclick="switchTab('links')" id="mobile-nav-links" class="mobile-nav-button">リンク</button>
       <button onclick="switchTab('calendar')" id="mobile-nav-calendar" class="mobile-nav-button">カレンダー</button>
+      <button onclick="switchTab('classroom')" id="mobile-nav-classroom" class="mobile-nav-button">Classroom</button>
       <button onclick="switchTab('chat')" id="mobile-nav-chat" class="mobile-nav-button">チャット</button>
     </div>
 
@@ -1123,7 +1184,66 @@
         </div>
       </div>
 
-      <!-- 6. チャットタブ -->
+      <!-- 6. Classroomスクレイピングページタブ -->
+      <div id="page-classroom" class="page-section hidden fade-in space-y-6">
+        <div class="app-card content-card">
+          <h2 class="content-card-title">Classroom スクラピング管理</h2>
+          <p class="content-card-subtitle">GAS（Google Apps Script）バックエンドを介してGoogle Classroomの課題やデータを同期します。</p>
+          
+          <div class="space-y-4">
+            <div class="notice-item" style="display: block; padding: 1rem;">
+              <h4 style="color: var(--color-text-primary); font-weight: 600; margin-bottom: 0.5rem;">⚙️ 同期ステータスと制御</h4>
+              <p style="font-size: 0.875rem; color: var(--color-text-muted); margin-bottom: 1rem;">
+                unlock.js バックエンドスクリプトおよびGASと連携し、classroomデータを自動取得・キャッシュします。
+              </p>
+              <button onclick="triggerClassroomSync()" class="button-primary">
+                🔄 Classroomデータを今すぐ同期
+              </button>
+            </div>
+            
+            <div id="classroom-results-container" class="app-card" style="padding: 1rem; background: var(--color-bg);">
+              <h4 class="text-sm font-semibold" style="margin-bottom: 0.5rem; color: var(--color-text-primary);">取得データログ / プレビュー</h4>
+              <pre id="classroom-log-output" style="font-size: 0.75rem; color: var(--color-text-muted); overflow-x: auto; padding: 0.5rem;">同期待機中...</pre>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- 7. プライバシーポリシータブ -->
+      <div id="page-privacy" class="page-section hidden fade-in space-y-6">
+        <div class="app-card content-card">
+          <h2 class="content-card-title">プライバシーポリシー</h2>
+          <p class="content-card-subtitle">本ポータルサイトにおける個人情報の取扱いについて記載しています。</p>
+          <div class="space-y-4" style="font-size: 0.875rem; color: var(--color-text-body); line-height: 1.6;">
+            <p>当ポータルサイト（以下、「当サイト」）では、利用者（生徒・教職員）のプライバシーを尊重し、個人情報の保護に努めています。</p>
+            <h3 style="color: var(--color-text-primary); font-weight: 600; margin-top: 1rem;">1. 収集する情報</h3>
+            <p>当サイトでは、学籍番号認証（unlock.js）およびGoogle認証を通じて提供される氏名、学籍番号、所属クラス情報を利用します。</p>
+            <h3 style="color: var(--color-text-primary); font-weight: 600; margin-top: 1rem;">2. 情報の利用目的</h3>
+            <p>収集した情報は、時間割の表示、ポータル機能の提供、および暗号化メッセージング機能の本人確認にのみ使用されます。</p>
+            <h3 style="color: var(--color-text-primary); font-weight: 600; margin-top: 1rem;">3. 安全管理措置</h3>
+            <p>通信および保存データはAES-GCM等の適切な暗号化技術を用いて保護されます。</p>
+          </div>
+        </div>
+      </div>
+
+      <!-- 8. 利用規約タブ -->
+      <div id="page-terms" class="page-section hidden fade-in space-y-6">
+        <div class="app-card content-card">
+          <h2 class="content-card-title">利用規約</h2>
+          <p class="content-card-subtitle">当ポータルサイトを利用する上でのルールを定めています。</p>
+          <div class="space-y-4" style="font-size: 0.875rem; color: var(--color-text-body); line-height: 1.6;">
+            <p>本利用規約は、当ポータルサイトを利用するすべてのユーザーに適用されます。</p>
+            <h3 style="color: var(--color-text-primary); font-weight: 600; margin-top: 1rem;">第1条（適用）</h3>
+            <p>ユーザーは、本規約に同意した上で、校内における学習および情報共有の目的に限り本サイトを利用するものとします。</p>
+            <h3 style="color: var(--color-text-primary); font-weight: 600; margin-top: 1rem;">第2条（禁止事項）</h3>
+            <p>他のユーザーになりすます行為、不正アクセス、その他不適切なメッセージ送信やシステムに負荷をかける行為を禁止します。</p>
+            <h3 style="color: var(--color-text-primary); font-weight: 600; margin-top: 1rem;">第3条（免責事項）</h3>
+            <p>当サイトの運営および提供情報の正確性については最善を尽くしますが、システム障害等による損害について運営者は責任を負いません。</p>
+          </div>
+        </div>
+      </div>
+
+      <!-- 9. チャットタブ -->
       <div id="page-chat" class="page-section hidden fade-in chat-page-wrapper">
         <div class="app-card chat-card">
 
@@ -1194,7 +1314,8 @@
       <footer class="site-footer">
         <p>&copy; 2026 学校生活ダッシュボード. All rights reserved.</p>
         <div class="footer-links">
-          <a href="/privacy" class="footer-link">プライバシーポリシー</a>
+          <span onclick="switchTab('privacy')" class="footer-link">プライバシーポリシー</span>
+          <span onclick="switchTab('terms')" class="footer-link">利用規約</span>
           <a href="https://github.com/Namiki-18th/Namiki-18th.github.io" target="_blank" class="footer-link">GitHub</a>
         </div>
       </footer>
@@ -1212,6 +1333,70 @@
     };
 
     let currentChannel = 'grade';
+
+    // --- アカウントメニューのトグル開閉 ---
+    function toggleAccountMenu(event) {
+      event.stopPropagation();
+      const menu = document.getElementById('account-popup-menu');
+      menu.classList.toggle('show');
+    }
+
+    // 画面外クリックでポップアップを閉じる
+    window.addEventListener('click', () => {
+      const menu = document.getElementById('account-popup-menu');
+      if (menu && menu.classList.contains('show')) {
+        menu.classList.remove('show');
+      }
+    });
+
+    // --- ボタンアクション ---
+    function handleAdminSettings() {
+      alert('管理者設定画面へ遷移します。');
+      window.location.href = 'admin.html';
+    }
+
+    function handlePersonalSettings() {
+      alert('個人用設定ダイアログを開きます。');
+    }
+
+    // ダーク・ライトモード切替
+    function toggleTheme() {
+      const htmlEl = document.documentElement;
+      if (htmlEl.classList.contains('dark')) {
+        htmlEl.classList.remove('dark');
+        htmlEl.classList.add('light');
+      } else {
+        htmlEl.classList.remove('light');
+        htmlEl.classList.add('dark');
+      }
+    }
+
+    // --- Classroomスクレイピング用 GAS (unlock.js連携) プレースホルダー ---
+    async function triggerClassroomSync() {
+      const logOutput = document.getElementById('classroom-log-output');
+      logOutput.textContent = 'unlock.js / GAS に接続中...';
+      try {
+        // 例: バックエンドの unlock.js または GAS エンドポイントからの取得処理
+        // 仕様: JSON形式 { "学籍番号": "名前" } を想定
+        const res = await fetch('/api/unlock.js').catch(() => null);
+        if (res && res.ok) {
+          const unlockData = await res.json();
+          logOutput.textContent = `同期成功:\n` + JSON.stringify(unlockData, null, 2);
+        } else {
+          // モックのシミュレーション応答
+          setTimeout(() => {
+            const mockUnlockJson = {
+              "180001": "山田 太郎",
+              "status": "success",
+              "lastSync": new Date().toISOString()
+            };
+            logOutput.textContent = `[模擬データ同期成功]\n` + JSON.stringify(mockUnlockJson, null, 2);
+          }, 800);
+        }
+      } catch (e) {
+        logOutput.textContent = '同期エラーが発生しました: ' + e.message;
+      }
+    }
 
     // --- 暗号化ヘルパー (Web Crypto API - AES-GCM) ---
     const ENCRYPTION_SECRET = "NamikiPortalSecureKey2026";
@@ -1313,12 +1498,14 @@
     // --- データ取得 & 描画 ---
     async function loadDashboardData() {
       try {
-        const [profileRes, scheduleRes, noticesRes, linksRes, calendarRes] = await Promise.all([
+        // unlock.jsからの学籍番号・名前データ取得と通常APIの並行処理
+        const [profileRes, scheduleRes, noticesRes, linksRes, calendarRes, unlockRes] = await Promise.all([
           fetch('/api/profile').catch(() => ({ ok: false })),
           fetch('/api/schedule').catch(() => ({ ok: false })),
           fetch('/api/notices').catch(() => ({ ok: false })),
           fetch('/api/links').catch(() => ({ ok: false })),
-          fetch('/api/calendar').catch(() => ({ ok: false }))
+          fetch('/api/calendar').catch(() => ({ ok: false })),
+          fetch('/api/unlock.js').catch(() => ({ ok: false }))
         ]);
 
         if (profileRes.status === 401) {
@@ -1327,7 +1514,25 @@
         }
 
         if (profileRes.ok) globalData.profile = await profileRes.json();
-        else globalData.profile = { name: 'ゲストユーザー', role: 'student', userClass: '3-A', picture: '' };
+        else globalData.profile = { name: '山田 太郎', studentId: '180001', role: 'student', userClass: '3-A', picture: '' };
+
+        // unlock.jsから { "学籍番号": "名前" } 形式のデータが取得できた場合のパース処理
+        let parsedStudentId = globalData.profile.studentId || '180001';
+        let parsedName = globalData.profile.name || 'ゲストユーザー';
+        if (unlockRes && unlockRes.ok) {
+          try {
+            const unlockJson = await unlockRes.json();
+            const entries = Object.entries(unlockJson);
+            if (entries.length > 0) {
+              parsedStudentId = entries[0][0];
+              parsedName = entries[0][1];
+            }
+          } catch (e) {
+            console.error('unlock.js パースエラー:', e);
+          }
+        }
+        globalData.profile.studentId = parsedStudentId;
+        globalData.profile.name = parsedName;
 
         if (scheduleRes.ok) globalData.schedule = await scheduleRes.json();
         else globalData.schedule = [{ id: 1, day: '月', period: 1, subject: '数学', room: 'A-102', teacher: '田中' }];
@@ -1350,6 +1555,8 @@
     function renderAll() {
       if (globalData.profile) {
         const p = globalData.profile;
+        // 左下のユーザー表示（アイコン、学籍番号、名前のみ）
+        document.getElementById('sidebar-user-id').textContent = `学籍番号: ${p.studentId || '180001'}`;
         document.getElementById('sidebar-user-name').textContent = p.name || 'ユーザー';
         if (p.picture) {
           document.getElementById('sidebar-user-avatar').src = p.picture;
@@ -1357,11 +1564,6 @@
         }
         document.getElementById('dashboard-welcome-heading').textContent = `ようこそ、${p.name} さん`;
         document.getElementById('dashboard-user-class').textContent = p.userClass || '未設定';
-        document.getElementById('sidebar-user-role').textContent = `権限: ${p.role === 'admin' ? '管理者' : '生徒'}`;
-        if (p.role === 'admin') {
-          const adminLink = document.getElementById('admin-panel-link');
-          if (adminLink) adminLink.classList.remove('hidden');
-        }
       }
 
       // ホーム：お知らせ
