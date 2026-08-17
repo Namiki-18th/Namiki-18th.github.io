@@ -8,6 +8,10 @@ const GoogleStrategy = require('passport-google-oauth20').Strategy;
 const session = require('express-session');
 require('dotenv').config();
 
+// unlock.js から学籍番号を取得する関数等をインポート（※ unlock.js のエクスポート形式に合わせて調整してください）
+// 例: const { getStudentId } = require('./unlock'); 
+// またはメールアドレスやプロフィールから学籍番号を抽出するロジickをここに組み込みます。
+
 const app = express();
 const server = http.createServer(app); // Wrap Express with HTTP server
 const io = new Server(server, {
@@ -41,7 +45,7 @@ function loadUsersDB() {
   console.log('[System] Initializing default user database...');
   const initialData = {
     'bme280.gac@gmail.com': { 
-      id: 'bme280_admin', 
+      id: 'Admin', // 管理者の場合は 'Admin'
       name: '管理者', 
       email: 'bme280.gac@gmail.com', 
       userClass: '特権管理者', 
@@ -103,8 +107,36 @@ passport.use(new GoogleStrategy({
       const name = isPrivilegedAdmin ? '管理者' : (profile.displayName || (existingUser ? existingUser.name : 'ユーザー'));
       const picture = isPrivilegedAdmin ? 'admin.png' : ((profile.photos && profile.photos[0] && profile.photos[0].value) || (existingUser ? existingUser.picture : ''));
 
+      // --- 【学籍番号 / ID の決定ロジック】 ---
+      let userId;
+      if (isAdmin) {
+        userId = 'Admin';
+      } else {
+        // unlock.js から学籍番号を取得する処理
+        // ※ unlock.js の実装方法（例: unlock.getStudentId(email, profile) や unlock(email) など）に合わせて書き換えてください。
+        let extractedId = null;
+        try {
+          const unlock = require('./unlock');
+          // unlock が関数またはオブジェクトである場合の取得例
+          if (typeof unlock === 'function') {
+            extractedId = unlock(email, profile);
+          } else if (unlock && typeof unlock.getStudentId === 'function') {
+            extractedId = unlock.getStudentId(email, profile);
+          } else if (unlock && typeof unlock.studentId === 'string') {
+            extractedId = unlock.studentId;
+          }
+        } catch (e) {
+          console.warn('[System] Could not load or execute unlock.js, falling back to email/default parsing:', e.message);
+          // 万が一 unlock.js の読み込みに失敗した場合のフォールバック（メールアドレスのローカルパートなどから抽出する例、不要であれば削除可）
+          const match = email.match(/^([a-zA-Z0-9]+)@/);
+          if (match) extractedId = match[1];
+        }
+
+        userId = extractedId ? extractedId : 'Unknown';
+      }
+
       const user = {
-        id: profile.id,
+        id: userId,
         name: name,
         email: email,
         picture: picture,
@@ -117,7 +149,7 @@ passport.use(new GoogleStrategy({
       usersDB[email] = user;
       saveUsersDB(usersDB);
 
-      console.log(`[OAuth] User authenticated and profile updated: ${email}`);
+      console.log(`[OAuth] User authenticated and profile updated: ${email}, ID: ${userId}`);
       return done(null, user);
     } catch (err) {
       console.error('[OAuth Strategy Error]:', err);
