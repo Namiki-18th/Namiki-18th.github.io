@@ -84,7 +84,7 @@ passport.use(new GoogleStrategy({
       console.log(`[OAuth Success] Profile fetched from Google: ID=${profile.id}, Name=${profile.displayName}`);
       
       const email = (profile.emails && profile.emails[0] && profile.emails[0].value) || '';
-      const allowedDomain = 'namiki-cs.ibk.ed.jp', 'blue.ibk.ed.jp';
+      const allowedDomain = 'namiki-cs.ibk.ed.jp';
 
       // Privileged user check
       const isPrivilegedAdmin = (email === 'bme280.gac@gmail.com');
