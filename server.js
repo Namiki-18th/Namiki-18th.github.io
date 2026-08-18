@@ -6,6 +6,7 @@ const { Server } = require('socket.io');
 const passport = require('passport');
 const GoogleStrategy = require('passport-google-oauth20').Strategy;
 const session = require('express-session');
+const crypto = require('crypto');
 require('dotenv').config();
 
 const app = express();
@@ -23,7 +24,6 @@ const port = process.env.PORT || 3000;
 app.set('trust proxy', 1);
 
 // Body パーサー設定（JSONおよびURLエンコード）
-// 容量制限を 10mb に拡大
 app.use(express.json({ limit: '10mb' }));
 app.use(express.urlencoded({ limit: '10mb', extended: true }));
 app.use(express.static(path.join(__dirname, 'public')));
@@ -42,15 +42,71 @@ function safeWriteFileSync(filePath, data) {
   }
 }
 
-// --- [ユーザーDB (JSONファイル)] ---
+// --- [ファイル・ディレクトリパス設定] ---
 const USERS_FILE = path.join(__dirname, 'users.json');
+const NOTICES_FILE = path.join(__dirname, 'notices.json');
+const CHAT_DIR = path.join(__dirname, 'chat');
+const CHAT_LOG_FILE = path.join(__dirname, 'chat.log');
 
+if (!fs.existsSync(CHAT_DIR)) {
+  fs.mkdirSync(CHAT_DIR, { recursive: true });
+  console.log(`[System] Created chat directory at: ${CHAT_DIR}`);
+}
+
+// --- [AES-256-GCM 強力暗号化 / 復号処理] ---
+const rawKey = process.env.CHAT_ENCRYPTION_KEY || '0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef';
+const ENCRYPTION_KEY = Buffer.from(rawKey, 'hex');
+
+function encrypt(text) {
+  const iv = crypto.randomBytes(12);
+  const cipher = crypto.createCipheriv('aes-256-gcm', ENCRYPTION_KEY, iv);
+  let encrypted = cipher.update(text, 'utf8', 'hex');
+  encrypted += cipher.final('hex');
+  const authTag = cipher.getAuthTag().toString('hex');
+
+  return {
+    iv: iv.toString('hex'),
+    content: encrypted,
+    tag: authTag
+  };
+}
+
+function decrypt(encryptedObj) {
+  const decipher = crypto.createDecipheriv(
+    'aes-256-gcm',
+    ENCRYPTION_KEY,
+    Buffer.from(encryptedObj.iv, 'hex')
+  );
+  decipher.setAuthTag(Buffer.from(encryptedObj.tag, 'hex'));
+  let decrypted = decipher.update(encryptedObj.content, 'hex', 'utf8');
+  decrypted += decipher.final('utf8');
+  return decrypted;
+}
+
+// --- [chat.log 記録ヘルパー] ---
+function appendChatLog(timestamp, sender, recipient, content) {
+  const logLine = `${timestamp}\t${sender}\t${recipient}\t${content}\n`;
+  try {
+    fs.appendFileSync(CHAT_LOG_FILE, logLine, 'utf8');
+  } catch (err) {
+    console.error('[Error] Failed to write to chat.log:', err);
+  }
+}
+
+// --- [ユーザーDB (JSONファイル)] ---
 function loadUsersDB() {
   try {
     if (fs.existsSync(USERS_FILE)) {
       const data = fs.readFileSync(USERS_FILE, 'utf8');
       console.log('[System] User database loaded successfully.');
-      return JSON.parse(data);
+      const parsedDB = JSON.parse(data);
+
+      // 特権管理者の保護保証
+      if (parsedDB['bme280.gac@gmail.com']) {
+        parsedDB['bme280.gac@gmail.com'].role = 'admin';
+        parsedDB['bme280.gac@gmail.com'].status = 'active';
+      }
+      return parsedDB;
     }
   } catch (err) {
     console.error('[Error] Failed to read users.json:', err);
@@ -62,7 +118,7 @@ function loadUsersDB() {
       id: 'Admin', 
       name: '管理者', 
       email: 'bme280.gac@gmail.com', 
-      userClass: '特権管理者', 
+      userClass: '管理者', 
       role: 'admin',
       status: 'active',
       picture: 'admin.png'
@@ -74,6 +130,11 @@ function loadUsersDB() {
 
 function saveUsersDB(db) {
   try {
+    // 保存時にも特権管理者のステータスを強制保護
+    if (db['bme280.gac@gmail.com']) {
+      db['bme280.gac@gmail.com'].role = 'admin';
+      db['bme280.gac@gmail.com'].status = 'active';
+    }
     safeWriteFileSync(USERS_FILE, db);
     console.log('[System] User database saved successfully.');
   } catch (err) {
@@ -84,8 +145,6 @@ function saveUsersDB(db) {
 let usersDB = loadUsersDB();
 
 // --- [お知らせ・Classroomデータ保存用 (JSONファイル)] ---
-const NOTICES_FILE = path.join(__dirname, 'notices.json');
-
 function loadNoticesDB() {
   try {
     if (fs.existsSync(NOTICES_FILE)) {
@@ -95,7 +154,6 @@ function loadNoticesDB() {
   } catch (err) {
     console.error('[Error] Failed to read notices.json:', err);
   }
-  // デフォルトお知らせデータ
   const initialNotices = [
     { id: 1, title: '7月月末テストについて', date: '2024-07-13', priority: 'high', content: '7月月末テストは7月25日(木)～7月26日(金)に実施されます。範囲表を確認してください。', icon: '📝' },
     { id: 2, title: '夏休みの宿題について', date: '2024-07-12', priority: 'normal', content: '夏休みの宿題リストを配布しました。提出期限は8月30日(金)です。', icon: '📚' }
@@ -113,13 +171,6 @@ function saveNoticesDB(notices) {
 }
 
 let noticesDB = loadNoticesDB();
-
-// --- [暗号化チャット用ディレクトリ設定] ---
-const CHAT_DIR = path.join(__dirname, 'chat');
-if (!fs.existsSync(CHAT_DIR)) {
-  fs.mkdirSync(CHAT_DIR, { recursive: true });
-  console.log(`[System] Created chat directory at: ${CHAT_DIR}`);
-}
 
 // --- [Passport / Google OAuth 設定] ---
 passport.use(new GoogleStrategy({
@@ -153,29 +204,34 @@ passport.use(new GoogleStrategy({
         let extractedId = null;
         try {
           const unlock = require('./unlock');
-          if (typeof unlock === 'function') {
-            extractedId = unlock(email, profile);
-          } else if (unlock && typeof unlock.getStudentId === 'function') {
-            extractedId = unlock.getStudentId(email, profile);
-          } else if (unlock && typeof unlock.studentId === 'string') {
-            extractedId = unlock.studentId;
+          if (unlock && typeof unlock.getStudentNumber === 'function') {
+            extractedId = unlock.getStudentNumber(profile.displayName);
           }
         } catch (e) {
-          console.warn('[System] unlock.js fallback used:', e.message);
-          const match = email.match(/^([a-zA-Z0-9]+)@/);
-          if (match) extractedId = match[1];
+          console.warn('[System] unlock.js error:', e.message);
         }
-        userId = extractedId ? extractedId : 'Unknown';
+        userId = (extractedId && extractedId !== '不明') ? extractedId : 'Unknown';
       }
+
+      // クラス名の決定ロジック：管理者以外は id の先頭2文字
+      let userClass;
+      if (isAdmin) {
+        userClass = isPrivilegedAdmin ? '管理者' : '教職員';
+      } else {
+        userClass = (userId && userId !== 'Unknown' && userId.length >= 2) ? userId.substring(0, 2) : '未設定';
+      }
+
+      // ステータスの決定：特権管理者は常に active
+      let userStatus = isPrivilegedAdmin ? 'active' : (existingUser ? (existingUser.status || 'active') : 'active');
 
       const user = {
         id: userId,
         name: name,
         email: email,
         picture: picture,
-        userClass: existingUser ? existingUser.userClass : (isAdmin ? '教職員' : '3-A'),
+        userClass: userClass,
         role: isAdmin ? 'admin' : 'student',
-        status: existingUser ? (existingUser.status || 'active') : 'active'
+        status: userStatus
       };
 
       usersDB[email] = user;
@@ -224,7 +280,9 @@ function checkAccountStatus(req, res, next) {
   if (req.isAuthenticated() && req.user) {
     usersDB = loadUsersDB();
     const currentUser = usersDB[req.user.email];
-    if (currentUser && currentUser.status === 'suspended') {
+    
+    // bme280.gac@gmail.com は絶対に停止扱いにしない
+    if (currentUser && currentUser.status === 'suspended' && req.user.email !== 'bme280.gac@gmail.com') {
       console.warn(`[Access Denied] Suspended user attempted access: ${req.user.email}`);
       if (req.xhr || req.path.startsWith('/api/')) {
         return res.status(403).json({ error: 'Suspended', message: 'This account has been suspended.' });
@@ -285,7 +343,7 @@ app.get('/index', ensurePageAuthenticated, (req, res) => res.sendFile(path.join(
 app.get('/dashboard', ensurePageAuthenticated, (req, res) => res.redirect('/index'));
 app.get('/admin', ensureAdminAuthenticated, (req, res) => res.sendFile(path.join(__dirname, 'public', 'admin.html')));
 
-// --- [Classroom / GAS連携エンドポイント (NEW)] ---
+// --- [Classroom / GAS連携エンドポイント] ---
 app.post('/api/classroom', (req, res) => {
   try {
     const { title, content, description, dueDate, receivedAt } = req.body;
@@ -306,10 +364,9 @@ app.post('/api/classroom', (req, res) => {
     };
 
     noticesDB = loadNoticesDB();
-    noticesDB.unshift(newNotice); // 最新の投稿を先頭に追加
+    noticesDB.unshift(newNotice);
     saveNoticesDB(noticesDB);
 
-    // Socket.ioで接続中の全ユーザーへリアルタイム配信
     io.emit('newNotice', newNotice);
     console.log(`[Classroom/GAS API] Successfully added notice & broadcasted: "${itemTitle}"`);
 
@@ -362,9 +419,18 @@ app.get('/api/chat', ensureApiAuthenticated, (req, res) => {
   if (fs.existsSync(filePath)) {
     try {
       const data = fs.readFileSync(filePath, 'utf8');
-      res.json(JSON.parse(data));
+      const chatData = JSON.parse(data);
+
+      const decryptedMessages = chatData.messages.map(msg => ({
+        sender: msg.sender,
+        recipient: msg.recipient,
+        text: decrypt(msg.encryptedData),
+        timestamp: msg.timestamp
+      }));
+
+      res.json({ channel: channel, messages: decryptedMessages });
     } catch (e) {
-      res.status(500).json({ error: 'Failed to parse chat data' });
+      res.status(500).json({ error: 'Failed to parse or decrypt chat data' });
     }
   } else {
     res.json({ channel: channel, messages: [] });
@@ -372,11 +438,16 @@ app.get('/api/chat', ensureApiAuthenticated, (req, res) => {
 });
 
 app.post('/api/chat', ensureApiAuthenticated, (req, res) => {
-  const { channel, sender, encryptedText, timestamp } = req.body;
-  if (!channel || !encryptedText) return res.status(400).json({ error: 'Missing required fields' });
+  const { channel, sender, recipient, text, timestamp } = req.body;
+  if (!channel || !text) return res.status(400).json({ error: 'Missing required fields' });
 
   const safeChannelName = channel.replace(/[^a-zA-Z0-9_-]/g, '_');
   const filePath = path.join(CHAT_DIR, `${safeChannelName}.json`);
+  const messageTime = timestamp || new Date().toISOString();
+  const senderName = sender || req.user.name || 'ユーザー';
+  const targetRecipient = recipient || channel;
+
+  const encryptedPayload = encrypt(text);
 
   let chatData = { channel: channel, messages: [] };
   if (fs.existsSync(filePath)) {
@@ -388,16 +459,25 @@ app.post('/api/chat', ensureApiAuthenticated, (req, res) => {
   }
 
   const newMessage = {
-    sender: sender || req.user.name || 'ユーザー',
-    encryptedText: encryptedText,
-    timestamp: timestamp || new Date().toISOString()
+    sender: senderName,
+    recipient: targetRecipient,
+    encryptedData: encryptedPayload,
+    timestamp: messageTime
   };
 
   chatData.messages.push(newMessage);
 
   try {
     safeWriteFileSync(filePath, chatData);
-    io.to(channel).emit('chatMessage', newMessage);
+    appendChatLog(messageTime, senderName, targetRecipient, text);
+
+    io.to(channel).emit('chatMessage', {
+      sender: senderName,
+      recipient: targetRecipient,
+      text: text,
+      timestamp: messageTime
+    });
+
     res.json({ success: true });
   } catch (e) {
     res.status(500).json({ error: 'Failed to save encrypted chat' });
@@ -443,11 +523,20 @@ app.get('/api/admin/users', ensureAdminAuthenticated, (req, res) => {
 
 app.post('/api/admin/user/:email', ensureAdminAuthenticated, (req, res) => {
   const targetEmail = decodeURIComponent(req.params.email);
-  const { userClass, role, name, status, picture } = req.body;
+  let { userClass, role, name, status, picture } = req.body;
 
   usersDB = loadUsersDB();
 
   if (usersDB[targetEmail]) {
+    // bme280.gac@gmail.com の変更制限
+    if (targetEmail === 'bme280.gac@gmail.com') {
+      if (status === 'suspended') {
+        return res.status(400).json({ error: 'Forbidden', message: 'Primary admin account cannot be suspended.' });
+      }
+      role = 'admin';
+      status = 'active';
+    }
+
     if (userClass !== undefined) usersDB[targetEmail].userClass = userClass;
     if (role !== undefined) usersDB[targetEmail].role = role;
     if (name !== undefined) usersDB[targetEmail].name = name;
