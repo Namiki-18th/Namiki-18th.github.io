@@ -3,12 +3,11 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>ダッシュボード - 並木中等教育学校18回生</title>
+  <title>プライバシーポリシー - 並木中等教育学校18回生</title>
   <link rel="stylesheet" href="style.css">
   <link rel="icon" href="favicon.ico" type="image/x-icon">
   <link rel="icon" href="favicon.png" type="image/png" sizes="256x256">
   <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" />
-  <script src="/socket.io/socket.io.js"></script>
   
   <script>
     (function() {
@@ -37,7 +36,7 @@
         </div>
         <h1 class="font-bold text-sm sidebar-brand-name sidebar-brand-text">
           並木中等教育学校18回生<br>
-          <span class="text-xs font-normal sidebar-brand-tagline">ダッシュボード</span>
+          <span class="text-xs font-normal sidebar-brand-tagline">プライバシーポリシー</span>
         </h1>
       </div>
     </div>
@@ -56,7 +55,7 @@
         <span class="sidebar-nav-text">お知らせ</span>
       </button>
       <button onclick="switchTab('links')" id="sidebar-nav-links" class="sidebar-nav-button" title="リンク">
-        <svg class="icon-nav" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13.828 10.172a4 4 0 00-5.656 0l-4 4a4 4 0 105.656 5.656l1.102-1.101m-.758-4.899a4 4 0 005.656 0l4-4a4 4 0 00-5.656-5.656l-1.1 1.1"/></svg>
+        <svg class="icon-nav" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13.828 10.172a4 4 0 00-5.656 0l-4 4a4 4 0 105.656 5.656l1.102-1.101m-.758-4.899a4 4 0 005.656 0l4-4a4 4 0 005.656-5.656l-1.1 1.1"/></svg>
         <span class="sidebar-nav-text">リンク</span>
       </button>
       <button onclick="switchTab('calendar')" id="sidebar-nav-calendar" class="sidebar-nav-button" title="カレンダー">
@@ -64,7 +63,7 @@
         <span class="sidebar-nav-text">カレンダー</span>
       </button>
       <button onclick="switchTab('classroom')" id="sidebar-nav-classroom" class="sidebar-nav-button" title="Classroom">
-        <svg class="icon-nav" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10"/></svg>
+        <svg class="icon-nav" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 00-2-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10"/></svg>
         <span class="sidebar-nav-text">Classroom</span>
       </button>
 
@@ -184,7 +183,7 @@
       <footer class="site-footer">
         <p>&copy; 2026 Taichi Kimura. All rights reserved.</p>
         <div class="footer-links">
-          <span href="terms.html" class="footer-link">プライバシーポリシー</span>
+          <span href="privacy.html" class="footer-link">プライバシーポリシー</span>
           <span href="terms.html" class="footer-link">利用規約</span>
           <a href="https://github.com/Namiki-18th/Namiki-18th.github.io" target="_blank" class="footer-link">
             <svg class="icon-sm" fill="currentColor" viewBox="0 0 24 24"><path fill-rule="evenodd" clip-rule="evenodd" d="M12 2C6.477 2 2 6.484 2 12.017c0 4.425 2.865 8.18 6.839 9.504.5.092.682-.217.682-.483 0-.237-.008-.868-.013-1.703-2.782.605-3.369-1.343-3.369-1.343-.454-1.158-1.11-1.466-1.11-1.466-.908-.62.069-.608.069-.608 1.003.07 1.53 1.032 1.53 1.032.892 1.53 2.341 1.088 2.91.832.092-.647.35-1.088.636-1.338-2.22-.253-4.555-1.113-4.555-4.951 0-1.093.39-1.988 1.029-2.688-.103-.253-.446-1.272.098-2.65 0 0 .84-.27 2.75 1.026A9.564 9.564 0 0112 6.844c.85.004 1.705.115 2.504.337 1.909-1.296 2.747-1.027 2.747-1.027.546 1.379.202 2.398.1 2.651.64.7 1.028 1.595 1.028 2.688 0 3.848-2.339 4.695-4.566 4.943.359.309.678.92.678 1.855 0 1.338-.012 2.419-.012 2.747 0 .268.18.58.688.482A10.019 10.019 0 0022 12.017C22 6.84 17.522 2 12 2z"/></svg>
@@ -196,29 +195,54 @@
   </div>
 
   <script>
-    let globalData = {
-      profile: null,
-      schedule: [],
-      notices: [],
-      links: [],
-      calendar: []
-    };
+    // ユーザープロフィールの取得と表示
+    async function fetchUserProfile() {
+      try {
+        const res = await fetch('/api/profile');
+        if (res.status === 401) {
+          window.location.href = '/login';
+          return;
+        }
+        
+        let p;
+        if (res.ok) {
+          p = await res.json();
+        } else {
+          // フォールバックデータ
+          p = { name: '並木 太郎', email: 'namiki.taro@example.com', id: '180001', picture: '' };
+        }
 
-    let currentChannel = 'grade';
-    const socket = io();
+        const studentIdText = (p.id && p.id !== 'Unknown') ? p.id : '学籍番号未設定';
+        const idEl = document.getElementById('sidebar-user-id');
+        if (idEl) idEl.textContent = `学籍番号: ${studentIdText}`;
+        
+        const nameEl = document.getElementById('sidebar-user-name');
+        if (nameEl) nameEl.textContent = p.name || 'ユーザー';
+        
+        const popupName = document.getElementById('popup-user-name');
+        if (popupName) popupName.textContent = p.name || 'ユーザー';
 
-    // ==========================================
-    // アカウントポップアップ・モード切替の制御
-    // ==========================================
-    function toggleAccountMenu(event) {
-      if (event) event.stopPropagation();
-      const menu = document.getElementById('account-popup-menu');
-      if (menu) {
-        menu.classList.toggle('show');
+        const popupEmail = document.getElementById('popup-user-email');
+        if (popupEmail) popupEmail.textContent = p.email || 'メールアドレス未設定';
+
+        if (p.picture && p.picture !== 'admin.png') {
+          const sidebarAvatar = document.getElementById('sidebar-user-avatar');
+          const mobileAvatar = document.getElementById('mobile-user-avatar');
+          if (sidebarAvatar) sidebarAvatar.src = p.picture;
+          if (mobileAvatar) mobileAvatar.src = p.picture;
+        }
+      } catch (err) {
+        console.error('プロフィール取得エラー:', err);
       }
     }
 
-    // メニュー外をクリックでポップアップを閉じる
+    // アカウントポップアップの制御
+    function toggleAccountMenu(event) {
+      if (event) event.stopPropagation();
+      const menu = document.getElementById('account-popup-menu');
+      if (menu) menu.classList.toggle('show');
+    }
+
     document.addEventListener('click', (event) => {
       const menu = document.getElementById('account-popup-menu');
       const toggleBtn = document.getElementById('sidebar-user-toggle');
@@ -229,10 +253,10 @@
       }
     });
 
-    // テーマの初期化とトグルスイッチUIの同期
+    // テーマ制御
     function initThemeToggle() {
       const toggleSwitch = document.getElementById('theme-toggle-switch');
-      if(toggleSwitch) {
+      if (toggleSwitch) {
         if (document.documentElement.classList.contains('dark')) {
           toggleSwitch.classList.add('on');
         } else {
@@ -260,78 +284,8 @@
 
     function handleAdminSettings() { window.location.href = '/admin'; }
     function handlePersonalSettings() { alert('個人用設定ダイアログを開きます。'); }
-    function handleAttachment() { alert('ファイルの添付機能は現在準備中です。'); }
 
-    async function triggerClassroomSync() {
-      const logOutput = document.getElementById('classroom-log-output');
-      logOutput.textContent = 'Classroomデータ同期中...';
-      setTimeout(() => {
-        const mockJson = { status: "success", message: "Classroomデータの同期が正常に完了しました。", lastSync: new Date().toISOString() };
-        logOutput.textContent = JSON.stringify(mockJson, null, 2);
-      }, 800);
-    }
-
-    // ==========================================
-    // 暗号化処理 (AES-GCM)
-    // ==========================================
-    const ENCRYPTION_SECRET = "NamikiPortalSecureKey2026";
-
-    async function getCryptoKey() {
-      const enc = new TextEncoder();
-      const keyMaterial = await window.crypto.subtle.importKey(
-        "raw",
-        enc.encode(ENCRYPTION_SECRET.padEnd(32, '0').slice(0, 32)),
-        { name: "PBKDF2" },
-        false,
-        ["deriveKey"]
-      );
-      return window.crypto.subtle.deriveKey(
-        {
-          name: "PBKDF2",
-          salt: enc.encode("namiki-school-salt"),
-          iterations: 100000,
-          hash: "SHA-256"
-        },
-        keyMaterial,
-        { name: "AES-GCM", length: 256 },
-        false,
-        ["encrypt", "decrypt"]
-      );
-    }
-
-    async function encryptData(plainText) {
-      try {
-        const key = await getCryptoKey();
-        const iv = window.crypto.getRandomValues(new Uint8Array(12));
-        const encoded = new TextEncoder().encode(plainText);
-        const cipherText = await window.crypto.subtle.encrypt({ name: "AES-GCM", iv: iv }, key, encoded);
-        const combined = new Uint8Array(iv.length + new Uint8Array(cipherText).length);
-        combined.set(iv);
-        combined.set(new Uint8Array(cipherText), iv.length);
-        return btoa(String.fromCharCode(...combined));
-      } catch (e) {
-        console.error("暗号化エラー:", e); return plainText;
-      }
-    }
-
-    async function decryptData(base64Str) {
-      try {
-        const key = await getCryptoKey();
-        const binaryStr = atob(base64Str);
-        const bytes = new Uint8Array(binaryStr.length);
-        for (let i = 0; i < binaryStr.length; i++) bytes[i] = binaryStr.charCodeAt(i);
-        const iv = bytes.slice(0, 12);
-        const cipherText = bytes.slice(12);
-        const decrypted = await window.crypto.subtle.decrypt({ name: "AES-GCM", iv: iv }, key, cipherText);
-        return new TextDecoder().decode(decrypted);
-      } catch (e) {
-        console.error("復号エラー:", e); return base64Str;
-      }
-    }
-
-    // ==========================================
-    // UI制御とデータ処理
-    // ==========================================
+    // タブ切り替え処理
     function switchTab(tabId) {
       document.querySelectorAll('.page-section').forEach(el => el.classList.add('hidden'));
       document.querySelectorAll('.sidebar-nav-button').forEach(btn => btn.classList.remove('active'));
@@ -348,422 +302,11 @@
         targetBtnM.classList.add('active');
         targetBtnM.scrollIntoView({ behavior: 'smooth', block: 'nearest', inline: 'center' });
       }
-
-      if (tabId === 'chat') {
-        socket.emit('joinRoom', currentChannel);
-      }
     }
 
-    function initDateStr() {
-      const now = new Date();
-      const options = { year: 'numeric', month: 'long', day: 'numeric', weekday: 'long' };
-      document.getElementById('dashboard-date-display').textContent = now.toLocaleDateString('ja-JP', options);
-    }
-
-    async function loadDashboardData() {
-      try {
-        const [profileRes, scheduleRes, noticesRes, linksRes] = await Promise.all([
-          fetch('/api/profile').catch(() => ({ ok: false })),
-          fetch('/api/schedule').catch(() => ({ ok: false })),
-          fetch('/api/notices').catch(() => ({ ok: false })),
-          fetch('/api/links').catch(() => ({ ok: false }))
-        ]);
-
-        if (profileRes.status === 401) {
-          window.location.href = '/login';
-          return;
-        }
-
-        // プロフィールの取得 (email等の情報がAPIから返ってくると想定)
-        if (profileRes.ok) globalData.profile = await profileRes.json();
-        else globalData.profile = { name: '並木 太郎', email: 'namiki.taro@example.com', id: '180001', role: 'student', userClass: '3-A', picture: '' };
-
-        if (scheduleRes.ok) globalData.schedule = await scheduleRes.json();
-        else globalData.schedule = [
-          { id: 1, day: '月', time: '9:00-9:50', subject: '数学特講', room: 'A-102', teacher: '田中先生' },
-          { id: 2, day: '月', time: '10:00-10:50', subject: '英語表現', room: 'A-103', teacher: 'Smith先生' },
-          { id: 3, day: '月', time: '11:00-11:50', subject: '物理', room: '理科室1', teacher: '鈴木先生' },
-          { id: 4, day: '月', time: '13:00-13:50', subject: '現代文', room: 'A-102', teacher: '佐藤先生' }
-        ];
-
-        if (noticesRes.ok) globalData.notices = await noticesRes.json();
-        else globalData.notices = [
-          { id: 1, title: 'システムメンテナンスのお知らせ', date: '2026-08-20', content: '8月20日22:00より、サーバーの定期メンテナンスを実施します。', priority: 'high' },
-          { id: 2, title: '第2回定期考査の時間割発表', date: '2026-08-18', content: '来月実施される定期考査の時間割が公開されました。', priority: 'normal' }
-        ];
-
-        if (linksRes.ok) globalData.links = await linksRes.json();
-        else globalData.links = [
-          { id: 1, name: '学校LMSポータル', url: 'https://lms.school.edu', description: '授業資料やレポート提出用システム' },
-          { id: 2, name: 'Google Classroom', url: 'https://classroom.google.com', description: '課題の管理と連絡事項の確認' },
-          { id: 3, name: 'デジタル図書館', url: 'https://library.school.edu', description: '電子書籍・論文検索システム' }
-        ];
-
-        globalData.calendar = [
-          { date: '2026-09-01', title: '第2学期始業式' },
-          { date: '2026-09-15', title: '並木祭（文化祭）' },
-          { date: '2026-09-16', title: '並木祭（体育祭）' },
-          { date: '2026-10-05', title: '第2回定期考査開始' }
-        ];
-
-        renderAll();
-      } catch (err) {
-        console.error('データ取得エラー:', err);
-      }
-    }
-
-    function renderAll() {
-      if (globalData.profile) {
-        const p = globalData.profile;
-        
-        // 学籍番号の取得エラー対策 (空やUnknownの場合のフォールバック)
-        const studentIdText = (p.id && p.id !== 'Unknown') ? p.id : '学籍番号未設定';
-        document.getElementById('sidebar-user-id').textContent = `学籍番号: ${studentIdText}`;
-        document.getElementById('sidebar-user-name').textContent = p.name || 'ユーザー';
-        
-        // ポップアップメニュー内のユーザー情報反映
-        const popupName = document.getElementById('popup-user-name');
-        if (popupName) popupName.textContent = p.name || 'ユーザー';
-        const popupEmail = document.getElementById('popup-user-email');
-        if (popupEmail) popupEmail.textContent = p.email || 'メールアドレス未設定';
-
-        if (p.picture && p.picture !== 'admin.png') {
-          document.getElementById('sidebar-user-avatar').src = p.picture;
-          document.getElementById('mobile-user-avatar').src = p.picture;
-        }
-        document.getElementById('dashboard-welcome-heading').textContent = `ようこそ、${p.name || 'ユーザー'} さん`;
-        document.getElementById('dashboard-user-class').textContent = p.userClass || '未設定';
-      }
-
-      const homeNotices = document.getElementById('dashboard-notices-list');
-      homeNotices.innerHTML = globalData.notices.slice(0, 3).map(n => `
-        <div class="notice-item">
-          <div class="notice-item-icon">${n.priority === 'high' ? '🔴' : '🔵'}</div>
-          <div>
-            <div class="notice-item-title">${escapeHtml(n.title)}</div>
-            <div class="notice-item-date">${escapeHtml(n.date)}</div>
-          </div>
-        </div>
-      `).join('');
-
-      const homeLinks = document.getElementById('dashboard-quicklinks-list');
-      homeLinks.innerHTML = globalData.links.slice(0, 4).map(l => `
-        <a href="${escapeHtml(l.url)}" target="_blank" class="quicklink-item">
-          <span>${escapeHtml(l.name)}</span>
-          <svg class="quicklink-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14"/></svg>
-        </a>
-      `).join('');
-
-      document.getElementById('notices-list-full').innerHTML = globalData.notices.map(n => `
-        <div class="notice-card">
-          <div class="notice-card-header">
-            <span class="notice-card-date">${escapeHtml(n.date)}</span>
-            <h4 class="notice-card-title">${escapeHtml(n.title)}</h4>
-          </div>
-          <p class="notice-card-body">${escapeHtml(n.content)}</p>
-        </div>
-      `).join('');
-
-      document.getElementById('links-grid-full').innerHTML = globalData.links.map(l => `
-        <a href="${escapeHtml(l.url)}" target="_blank" class="link-card">
-          <div class="link-card-name">${escapeHtml(l.name)}</div>
-          <div class="link-card-desc">${escapeHtml(l.description || '')}</div>
-        </a>
-      `).join('');
-
-      document.getElementById('calendar-events-list').innerHTML = globalData.calendar.map(c => `
-        <div class="calendar-item">
-          <span class="calendar-item-title">${escapeHtml(c.title)}</span>
-          <span class="calendar-item-date">${escapeHtml(c.date)}</span>
-        </div>
-      `).join('');
-
-      filterSchedule('月');
-      renderDMUsers();
-    }
-
-    function renderDMUsers() {
-      const dmList = [
-        { id: 'u1', name: '佐藤 先生', avatar: 'https://placehold.co/32x32/444/fff?text=S' },
-        { id: 'u2', name: '田中 太郎', avatar: 'https://placehold.co/32x32/555/fff?text=T' },
-      ];
-      const container = document.getElementById('chat-dm-list');
-      container.innerHTML = dmList.map(u => `
-        <button onclick="switchChannel('dm_${u.id}', '${u.name}')" id="dm-button-${u.id}" class="channel-button dm-user-button">
-          <img src="${u.avatar}" class="dm-user-avatar" />
-          <span class="truncate">${u.name}</span>
-        </button>
-      `).join('');
-    }
-
-    function filterSchedule(day) {
-      document.querySelectorAll('.schedule-day-button').forEach(btn => btn.classList.remove('active'));
-      const activeBtn = document.getElementById(`schedule-day-${day}`);
-      if (activeBtn) activeBtn.classList.add('active');
-
-      const schedule = globalData.schedule.filter(s => s.day === day);
-      const container = document.getElementById('schedule-table-wrapper');
-      const homeContainer = document.getElementById('dashboard-schedule-highlights');
-
-      if (schedule.length === 0) {
-        const emptyMsg = `<div class="placeholder-text">データがありません</div>`;
-        container.innerHTML = emptyMsg;
-        homeContainer.innerHTML = emptyMsg;
-        return;
-      }
-
-      homeContainer.innerHTML = schedule.slice(0, 4).map(item => `
-        <div class="schedule-highlight-item">
-          <div class="schedule-highlight-period">${item.id}限</div>
-          <div class="min-w-0">
-            <div class="schedule-highlight-subject truncate">${escapeHtml(item.subject)}</div>
-            <div class="schedule-highlight-room truncate">${escapeHtml(item.room)} (${escapeHtml(item.time)})</div>
-          </div>
-        </div>
-      `).join('');
-
-      container.innerHTML = `
-        <table>
-          <thead>
-            <tr>
-              <th>時限</th>
-              <th>時間</th>
-              <th>教科</th>
-              <th>担当教員</th>
-              <th>教室</th>
-            </tr>
-          </thead>
-          <tbody>
-            ${schedule.map(item => `
-              <tr>
-                <td class="cell-period">${item.id}限</td>
-                <td class="cell-room">${escapeHtml(item.time)}</td>
-                <td class="cell-subject">${escapeHtml(item.subject)}</td>
-                <td class="cell-teacher">${escapeHtml(item.teacher)}</td>
-                <td class="cell-room">${escapeHtml(item.room)}</td>
-              </tr>
-            `).join('')}
-          </tbody>
-        </table>
-      `;
-    }
-
-    function switchChannel(channelId, name = '') {
-      currentChannel = channelId;
-      document.querySelectorAll('.channel-button').forEach(btn => btn.classList.remove('active'));
-
-      const titleEl = document.getElementById('chat-channel-title');
-      const descEl = document.getElementById('chat-channel-description');
-
-      if (channelId === 'grade') {
-        document.getElementById('channel-button-grade')?.classList.add('active');
-        titleEl.innerHTML = '<span class="channel-hash">#</span> 学年全体チャット';
-        descEl.textContent = '学年全員で交流・情報共有するチャンネルです。';
-      } else if (channelId === 'class') {
-        document.getElementById('channel-button-class')?.classList.add('active');
-        const cls = globalData.profile?.userClass || 'クラス未設定';
-        titleEl.innerHTML = `<span class="channel-hash">#</span> ${cls} チャット`;
-        descEl.textContent = `${cls}の生徒専用の連絡・相談チャンネルです。`;
-      } else if (channelId.startsWith('dm_')) {
-        const userId = channelId.replace('dm_', '');
-        document.getElementById(`dm-button-${userId}`)?.classList.add('active');
-        titleEl.innerHTML = `<span class="channel-hash">@</span> ${name}`;
-        descEl.textContent = `${name}さんとのプライベートメッセージです。`;
-      }
-
-      socket.emit('joinRoom', currentChannel);
-      document.getElementById('chat-messages-list').innerHTML = '<div class="chat-center-message"><div class="chat-center-message-text">チャンネルに接続しました。</div></div>';
-    }
-
-    async function handleChatSubmit(event) {
-      event.preventDefault();
-      const input = document.getElementById('chat-message-input');
-      const text = input.value.trim();
-      if (!text) return;
-
-      const encryptedText = await encryptData(text);
-      const messageData = {
-        channel: currentChannel,
-        sender: globalData.profile?.name || 'ユーザー',
-        avatar: globalData.profile?.picture || '',
-        encryptedText: encryptedText,
-        timestamp: new Date().toISOString()
-      };
-
-      socket.emit('chatMessage', messageData);
-      input.value = '';
-    }
-
-    socket.on('message', async (msg) => {
-      const container = document.getElementById('chat-messages-list');
-      const decryptedText = await decryptData(msg.encryptedText);
-      const isSelf = msg.sender === (globalData.profile?.name || 'あなた');
-      const timeStr = msg.timestamp ? new Date(msg.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : '12:00';
-      const avatarSrc = isSelf ? (globalData.profile?.picture || 'https://placehold.co/32x32/333/fff?text=Me') : (msg.avatar || 'https://placehold.co/32x32/555/fff?text=U');
-
-      const msgDiv = document.createElement('div');
-      msgDiv.className = `chat-message ${isSelf ? 'chat-message--self' : 'chat-message--other'}`;
-      msgDiv.innerHTML = `
-        <img src="${escapeHtml(avatarSrc)}" class="chat-message-avatar" />
-        <div class="chat-message-content ${isSelf ? 'chat-message-content--self' : 'chat-message-content--other'}">
-          ${!isSelf ? `<span class="chat-message-sender">${escapeHtml(msg.sender)}</span>` : ''}
-          <div class="chat-bubble ${isSelf ? 'chat-bubble--self' : 'chat-bubble--other'}">
-            ${escapeHtml(decryptedText)}
-          </div>
-          <span class="chat-message-time">${timeStr}</span>
-        </div>
-      `;
-      container.appendChild(msgDiv);
-      container.scrollTop = container.scrollHeight;
-    });
-
-    function escapeHtml(str) {
-      if (!str) return '';
-      return String(str).replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;").replace(/'/g, "&#039;");
-    }
-    let currentClassroomItems = [];
-    let currentFilterType = 'all';
-
-    // JSON（/api/notices または /api/classroom）から Classroom データを取得して描画
-    async function fetchAndRenderClassroom() {
-      const container = document.getElementById('classroom-data-list');
-      if (!container) return;
-
-      container.innerHTML = '<div class="placeholder-text">最新データを取得中...</div>';
-
-      try {
-        // notices API からデータを取得
-        const res = await fetch('/api/notices');
-        if (!res.ok) throw new Error('データの取得に失敗しました');
-        const data = await res.json();
-
-        // グローバルデータも更新
-        globalData.notices = data;
-        currentClassroomItems = data;
-
-        renderClassroomCards(currentClassroomItems, currentFilterType);
-      } catch (err) {
-        console.error('Classroomデータ取得エラー:', err);
-        container.innerHTML = `<div class="empty-state-text" style="color: var(--color-accent-red);">データの読み込みに失敗しました。</div>`;
-      }
-    }
-
-    // フィルター切り替え処理
-    function filterClassroomData(type) {
-      currentFilterType = type;
-
-      // ボタンの active 状態更新
-      ['all', 'courseWork', 'announcement', 'material'].forEach(t => {
-        const btn = document.getElementById(`cr-filter-${t === 'courseWork' ? 'work' : t === 'announcement' ? 'announce' : t}`);
-        if (btn) {
-          if (t === type) btn.classList.add('active');
-          else btn.classList.remove('active');
-        }
-      });
-
-      renderClassroomCards(currentClassroomItems, currentFilterType);
-    }
-
-    // カードの描画関数
-    function renderClassroomCards(items, filter) {
-      const container = document.getElementById('classroom-data-list');
-      if (!container) return;
-
-      // タイプ別にフィルタリング
-      const filtered = items.filter(item => {
-        if (filter === 'all') return true;
-        return item.type === filter;
-      });
-
-      if (filtered.length === 0) {
-        container.innerHTML = `<div class="empty-state-text">該当する投稿・課題はありません。</div>`;
-        return;
-      }
-
-      container.innerHTML = filtered.map(item => {
-        // アイコン & バッジの色分け
-        let badgeClass = 'rgba(59, 130, 246, 0.1)';
-        let badgeColor = 'var(--color-accent-blue-light)';
-        let typeLabel = 'お知らせ';
-        let icon = item.icon || '📢';
-
-        if (item.type === 'courseWork') {
-          badgeClass = 'rgba(234, 179, 8, 0.15)';
-          badgeColor = 'var(--color-accent-yellow)';
-          typeLabel = '課題';
-          icon = '📝';
-        } else if (item.type === 'material') {
-          badgeClass = 'rgba(192, 132, 252, 0.15)';
-          badgeColor = 'var(--color-accent-purple)';
-          typeLabel = '資料・添付';
-          icon = '📚';
-        }
-
-        // 締切日のフォーマット
-        let dueDateText = '';
-        if (item.dueDate) {
-          if (typeof item.dueDate === 'object' && item.dueDate.year) {
-            dueDateText = `⏳ 提出期限: ${item.dueDate.year}/${item.dueDate.month}/${item.dueDate.day}`;
-          } else {
-            dueDateText = `⏳ 提出期限: ${item.dueDate}`;
-          }
-        }
-
-        return `
-          <div class="notice-card" style="padding: 1.25rem;">
-            <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 0.5rem; flex-wrap: wrap; gap: 0.5rem;">
-              <div style="display: flex; align-items: center; gap: 0.5rem;">
-                <span style="font-size: 1.25rem;">${icon}</span>
-                <span style="font-size: 0.75rem; padding: 0.2rem 0.6rem; border-radius: 0.375rem; background: ${badgeClass}; color: ${badgeColor}; font-weight: 600;">
-                  ${typeLabel}
-                </span>
-                <span class="notice-card-date">${escapeHtml(item.date || '')}</span>
-              </div>
-              ${dueDateText ? `<span style="font-size: 0.75rem; color: var(--color-accent-red); font-weight: 600;">${dueDateText}</span>` : ''}
-            </div>
-
-            <h3 class="notice-card-title" style="font-size: 1.05rem; margin-bottom: 0.5rem; color: var(--color-text-primary);">
-              ${escapeHtml(item.title)}
-            </h3>
-
-            <div class="notice-card-body" style="white-space: pre-wrap; line-height: 1.5; margin-bottom: 0.75rem;">
-              ${escapeHtml(item.content || '詳細なし')}
-            </div>
-
-            ${item.url ? `
-              <div style="text-align: right; border-top: 1px solid var(--color-border); padding-top: 0.5rem; margin-top: 0.5rem;">
-                <a href="${escapeHtml(item.url)}" target="_blank" class="card-link-button" style="text-decoration: none; display: inline-flex; align-items: center; gap: 0.25rem;">
-                  Google Classroom で開く ↗
-                </a>
-              </div>
-            ` : ''}
-          </div>
-        `;
-      }).join('');
-    }
-
-    // 画面切り替え（switchTab）に連携
-    // 既存の switchTab 関数内の switch 文へ追加・調整してください
-    const originalSwitchTab = window.switchTab;
-    window.switchTab = function(tabName) {
-      if (typeof originalSwitchTab === 'function') originalSwitchTab(tabName);
-      
-      if (tabName === 'classroom') {
-        fetchAndRenderClassroom();
-      }
-    };
-
-    // Socket.io リアルタイム更新時も自動描画
-    if (typeof socket !== 'undefined') {
-      socket.on('allNoticesUpdated', (updatedData) => {
-        currentClassroomItems = updatedData;
-        renderClassroomCards(currentClassroomItems, currentFilterType);
-      });
-    }
     window.addEventListener('DOMContentLoaded', () => {
-      initDateStr();
-      loadDashboardData();
-      initThemeToggle(); // トグルボタンの初期化
+      fetchUserProfile();
+      initThemeToggle();
     });
   </script>
 </body>
