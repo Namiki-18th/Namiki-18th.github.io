@@ -23,8 +23,9 @@ const port = process.env.PORT || 3000;
 app.set('trust proxy', 1);
 
 // Body パーサー設定（JSONおよびURLエンコード）
-app.use(express.json());
-app.use(express.urlencoded({ extended: true }));
+// 容量制限を 10mb に拡大
+app.use(express.json({ limit: '10mb' }));
+app.use(express.urlencoded({ limit: '10mb', extended: true }));
 app.use(express.static(path.join(__dirname, 'public')));
 
 // --- [ファイル保存ヘルパー（データ破損防止：Atomic Write）] ---
