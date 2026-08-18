@@ -1,19 +1,15 @@
 const express = require('express');
 const path = require('path');
 const fs = require('fs');
-const http = require('http'); // Added for Socket.io
-const { Server } = require('socket.io'); // Socket.io import
+const http = require('http');
+const { Server } = require('socket.io');
 const passport = require('passport');
 const GoogleStrategy = require('passport-google-oauth20').Strategy;
 const session = require('express-session');
 require('dotenv').config();
 
-// unlock.js から学籍番号を取得する関数等をインポート（※ unlock.js のエクスポート形式に合わせて調整してください）
-// 例: const { getStudentId } = require('./unlock'); 
-// またはメールアドレスやプロフィールから学籍番号を抽出するロジickをここに組み込みます。
-
 const app = express();
-const server = http.createServer(app); // Wrap Express with HTTP server
+const server = http.createServer(app);
 const io = new Server(server, {
   cors: {
     origin: "*",
@@ -23,13 +19,31 @@ const io = new Server(server, {
 
 const port = process.env.PORT || 3000;
 
-// Required setting for reverse proxy environments like Render
+// Renderなどのリバースプロキシ環境に必要な設定
 app.set('trust proxy', 1);
 
-// --- [User Management via JSON File] ---
+// Body パーサー設定（JSONおよびURLエンコード）
+app.use(express.json());
+app.use(express.urlencoded({ extended: true }));
+app.use(express.static(path.join(__dirname, 'public')));
+
+// --- [ファイル保存ヘルパー（データ破損防止：Atomic Write）] ---
+function safeWriteFileSync(filePath, data) {
+  const tempPath = `${filePath}.tmp`;
+  try {
+    fs.writeFileSync(tempPath, JSON.stringify(data, null, 2), 'utf8');
+    fs.renameSync(tempPath, filePath);
+  } catch (err) {
+    if (fs.existsSync(tempPath)) {
+      try { fs.unlinkSync(tempPath); } catch (_) {}
+    }
+    throw err;
+  }
+}
+
+// --- [ユーザーDB (JSONファイル)] ---
 const USERS_FILE = path.join(__dirname, 'users.json');
 
-// Function to load User DB
 function loadUsersDB() {
   try {
     if (fs.existsSync(USERS_FILE)) {
@@ -41,11 +55,10 @@ function loadUsersDB() {
     console.error('[Error] Failed to read users.json:', err);
   }
   
-  // Initial data if file does not exist
   console.log('[System] Initializing default user database...');
   const initialData = {
     'bme280.gac@gmail.com': { 
-      id: 'Admin', // 管理者の場合は 'Admin'
+      id: 'Admin', 
       name: '管理者', 
       email: 'bme280.gac@gmail.com', 
       userClass: '特権管理者', 
@@ -58,26 +71,56 @@ function loadUsersDB() {
   return initialData;
 }
 
-// Function to save User DB
 function saveUsersDB(db) {
   try {
-    fs.writeFileSync(USERS_FILE, JSON.stringify(db, null, 2), 'utf8');
+    safeWriteFileSync(USERS_FILE, db);
     console.log('[System] User database saved successfully.');
   } catch (err) {
     console.error('[Error] Failed to save users.json:', err);
   }
 }
 
-// Load DB at application startup
 let usersDB = loadUsersDB();
 
-// --- [Encrypted Chat Storage Directory Configuration] ---
+// --- [お知らせ・Classroomデータ保存用 (JSONファイル)] ---
+const NOTICES_FILE = path.join(__dirname, 'notices.json');
+
+function loadNoticesDB() {
+  try {
+    if (fs.existsSync(NOTICES_FILE)) {
+      const data = fs.readFileSync(NOTICES_FILE, 'utf8');
+      return JSON.parse(data);
+    }
+  } catch (err) {
+    console.error('[Error] Failed to read notices.json:', err);
+  }
+  // デフォルトお知らせデータ
+  const initialNotices = [
+    { id: 1, title: '7月月末テストについて', date: '2024-07-13', priority: 'high', content: '7月月末テストは7月25日(木)～7月26日(金)に実施されます。範囲表を確認してください。', icon: '📝' },
+    { id: 2, title: '夏休みの宿題について', date: '2024-07-12', priority: 'normal', content: '夏休みの宿題リストを配布しました。提出期限は8月30日(金)です。', icon: '📚' }
+  ];
+  saveNoticesDB(initialNotices);
+  return initialNotices;
+}
+
+function saveNoticesDB(notices) {
+  try {
+    safeWriteFileSync(NOTICES_FILE, notices);
+  } catch (err) {
+    console.error('[Error] Failed to save notices.json:', err);
+  }
+}
+
+let noticesDB = loadNoticesDB();
+
+// --- [暗号化チャット用ディレクトリ設定] ---
 const CHAT_DIR = path.join(__dirname, 'chat');
 if (!fs.existsSync(CHAT_DIR)) {
   fs.mkdirSync(CHAT_DIR, { recursive: true });
   console.log(`[System] Created chat directory at: ${CHAT_DIR}`);
 }
 
+// --- [Passport / Google OAuth 設定] ---
 passport.use(new GoogleStrategy({
     clientID: process.env.GOOGLE_CLIENT_ID || 'demo-client-id',
     clientSecret: process.env.GOOGLE_CLIENT_SECRET || 'demo-client-secret',
@@ -85,39 +128,30 @@ passport.use(new GoogleStrategy({
   },
   (accessToken, refreshToken, profile, done) => {
     try {
-      console.log(`[OAuth Success] Profile fetched from Google: ID=${profile.id}, Name=${profile.displayName}`);
+      console.log(`[OAuth Success] Profile fetched: ID=${profile.id}, Name=${profile.displayName}`);
       
       const email = (profile.emails && profile.emails[0] && profile.emails[0].value) || '';
       const allowedDomain = 'namiki-cs.ibk.ed.jp';
-
-      // Privileged user check
       const isPrivilegedAdmin = (email === 'bme280.gac@gmail.com');
 
-      // Reject login if domain does not match and user is not privileged
       if (!email.endsWith(`@${allowedDomain}`) && !isPrivilegedAdmin) {
-        console.warn(`[OAuth Warning] Unauthorized domain login attempt: ${email}`);
-        return done(null, false, { message: `Only email addresses ending with namiki-cs.ibk.ed.jp are allowed to log in.` });
+        console.warn(`[OAuth Warning] Unauthorized domain attempt: ${email}`);
+        return done(null, false, { message: `Only email addresses ending with namiki-cs.ibk.ed.jp are allowed.` });
       }
 
-      // Check for existing registration
       let existingUser = usersDB[email];
       const isAdmin = isPrivilegedAdmin || email.startsWith('sato') || email.includes('admin') || (existingUser && existingUser.role === 'admin');
 
-      // Set fixed name and icon for bme280.gac@gmail.com
       const name = isPrivilegedAdmin ? '管理者' : (profile.displayName || (existingUser ? existingUser.name : 'ユーザー'));
       const picture = isPrivilegedAdmin ? 'admin.png' : ((profile.photos && profile.photos[0] && profile.photos[0].value) || (existingUser ? existingUser.picture : ''));
 
-      // --- 【学籍番号 / ID の決定ロジック】 ---
       let userId;
       if (isAdmin) {
         userId = 'Admin';
       } else {
-        // unlock.js から学籍番号を取得する処理
-        // ※ unlock.js の実装方法（例: unlock.getStudentId(email, profile) や unlock(email) など）に合わせて書き換えてください。
         let extractedId = null;
         try {
           const unlock = require('./unlock');
-          // unlock が関数またはオブジェクトである場合の取得例
           if (typeof unlock === 'function') {
             extractedId = unlock(email, profile);
           } else if (unlock && typeof unlock.getStudentId === 'function') {
@@ -126,12 +160,10 @@ passport.use(new GoogleStrategy({
             extractedId = unlock.studentId;
           }
         } catch (e) {
-          console.warn('[System] Could not load or execute unlock.js, falling back to email/default parsing:', e.message);
-          // 万が一 unlock.js の読み込みに失敗した場合のフォールバック（メールアドレスのローカルパートなどから抽出する例、不要であれば削除可）
+          console.warn('[System] unlock.js fallback used:', e.message);
           const match = email.match(/^([a-zA-Z0-9]+)@/);
           if (match) extractedId = match[1];
         }
-
         userId = extractedId ? extractedId : 'Unknown';
       }
 
@@ -145,11 +177,9 @@ passport.use(new GoogleStrategy({
         status: existingUser ? (existingUser.status || 'active') : 'active'
       };
 
-      // Apply changes and persist to file
       usersDB[email] = user;
       saveUsersDB(usersDB);
 
-      console.log(`[OAuth] User authenticated and profile updated: ${email}, ID: ${userId}`);
       return done(null, user);
     } catch (err) {
       console.error('[OAuth Strategy Error]:', err);
@@ -168,10 +198,7 @@ passport.deserializeUser((email, done) => {
   done(null, user);
 });
 
-app.use(express.json());
-app.use(express.urlencoded({ extended: true }));
-app.use(express.static(path.join(__dirname, 'public')));
-
+// --- [セッションミドルウェア] ---
 const sessionMiddleware = session({
   secret: process.env.SESSION_SECRET || 'your-secret-key',
   resave: false,
@@ -186,15 +213,12 @@ const sessionMiddleware = session({
 });
 
 app.use(sessionMiddleware);
-
-// Share session middleware with Socket.io
 io.engine.use(sessionMiddleware);
 
 app.use(passport.initialize());
 app.use(passport.session());
 
-// --- [Authentication, Authorization, and Account Status Middlewares] ---
-
+// --- [アカウント状態・アクセス制御ミドルウェア] ---
 function checkAccountStatus(req, res, next) {
   if (req.isAuthenticated() && req.user) {
     usersDB = loadUsersDB();
@@ -213,173 +237,122 @@ function checkAccountStatus(req, res, next) {
 app.use(checkAccountStatus);
 
 function ensureApiAuthenticated(req, res, next) {
-  if (req.isAuthenticated()) {
-    return next();
-  }
-  console.warn(`[API Access Denied] Unauthenticated request to: ${req.originalUrl}`);
+  if (req.isAuthenticated()) return next();
   res.status(401).json({ error: 'Unauthorized', message: 'Authentication required' });
 }
 
 function ensurePageAuthenticated(req, res, next) {
-  if (req.isAuthenticated()) {
-    return next();
-  }
-  console.warn(`[Page Access Denied] Unauthenticated request to: ${req.originalUrl}`);
+  if (req.isAuthenticated()) return next();
   res.redirect('/login');
 }
 
 function ensureAdminAuthenticated(req, res, next) {
-  if (req.isAuthenticated() && req.user && req.user.role === 'admin') {
-    return next();
-  }
-  console.warn(`[Admin Access Denied] Non-admin user attempted access: ${req.user ? req.user.email : 'Unauthenticated'}`);
+  if (req.isAuthenticated() && req.user && req.user.role === 'admin') return next();
   if (req.xhr || req.path.startsWith('/api/')) {
     return res.status(403).json({ error: 'Forbidden', message: 'Admin privileges required' });
   }
   res.redirect('/index');
 }
 
-// --- [Page Routes] ---
+// --- [ページルーティング] ---
+app.get('/', (req, res) => res.redirect(req.isAuthenticated() ? '/index' : '/login'));
+app.get('/login', (req, res) => req.isAuthenticated() ? res.redirect('/index') : res.sendFile(path.join(__dirname, 'public', 'login.html')));
+app.get('/login-deny', (req, res) => res.sendFile(path.join(__dirname, 'public', 'login-deny.html')));
+app.get('/privacy', (req, res) => res.sendFile(path.join(__dirname, 'public', 'privacy.html')));
 
-app.get('/', (req, res) => {
-  if (req.isAuthenticated()) {
-    return res.redirect('/index');
-  }
-  res.redirect('/login');
-});
-
-app.get('/login', (req, res) => {
-  if (req.isAuthenticated()) {
-    return res.redirect('/index');
-  }
-  res.sendFile(path.join(__dirname, 'public', 'login.html'));
-});
-
-app.get('/login-deny', (req, res) => {
-  res.sendFile(path.join(__dirname, 'public', 'login-deny.html'));
-});
-
-app.get('/privacy', (req, res) => {
-  res.sendFile(path.join(__dirname, 'public', 'privacy.html'));
-});
-
-app.get('/auth/google',
-  passport.authenticate('google', { scope: ['profile', 'email'] })
-);
+app.get('/auth/google', passport.authenticate('google', { scope: ['profile', 'email'] }));
 
 app.get('/auth/google/callback', (req, res, next) => {
-  passport.authenticate('google', (err, user, info) => {
-    if (err) {
-      console.error('[OAuth Error] Google callback authentication failed:', err);
-      return res.redirect('/login?error=auth_failed');
-    }
-    if (!user) {
-      console.warn('[OAuth Warning] Access denied due to domain restrictions. Redirecting to /login-deny');
-      return res.redirect('/login-deny');
-    }
+  passport.authenticate('google', (err, user) => {
+    if (err) return res.redirect('/login?error=auth_failed');
+    if (!user) return res.redirect('/login-deny');
     req.logIn(user, (loginErr) => {
-      if (loginErr) {
-        console.error('[OAuth Error] Session initialization failed:', loginErr);
-        return res.redirect('/login?error=session_error');
-      }
-      req.session.save((saveErr) => {
-        if (saveErr) {
-          console.error('[OAuth Error] Session save failed:', saveErr);
-          return res.redirect('/login?error=save_error');
-        }
-        console.log(`[OAuth Success] User ${user.email} logged in successfully. Redirecting to /index`);
-        return res.redirect('/index');
-      });
+      if (loginErr) return res.redirect('/login?error=session_error');
+      req.session.save(() => res.redirect('/index'));
     });
   })(req, res, next);
 });
 
 app.get('/logout', (req, res, next) => {
-  const userEmail = req.user ? req.user.email : 'Unknown user';
   req.logout((err) => {
     if (err) return next(err);
-    req.session.destroy(() => {
-      console.log(`[Logout] User logged out: ${userEmail}`);
-      res.redirect('/login');
-    });
+    req.session.destroy(() => res.redirect('/login'));
   });
 });
 
-app.get('/index', ensurePageAuthenticated, (req, res) => {
-  res.sendFile(path.join(__dirname, 'public', 'index.html'));
+app.get('/index', ensurePageAuthenticated, (req, res) => res.sendFile(path.join(__dirname, 'public', 'index.html')));
+app.get('/dashboard', ensurePageAuthenticated, (req, res) => res.redirect('/index'));
+app.get('/admin', ensureAdminAuthenticated, (req, res) => res.sendFile(path.join(__dirname, 'public', 'admin.html')));
+
+// --- [Classroom / GAS連携エンドポイント (NEW)] ---
+app.post('/api/classroom', (req, res) => {
+  try {
+    const { title, content, description, dueDate, receivedAt } = req.body;
+    console.log(`[Classroom/GAS API] Received payload:`, req.body);
+
+    const itemTitle = title || 'Google Classroom 更新';
+    const itemContent = content || description || '新しい投稿がありました。詳細はClassroomを確認してください。';
+    const dateStr = receivedAt ? new Date(receivedAt).toISOString().split('T')[0] : new Date().toISOString().split('T')[0];
+
+    const newNotice = {
+      id: Date.now(),
+      title: itemTitle,
+      date: dateStr,
+      priority: 'high',
+      content: itemContent,
+      icon: '🏫',
+      dueDate: dueDate || null
+    };
+
+    noticesDB = loadNoticesDB();
+    noticesDB.unshift(newNotice); // 最新の投稿を先頭に追加
+    saveNoticesDB(noticesDB);
+
+    // Socket.ioで接続中の全ユーザーへリアルタイム配信
+    io.emit('newNotice', newNotice);
+    console.log(`[Classroom/GAS API] Successfully added notice & broadcasted: "${itemTitle}"`);
+
+    res.status(200).json({ status: 'success', message: 'Notice received and broadcasted', notice: newNotice });
+  } catch (err) {
+    console.error('[Classroom/GAS API Error]:', err);
+    res.status(500).json({ error: 'Internal Server Error', message: err.message });
+  }
 });
 
-app.get('/dashboard', ensurePageAuthenticated, (req, res) => {
-  res.redirect('/index');
-});
-
-app.get('/admin', ensureAdminAuthenticated, (req, res) => {
-  res.sendFile(path.join(__dirname, 'public', 'admin.html'));
-});
-
-// --- [General API Endpoints] ---
-
+// --- [一般 API エンドポイント] ---
 app.get('/api/profile', ensureApiAuthenticated, (req, res) => {
   usersDB = loadUsersDB();
   res.json(usersDB[req.user.email] || req.user);
 });
 
+app.get('/api/notices', ensureApiAuthenticated, (req, res) => {
+  noticesDB = loadNoticesDB();
+  res.json(noticesDB);
+});
+
 app.get('/api/schedule', ensureApiAuthenticated, (req, res) => {
   const schedule = [
     { id: 1, day: '月', time: '9:00-9:50', subject: '数学', room: 'A-102', teacher: '田中先生' },
-    { id: 2, day: '月', time: '10:00-10:50', subject: '英語', room: 'B-201', teacher: '佐藤先生' },
-    { id: 3, day: '月', time: '11:00-11:50', subject: '国語', room: 'A-102', teacher: '鈴木先生' },
-    { id: 4, day: '月', time: '13:00-13:50', subject: '理科', room: 'C-101', teacher: '山田先生' },
-    { id: 5, day: '月', time: '14:00-14:50', subject: '社会', room: 'A-102', teacher: '小林先生' },
-    { id: 6, day: '火', time: '9:00-9:50', subject: '国語', room: 'A-102', teacher: '鈴木先生' },
-    { id: 7, day: '火', time: '10:00-10:50', subject: '理科', room: 'C-101', teacher: '山田先生' },
-    { id: 8, day: '火', time: '11:00-11:50', subject: '体育', room: 'C-301', teacher: '山口先生' },
-    { id: 9, day: '火', time: '13:00-13:50', subject: '数学', room: 'A-102', teacher: '田中先生' },
-    { id: 10, day: '火', time: '14:00-14:50', subject: '音楽', room: 'B-105', teacher: '中村先生' },
+    { id: 2, day: '月', time: '10:00-10:50', subject: '英語', room: 'B-201', teacher: '佐藤先生' }
   ];
   res.json(schedule);
 });
 
-app.get('/api/notices', ensureApiAuthenticated, (req, res) => {
-  const notices = [
-    { id: 1, title: '7月月末テストについて', date: '2024-07-13', priority: 'high', content: '7月月末テストは7月25日(木)～7月26日(金)に実施されます。範囲表を確認してください。', icon: '📝' },
-    { id: 2, title: '夏休みの宿題について', date: '2024-07-12', priority: 'normal', content: '夏休みの宿題リストを配布しました。提出期限は8月30日(金)です。', icon: '📚' },
-    { id: 3, title: '学校祭の参加について', date: '2024-07-10', priority: 'normal', content: '今年の学校祭は9月15日(日)に開催予定です。クラスの出し物を決めてください。', icon: '🎉' },
-    { id: 4, title: '健康診断実施日程', date: '2024-07-08', priority: 'normal', content: '定期健康診断を7月17日(水)に実施します。午前中に受診してください。', icon: '🏥' },
-    { id: 5, title: '図書館の蔵書検索システムが新しくなりました', date: '2024-07-05', priority: 'low', content: 'より使いやすい検索システムに更新されました。ぜひご利用ください。', icon: '📖' },
-  ];
-  res.json(notices);
-});
-
 app.get('/api/links', ensureApiAuthenticated, (req, res) => {
   const links = [
-    { id: 1, category: '学習', name: '学校LMS', url: 'https://lms.school.edu', icon: '📚', description: '授業資料やレポート提出用システム' },
-    { id: 2, category: '学習', name: 'Google Classroom', url: 'https://classroom.google.com', icon: '📝', description: '担任からの連絡・課題配布' },
-    { id: 3, category: '図書館', name: '図書館蔵書検索', url: 'https://library.school.edu', icon: '📖', description: '学校図書館の蔵書を検索' },
-    { id: 4, category: '学校情報', name: '学校ホームページ', url: 'https://school.edu', icon: '🏫', description: '学校の公式情報サイト' },
-    { id: 5, category: '学校情報', name: '校舎案内', url: 'https://school.edu/facility', icon: '🗺️', description: '校舎の配置図・施設情報' },
-    { id: 6, category: '行事', name: '年間行事予定', url: 'https://school.edu/schedule', icon: '📅', description: '学校の年間行事予定表' },
-    { id: 7, category: '連絡先', name: '学校電話番号', url: 'tel:03-1234-5678', icon: '☎️', description: '学校代表電話' },
-    { id: 8, category: 'その他', name: 'Zoom接続ガイド', url: 'https://school.edu/zoom-guide', icon: '💻', description: 'オンライン授業の接続方法' },
+    { id: 1, category: '学習', name: 'Google Classroom', url: 'https://classroom.google.com', icon: '📝', description: '担任からの連絡・課題配布' }
   ];
   res.json(links);
 });
 
 app.get('/api/calendar', ensureApiAuthenticated, (req, res) => {
   const events = [
-    { date: '2024-07-15', title: '開校記念日', type: 'holiday' },
-    { date: '2024-07-22', title: '海の日', type: 'holiday' },
-    { date: '2024-07-25', title: '月末テスト(1日目)', type: 'exam' },
-    { date: '2024-07-26', title: '月末テスト(2日目)', type: 'exam' },
-    { date: '2024-08-10', title: 'お盆休み', type: 'holiday' },
-    { date: '2024-09-15', title: '学校祭', type: 'event' },
-    { date: '2024-10-12', title: '体育大会', type: 'event' },
+    { date: '2024-07-25', title: '月末テスト(1日目)', type: 'exam' }
   ];
   res.json(events);
 });
 
-// --- [Encrypted Chat API Endpoints] ---
-
+// --- [暗号化チャット API エンドポイント] ---
 app.get('/api/chat', ensureApiAuthenticated, (req, res) => {
   const channel = req.query.channel || 'grade';
   const safeChannelName = channel.replace(/[^a-zA-Z0-9_-]/g, '_');
@@ -390,7 +363,6 @@ app.get('/api/chat', ensureApiAuthenticated, (req, res) => {
       const data = fs.readFileSync(filePath, 'utf8');
       res.json(JSON.parse(data));
     } catch (e) {
-      console.error(`[Error] Failed to parse chat file for channel '${safeChannelName}':`, e);
       res.status(500).json({ error: 'Failed to parse chat data' });
     }
   } else {
@@ -400,9 +372,7 @@ app.get('/api/chat', ensureApiAuthenticated, (req, res) => {
 
 app.post('/api/chat', ensureApiAuthenticated, (req, res) => {
   const { channel, sender, encryptedText, timestamp } = req.body;
-  if (!channel || !encryptedText) {
-    return res.status(400).json({ error: 'Missing required fields' });
-  }
+  if (!channel || !encryptedText) return res.status(400).json({ error: 'Missing required fields' });
 
   const safeChannelName = channel.replace(/[^a-zA-Z0-9_-]/g, '_');
   const filePath = path.join(CHAT_DIR, `${safeChannelName}.json`);
@@ -412,7 +382,7 @@ app.post('/api/chat', ensureApiAuthenticated, (req, res) => {
     try {
       chatData = JSON.parse(fs.readFileSync(filePath, 'utf8'));
     } catch (e) {
-      console.error(`[Error] Failed to read existing chat data for '${safeChannelName}':`, e);
+      console.error(`[Error] Reading chat file:`, e);
     }
   }
 
@@ -425,21 +395,15 @@ app.post('/api/chat', ensureApiAuthenticated, (req, res) => {
   chatData.messages.push(newMessage);
 
   try {
-    fs.writeFileSync(filePath, JSON.stringify(chatData, null, 2), 'utf8');
-    
-    // Broadcast via Socket.io to users in the same channel
+    safeWriteFileSync(filePath, chatData);
     io.to(channel).emit('chatMessage', newMessage);
-    console.log(`[Socket.io] Broadcasted new chat message to channel: ${channel}`);
-
     res.json({ success: true });
   } catch (e) {
-    console.error(`[Error] Failed to save chat file for channel '${safeChannelName}':`, e);
     res.status(500).json({ error: 'Failed to save encrypted chat' });
   }
 });
 
-// --- [Socket.io Real-time Logic] ---
-
+// --- [Socket.io リアルタイム通信制御] ---
 io.on('connection', (socket) => {
   const session = socket.request.session;
   if (!session || !session.passport || !session.passport.user) {
@@ -451,12 +415,10 @@ io.on('connection', (socket) => {
   console.log(`[Socket.io] Client connected: Socket ID ${socket.id}, User: ${session.passport.user}`);
 
   socket.on('joinChannel', (channel) => {
-    // Leave previous channel rooms
     Array.from(socket.rooms).forEach(room => {
       if (room !== socket.id) socket.leave(room);
     });
     socket.join(channel);
-    console.log(`[Socket.io] Socket ${socket.id} joined channel: ${channel}`);
   });
 
   socket.on('disconnect', () => {
@@ -464,8 +426,7 @@ io.on('connection', (socket) => {
   });
 });
 
-// --- [Admin API Endpoints] ---
-
+// --- [管理者 API エンドポイント] ---
 app.get('/api/admin/users', ensureAdminAuthenticated, (req, res) => {
   usersDB = loadUsersDB();
   const userList = Object.values(usersDB).map(u => ({
@@ -476,7 +437,6 @@ app.get('/api/admin/users', ensureAdminAuthenticated, (req, res) => {
     status: u.status || 'active',
     picture: u.picture || ''
   }));
-  console.log(`[Admin] User list retrieved by ${req.user.email}`);
   res.json(userList);
 });
 
@@ -494,21 +454,17 @@ app.post('/api/admin/user/:email', ensureAdminAuthenticated, (req, res) => {
     if (picture !== undefined) usersDB[targetEmail].picture = picture;
     
     saveUsersDB(usersDB);
-    console.log(`[Admin] Updated user profile for: ${targetEmail} by Admin ${req.user.email}`);
-
     res.json({ success: true, user: usersDB[targetEmail] });
   } else {
-    console.warn(`[Admin Warning] Update failed. Target user not found: ${targetEmail}`);
     res.status(404).json({ error: 'Specified user email not found.' });
   }
 });
 
 app.use((req, res) => {
-  console.warn(`[404 Not Found] Request path: ${req.originalUrl}`);
   res.status(404).send('404 Not Found');
 });
 
-// Start HTTP Server
+// サーバー起動
 server.listen(port, () => {
   console.log(`[Server] Server is running at http://localhost:${port}`);
 });
