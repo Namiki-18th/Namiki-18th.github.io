@@ -42,6 +42,15 @@
     .chat-text-input {
       box-sizing: border-box;
     }
+    /* テキスト内自動リンクのスタイル */
+    .auto-link {
+      color: var(--color-accent-blue-light, #60a5fa);
+      text-decoration: underline;
+      word-break: break-all;
+    }
+    .auto-link:hover {
+      opacity: 0.8;
+    }
   </style>
 
   <script>
@@ -476,6 +485,26 @@
     let currentChannel = 'grade';
     const socket = io();
 
+    function escapeHtml(str) {
+      if (!str) return '';
+      return String(str)
+        .replace(/&/g, "&amp;")
+        .replace(/</g, "&lt;")
+        .replace(/>/g, "&gt;")
+        .replace(/"/g, "&quot;")
+        .replace(/'/g, "&#039;");
+    }
+
+    // テキスト内のURLを自動的にリンク化する関数
+    function linkify(text) {
+      if (!text) return '';
+      const escaped = escapeHtml(text);
+      const urlPattern = /(https?:\/\/[^\s<]+)/g;
+      return escaped.replace(urlPattern, function(url) {
+        return `<a href="${url}" target="_blank" rel="noopener noreferrer" class="auto-link">${url}</a>`;
+      });
+    }
+
     function toggleAccountMenu(event) {
       if (event) event.stopPropagation();
       const menu = document.getElementById('account-popup-menu');
@@ -636,7 +665,7 @@
 
         if (noticesRes.ok) globalData.notices = await noticesRes.json();
         else globalData.notices = [
-          { id: 1, title: 'システムメンテナンスのお知らせ', date: '2026-08-20', content: '8月20日22:00より、サーバーの定期メンテナンスを実施します。', priority: 'high' }
+          { id: 1, title: 'システムメンテナンスのお知らせ', date: '2026-08-20', content: '8月20日22:00より、サーバーの定期メンテナンスを実施します。詳細は https://example.com を確認してください。', priority: 'high' }
         ];
 
         if (linksRes.ok) globalData.links = await linksRes.json();
@@ -707,7 +736,7 @@
             <span class="notice-card-date">${escapeHtml(n.date)}</span>
             <h4 class="notice-card-title">${escapeHtml(n.title)}</h4>
           </div>
-          <p class="notice-card-body">${escapeHtml(n.content)}</p>
+          <p class="notice-card-body">${linkify(n.content)}</p>
         </div>
       `).join('');
 
@@ -855,7 +884,7 @@
         <div class="chat-message-content ${isSelf ? 'chat-message-content--self' : 'chat-message-content--other'}">
           ${!isSelf ? `<span class="chat-message-sender">${escapeHtml(msg.sender)}</span>` : ''}
           <div class="chat-bubble ${isSelf ? 'chat-bubble--self' : 'chat-bubble--other'}">
-            ${escapeHtml(decryptedText)}
+            ${linkify(decryptedText)}
           </div>
           <span class="chat-message-time">${timeStr}</span>
         </div>
@@ -863,11 +892,6 @@
       container.appendChild(msgDiv);
       container.scrollTop = container.scrollHeight;
     });
-
-    function escapeHtml(str) {
-      if (!str) return '';
-      return String(str).replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;").replace(/'/g, "&#039;");
-    }
 
     // Classroom 連携処理群
     let currentClassroomItems = [];
@@ -877,155 +901,131 @@
       const container = document.getElementById('classroom-data-list');
       if (!container) return;
 
-      container.innerHTML = '<div class="placeholder-text">最新データを取得中...</div>';
+      container.innerHTML = '<div class="placeholder-text">最新のClassroomデータを取得中...</div>';
 
       try {
-        const res = await fetch('/api/classroom');
-        if (!res.ok) throw new Error('データの取得に失敗しました');
-        const data = await res.json();
-
-        globalData.classroom = data;
-        currentClassroomItems = data;
-
-        renderClassroomCards(currentClassroomItems, currentFilterType);
+        const res = await fetch('/api/classroom').catch(() => ({ ok: false }));
+        if (res.ok) {
+          const data = await res.json();
+          currentClassroomItems = data.items || [];
+        } else {
+          // ダミーデータフォールバック
+          currentClassroomItems = [
+            {
+              id: 'cw1',
+              type: 'courseWork',
+              courseName: '数学III (3-A)',
+              title: '章末問題演習 第4章',
+              description: '教科書P.120-123の練習問題をノートに解き、PDFで提出してください。',
+              dueDate: '2026-08-25T23:59:00Z',
+              creationTime: '2026-08-18T10:00:00Z',
+              materials: [{ title: '解答用ワークシート.pdf', url: 'https://classroom.google.com' }],
+              alternateLink: 'https://classroom.google.com'
+            },
+            {
+              id: 'cw2',
+              type: 'announcement',
+              courseName: '化学基礎 (3-A)',
+              title: '来週の実験準備について',
+              description: '次回は保護メガネが必須となります。忘れずに持参してください。詳細: https://example.com/lab-info',
+              creationTime: '2026-08-19T08:30:00Z',
+              materials: [],
+              alternateLink: 'https://classroom.google.com'
+            },
+            {
+              id: 'cw3',
+              type: 'material',
+              courseName: '論理国語 (3-A)',
+              title: '夏季補講テキストスライド',
+              description: '補講で使用したプレゼンテーション資料を公開します。',
+              creationTime: '2026-08-15T14:20:00Z',
+              materials: [{ title: '国語補講資料_2026.pdf', url: 'https://classroom.google.com' }],
+              alternateLink: 'https://classroom.google.com'
+            }
+          ];
+        }
+        renderClassroomData();
       } catch (err) {
-        console.error('Classroomデータ取得エラー:', err);
-        container.innerHTML = `<div class="empty-state-text" style="color: var(--color-accent-red);">データの読み込みに失敗しました。</div>`;
+        console.error('Classroom Fetch Error:', err);
+        container.innerHTML = '<div class="empty-state-text">Classroomデータの取得に失敗しました。</div>';
       }
     }
 
     function filterClassroomData(type) {
       currentFilterType = type;
-
-      ['all', 'courseWork', 'announcement', 'material'].forEach(t => {
-        const btnId = `cr-filter-${t === 'courseWork' ? 'work' : t === 'announcement' ? 'announce' : t === 'material' ? 'material' : 'all'}`;
-        const btn = document.getElementById(btnId);
-        if (btn) {
-          if (t === type) btn.classList.add('active');
-          else btn.classList.remove('active');
-        }
+      ['all', 'work', 'announce', 'material'].forEach(t => {
+        const btn = document.getElementById(`cr-filter-${t}`);
+        if(btn) btn.classList.remove('active');
       });
+      const activeMap = { 'all':'all', 'courseWork':'work', 'announcement':'announce', 'material':'material' };
+      const activeBtn = document.getElementById(`cr-filter-${activeMap[type]}`);
+      if(activeBtn) activeBtn.classList.add('active');
 
-      renderClassroomCards(currentClassroomItems, currentFilterType);
+      renderClassroomData();
     }
 
-    function renderClassroomCards(items, filter) {
+    function renderClassroomData() {
       const container = document.getElementById('classroom-data-list');
       if (!container) return;
 
-      if (!Array.isArray(items)) {
-        container.innerHTML = `<div class="empty-state-text">データが正しい配列形式ではありません。</div>`;
+      let items = currentClassroomItems;
+      if (currentFilterType !== 'all') {
+        items = items.filter(i => i.type === currentFilterType);
+      }
+
+      if (!items || items.length === 0) {
+        container.innerHTML = '<div class="empty-state-text">該当する情報がありません。</div>';
         return;
       }
 
-      const filtered = items.filter(item => {
-        if (filter === 'all') return true;
-        return item.type === filter;
-      });
+      const typeBadgeMap = {
+        courseWork: { text: '📝 課題', style: 'background: rgba(239, 68, 68, 0.15); color: #f87171;' },
+        announcement: { text: '📢 お知らせ', style: 'background: rgba(59, 130, 246, 0.15); color: #60a5fa;' },
+        material: { text: '📚 資料', style: 'background: rgba(16, 185, 129, 0.15); color: #34d399;' }
+      };
 
-      if (filtered.length === 0) {
-        container.innerHTML = `<div class="empty-state-text">該当する投稿・課題はありません。</div>`;
-        return;
-      }
+      container.innerHTML = items.map(item => {
+        const badge = typeBadgeMap[item.type] || { text: '📌 その他', style: 'background: rgba(156, 163, 175, 0.15); color: #9ca3af;' };
+        const createdDate = item.creationTime ? new Date(item.creationTime).toLocaleDateString('ja-JP', { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' }) : '';
+        const dueDate = item.dueDate ? new Date(item.dueDate).toLocaleDateString('ja-JP', { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' }) : null;
 
-      container.innerHTML = filtered.map(item => {
-        let badgeClass = 'rgba(59, 130, 246, 0.1)';
-        let badgeColor = 'var(--color-accent-blue-light)';
-        let typeLabel = 'お知らせ';
-        let icon = '📢';
-
-        if (item.type === 'courseWork') {
-          badgeClass = 'rgba(234, 179, 8, 0.15)';
-          badgeColor = 'var(--color-accent-yellow)';
-          typeLabel = '課題';
-          icon = '📝';
-        } else if (item.type === 'material') {
-          badgeClass = 'rgba(192, 132, 252, 0.15)';
-          badgeColor = 'var(--color-accent-purple)';
-          typeLabel = '資料・添付';
-          icon = '📚';
-        }
-
-        let dueDateText = '';
-        if (item.dueDate) {
-          if (typeof item.dueDate === 'object' && item.dueDate.year) {
-            dueDateText = `⏳ 提出期限: ${item.dueDate.year}/${item.dueDate.month}/${item.dueDate.day}`;
-          } else {
-            dueDateText = `⏳ 提出期限: ${item.dueDate}`;
-          }
-        }
-
-        let formattedDate = '';
-        if (item.creationTime) {
-          const d = new Date(item.creationTime);
-          formattedDate = `${d.getFullYear()}/${d.getMonth() + 1}/${d.getDate()} ${String(d.getHours()).padStart(2, '0')}:${String(d.getMinutes()).padStart(2, '0')}`;
-        }
-
-        let attachmentsHtml = '';
-        if (Array.isArray(item.attachments) && item.attachments.length > 0) {
-          const links = item.attachments.map(att => {
-            let attIcon = '📎';
-            if (att.type === 'drive') attIcon = '📁';
-            if (att.type === 'youtube') attIcon = '▶️';
-            if (att.type === 'form') attIcon = '📋';
-
-            return `
-              <a href="${escapeHtml(att.url)}" target="_blank" style="display: inline-flex; align-items: center; gap: 0.375rem; font-size: 0.8125rem; color: var(--color-accent-blue-light); text-decoration: none; padding: 0.25rem 0.5rem; background: var(--color-bg); border: 1px solid var(--color-border); border-radius: 0.375rem;">
-                <span>${attIcon}</span>
-                <span class="truncate" style="max-width: 240px;">${escapeHtml(att.title || 'ファイルを開く')}</span>
-              </a>
-            `;
-          }).join('');
-
-          attachmentsHtml = `
-            <div style="display: flex; flex-wrap: wrap; gap: 0.5rem; margin-top: 0.75rem; padding-top: 0.5rem; border-top: 1px dashed var(--color-border);">
-              ${links}
+        const materialsHtml = (item.materials && item.materials.length > 0) ? `
+          <div style="margin-top: 0.75rem; border-top: 1px dashed var(--color-border); padding-top: 0.5rem;">
+            <span style="font-size: 0.75rem; color: var(--color-text-muted); font-weight: 600;">添付ファイル / リンク:</span>
+            <div style="display: flex; flex-wrap: wrap; gap: 0.5rem; margin-top: 0.25rem;">
+              ${item.materials.map(m => `
+                <a href="${escapeHtml(m.url)}" target="_blank" style="font-size: 0.8125rem; background: var(--color-bg); padding: 0.25rem 0.5rem; border-radius: 0.25rem; border: 1px solid var(--color-border); color: var(--color-text-primary); text-decoration: none; display: inline-flex; items-center: center; gap: 0.25rem;">
+                  📎 ${escapeHtml(m.title || 'ファイル')}
+                </a>
+              `).join('')}
             </div>
-          `;
-        }
+          </div>
+        ` : '';
 
         return `
-          <div class="notice-card" style="padding: 1.25rem;">
-            <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 0.5rem; flex-wrap: wrap; gap: 0.5rem;">
-              <div style="display: flex; align-items: center; gap: 0.5rem;">
-                <span style="font-size: 1.25rem;">${icon}</span>
-                <span style="font-size: 0.75rem; padding: 0.2rem 0.6rem; border-radius: 0.375rem; background: ${badgeClass}; color: ${badgeColor}; font-weight: 600;">
-                  ${typeLabel}
-                </span>
-                <span class="notice-card-date">${escapeHtml(formattedDate)}</span>
-                ${item.author ? `<span style="font-size: 0.75rem; color: var(--color-text-muted);">👤 ${escapeHtml(item.author)}</span>` : ''}
+          <div class="notice-card" style="position: relative;">
+            <div class="flex items-center justify-between" style="margin-bottom: 0.5rem;">
+              <span class="status-badge" style="${badge.style}">${badge.text}</span>
+              <span class="notice-card-date">${escapeHtml(item.courseName || '')} ・ ${createdDate}</span>
+            </div>
+            <h4 class="notice-card-title" style="margin-bottom: 0.5rem;">${escapeHtml(item.title || '無題')}</h4>
+            ${dueDate ? `<div style="font-size: 0.8125rem; color: #f87171; font-weight: 600; margin-bottom: 0.5rem;">⏰ 提出期限: ${dueDate}</div>` : ''}
+            <p class="notice-card-body">${linkify(item.description)}</p>
+            ${materialsHtml}
+            ${item.alternateLink ? `
+              <div style="margin-top: 0.75rem; text-align: right;">
+                <a href="${escapeHtml(item.alternateLink)}" target="_blank" class="card-link-button" style="font-size: 0.8125rem;">Classroomで開く &rarr;</a>
               </div>
-              ${dueDateText ? `<span style="font-size: 0.75rem; color: var(--color-accent-red); font-weight: 600;">${dueDateText}</span>` : ''}
-            </div>
-
-            <h3 class="notice-card-title" style="font-size: 1.05rem; margin-bottom: 0.5rem; color: var(--color-text-primary);">
-              ${escapeHtml(item.title || '無題')}
-            </h3>
-
-            <div class="notice-card-body" style="white-space: pre-wrap; line-height: 1.5;">
-              ${escapeHtml(item.description || '詳細なし')}
-            </div>
-
-            ${attachmentsHtml}
+            ` : ''}
           </div>
         `;
       }).join('');
     }
 
-    if (typeof socket !== 'undefined') {
-      socket.on('classroomUpdated', (updatedData) => {
-        globalData.classroom = updatedData;
-        currentClassroomItems = updatedData;
-        if (!document.getElementById('page-classroom').classList.contains('hidden')) {
-          renderClassroomCards(currentClassroomItems, currentFilterType);
-        }
-      });
-    }
-
-    window.addEventListener('DOMContentLoaded', () => {
+    document.addEventListener('DOMContentLoaded', () => {
       initDateStr();
-      loadDashboardData();
       initThemeToggle();
+      loadDashboardData();
     });
   </script>
 </body>
