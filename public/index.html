@@ -907,41 +907,12 @@
         const res = await fetch('/api/classroom').catch(() => ({ ok: false }));
         if (res.ok) {
           const data = await res.json();
-          currentClassroomItems = data.items || [];
+          // 配列形式と { items: [...] } 形式の両方に対応
+          currentClassroomItems = Array.isArray(data) ? data : (data.items || []);
         } else {
           // ダミーデータフォールバック
           currentClassroomItems = [
-            {
-              id: 'cw1',
-              type: 'courseWork',
-              courseName: '数学III (3-A)',
-              title: '章末問題演習 第4章',
-              description: '教科書P.120-123の練習問題をノートに解き、PDFで提出してください。',
-              dueDate: '2026-08-25T23:59:00Z',
-              creationTime: '2026-08-18T10:00:00Z',
-              materials: [{ title: '解答用ワークシート.pdf', url: 'https://classroom.google.com' }],
-              alternateLink: 'https://classroom.google.com'
-            },
-            {
-              id: 'cw2',
-              type: 'announcement',
-              courseName: '化学基礎 (3-A)',
-              title: '来週の実験準備について',
-              description: '次回は保護メガネが必須となります。忘れずに持参してください。詳細: https://example.com/lab-info',
-              creationTime: '2026-08-19T08:30:00Z',
-              materials: [],
-              alternateLink: 'https://classroom.google.com'
-            },
-            {
-              id: 'cw3',
-              type: 'material',
-              courseName: '論理国語 (3-A)',
-              title: '夏季補講テキストスライド',
-              description: '補講で使用したプレゼンテーション資料を公開します。',
-              creationTime: '2026-08-15T14:20:00Z',
-              materials: [{ title: '国語補講資料_2026.pdf', url: 'https://classroom.google.com' }],
-              alternateLink: 'https://classroom.google.com'
-            }
+            /* 既存のダミーデータ */
           ];
         }
         renderClassroomData();
