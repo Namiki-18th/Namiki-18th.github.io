@@ -11,37 +11,37 @@
   <script src="/socket.io/socket.io.js"></script>
   
   <style>
-    /* CSS崩れの補正・インライン調整 */
+    /* 全体レイアウト補正 */
+    * {
+      box-sizing: border-box;
+    }
+    
     .user-info-header {
       display: flex;
       align-items: center;
       gap: 0.75rem;
     }
+    
     .popup-user-avatar {
       width: 2.25rem;
       height: 2.25rem;
       border-radius: 9999px;
       object-fit: cover;
-      border: 1px solid var(--color-border);
+      border: 1px solid var(--color-border, #374151);
       flex-shrink: 0;
     }
+    
     .user-info-text {
       flex: 1;
       min-width: 0;
     }
+    
     .sidebar-avatar-image,
     .mobile-avatar-image {
       object-fit: cover;
       border-radius: 9999px;
     }
-    /* チャット入力欄等の崩れ防止 */
-    .chat-input-wrapper {
-      display: flex;
-      align-items: center;
-    }
-    .chat-text-input {
-      box-sizing: border-box;
-    }
+
     /* テキスト内自動リンクのスタイル */
     .auto-link {
       color: var(--color-accent-blue-light, #60a5fa);
@@ -50,6 +50,83 @@
     }
     .auto-link:hover {
       opacity: 0.8;
+    }
+
+    /* アイコン共通調整 */
+    .icon-inline {
+      width: 1.25rem;
+      height: 1.25rem;
+      display: inline-block;
+      vertical-align: middle;
+      flex-shrink: 0;
+    }
+
+    /* チャットUIの崩れ補正 */
+    .chat-page-wrapper {
+      height: calc(100vh - 4rem);
+      display: flex;
+      flex-direction: column;
+    }
+    .chat-card {
+      display: flex;
+      flex: 1;
+      min-height: 0;
+      overflow: hidden;
+    }
+    .chat-sidebar {
+      width: 260px;
+      flex-shrink: 0;
+      border-right: 1px solid var(--color-border, #374151);
+      display: flex;
+      flex-direction: column;
+    }
+    .chat-main {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      min-width: 0;
+    }
+    .chat-messages-area {
+      flex: 1;
+      overflow-y: auto;
+      padding: 1rem;
+      display: flex;
+      flex-direction: column;
+      gap: 1rem;
+    }
+    .chat-input-bar {
+      padding: 0.75rem 1rem;
+      border-top: 1px solid var(--color-border, #374151);
+    }
+    .chat-input-form {
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+      width: 100%;
+    }
+    .chat-input-wrapper {
+      flex: 1;
+      min-width: 0;
+    }
+    .chat-text-input {
+      width: 100%;
+      padding: 0.625rem 0.875rem;
+      background: var(--color-bg, #1f2937);
+      border: 1px solid var(--color-border, #374151);
+      border-radius: 0.5rem;
+      color: var(--color-text-primary, #f9fafb);
+      outline: none;
+    }
+
+    /* カード・テーブル崩れ補正 */
+    .notice-card, .app-card {
+      word-break: break-word;
+    }
+    .empty-state-text, .placeholder-text {
+      color: var(--color-text-muted, #9ca3af);
+      font-size: 0.875rem;
+      padding: 1rem 0;
+      text-align: center;
     }
   </style>
 
@@ -72,8 +149,7 @@
     <div class="sidebar-header" onclick="location.href='/index'">
       <div class="flex items-center gap-3">
         <div class="logo-badge">
-          <img src="/logo.webp" alt="Logo" class="logo-badge-img" onerror="this.style.display='none'; this.nextElementSibling.style.display='inline';" />
-          <span class="logo-badge-emoji" style="display:none;">🏫</span>
+          <img src="/logo.webp" alt="Logo" class="logo-badge-img" onerror="this.style.display='none';" />
         </div>
         <h1 class="font-bold text-sm sidebar-brand-name sidebar-brand-text">
           並木中等教育学校18回生<br>
@@ -116,34 +192,30 @@
       <div class="sidebar-nav-divider">
         <a href="/privacy" id="sidebar-nav-privacy" class="sidebar-nav-button" title="プライバシーポリシー">
           <svg class="icon-nav" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-              d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z"/>
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z"/>
           </svg>
           <span class="sidebar-nav-text">プライバシーポリシー</span>
         </a>
         <a href="/terms" id="sidebar-nav-terms" class="sidebar-nav-button" title="利用規約">
           <svg class="icon-nav" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-              d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/>
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/>
           </svg>
           <span class="sidebar-nav-text">利用規約</span>
         </a>
       </div>
 
-    <a href="/report" id="sidebar-nav-report" class="sidebar-nav-button" title="報告" style="margin-top: auto; margin-bottom: 1rem;">
-    <svg class="icon-nav" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-        d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"/>
-    </svg>
-    <span class="sidebar-nav-text">報告</span>
-    </a>
+      <a href="/report" id="sidebar-nav-report" class="sidebar-nav-button" title="報告" style="margin-top: auto; margin-bottom: 1rem;">
+        <svg class="icon-nav" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"/>
+        </svg>
+        <span class="sidebar-nav-text">報告</span>
+      </a>
     </nav>
 
     <div class="sidebar-footer">
-      
       <div id="account-popup-menu" class="account-popup-menu">
         <div class="user-info-header" style="padding: 0.5rem 0.75rem; border-bottom: 1px solid var(--color-border); margin-bottom: 0.5rem;">
-          <img id="popup-user-avatar" src="https://via.placeholder.com/40?text=U" alt="User Avatar" class="popup-user-avatar" onerror="this.src='https://via.placeholder.com/40?text=U'" />
+          <img id="popup-user-avatar" src="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='%239ca3af'%3E%3Cpath d='M12 12c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4zm0 2c-2.67 0-8 1.34-8 4v2h16v-2c0-2.66-5.33-4-8-4z'/%3E%3C/svg%3E" alt="User Avatar" class="popup-user-avatar" />
           <div class="user-info-text">
             <span id="popup-user-name" style="display: block; font-weight: 600; color: var(--color-text-primary); font-size: 0.875rem;" class="truncate">読み込み中...</span>
             <span id="popup-user-email" style="display: block; font-size: 0.75rem; color: var(--color-text-muted); margin-top: 0.125rem;" class="truncate">読み込み中...</span>
@@ -177,7 +249,7 @@
       </div>
 
       <div id="sidebar-user-toggle" class="sidebar-user-row" onclick="toggleAccountMenu(event)" title="ユーザーメニュー">
-        <img id="sidebar-user-avatar" src="https://via.placeholder.com/40?text=U" alt="Avatar" class="sidebar-avatar-image" onerror="this.src='https://via.placeholder.com/40?text=U'" />
+        <img id="sidebar-user-avatar" src="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='%239ca3af'%3E%3Cpath d='M12 12c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4zm0 2c-2.67 0-8 1.34-8 4v2h16v-2c0-2.66-5.33-4-8-4z'/%3E%3C/svg%3E" alt="Avatar" class="sidebar-avatar-image" />
         <div class="flex-1 min-w-0 sidebar-user-info">
           <p id="sidebar-user-id" class="text-xs sidebar-user-id-text truncate">読み込み中...</p>
           <p id="sidebar-user-name" class="text-sm truncate sidebar-user-name-text">読み込み中...</p>
@@ -190,8 +262,7 @@
     <header class="mobile-topbar">
       <div class="flex items-center gap-2" onclick="location.href='/index'" style="cursor: pointer;">
         <div class="logo-badge logo-badge--mobile">
-          <img src="/logo.webp" alt="Logo" class="logo-badge-img" onerror="this.style.display='none'; this.nextElementSibling.style.display='inline';" />
-          <span class="logo-badge-emoji" style="display:none;">🏫</span>
+          <img src="/logo.webp" alt="Logo" class="logo-badge-img" onerror="this.style.display='none';" />
         </div>
         <h1 class="font-bold text-sm mobile-brand-name">並木中等教育学校18回生</h1>
       </div>
@@ -199,7 +270,7 @@
         <button onclick="toggleTheme()" style="background:none; border:none; cursor:pointer; color:var(--color-text-secondary);" title="モード切替">
           <svg class="icon-sm" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 3v1m0 16v1m9-9h-1M4 12H3m15.364 6.364l-.707-.707M6.343 6.343l-.707-.707m12.728 0l-.707.707M6.343 17.657l-.707.707M16 12a4 4 0 11-8 0 4 4 0 018 0z"/></svg>
         </button>
-        <img id="mobile-user-avatar" src="https://via.placeholder.com/32?text=U" alt="Avatar" class="mobile-avatar-image" onerror="this.src='https://via.placeholder.com/32?text=U'" />
+        <img id="mobile-user-avatar" src="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='%239ca3af'%3E%3Cpath d='M12 12c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4zm0 2c-2.67 0-8 1.34-8 4v2h16v-2c0-2.66-5.33-4-8-4z'/%3E%3C/svg%3E" alt="Avatar" class="mobile-avatar-image" />
       </div>
     </header>
 
@@ -220,10 +291,11 @@
           <div class="welcome-banner-row">
             <div>
               <p id="dashboard-date-display" class="welcome-date-text">日付を読み込んでいます...</p>
-              <h2 id="dashboard-welcome-heading" class="welcome-heading-text">ようこそ、ダッシュボードへ</h2>
+              <h2 id="dashboard-welcome-heading" class="welcome-heading-text">ようこそ</h2>
             </div>
-            <button onclick="switchTab('schedule')" class="button-primary">
-              📅 今日の時間割を見る
+            <button onclick="switchTab('schedule')" class="button-primary flex items-center gap-2">
+              <svg class="icon-sm" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"/></svg>
+              <span>今日の時間割を見る</span>
             </button>
           </div>
         </div>
@@ -232,22 +304,23 @@
           <div class="lg:col-span-2 space-y-6">
             <div class="app-card">
               <div class="card-header-row">
-                <h3 class="card-title"><span class="card-icon--yellow">🔔</span> 最新のお知らせ</h3>
+                <h3 class="card-title flex items-center gap-2">
+                  <svg class="icon-sm text-yellow-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9"/></svg>
+                  最新のお知らせ
+                </h3>
                 <button onclick="switchTab('notices')" class="card-link-button">すべて見る &rarr;</button>
               </div>
               <div id="dashboard-notices-list" class="space-y-3">
-                <div class="skeleton-loader-row">
-                  <div class="flex-1 space-y-3">
-                    <div class="skeleton-bar skeleton-bar--lg"></div>
-                    <div class="skeleton-bar skeleton-bar--sm"></div>
-                  </div>
-                </div>
+                <div class="placeholder-text">読み込み中...</div>
               </div>
             </div>
 
             <div class="app-card">
               <div class="card-header-row">
-                <h3 class="card-title"><span class="card-icon--green">📅</span> 本日のハイライト</h3>
+                <h3 class="card-title flex items-center gap-2">
+                  <svg class="icon-sm text-green-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"/></svg>
+                  本日のハイライト
+                </h3>
                 <button onclick="switchTab('schedule')" class="card-link-button">詳細 &rarr;</button>
               </div>
               <div id="dashboard-schedule-highlights" class="grid grid-cols-1 sm:grid-cols-2 gap-3">
@@ -259,7 +332,10 @@
           <div class="space-y-6">
             <div class="app-card">
               <div class="card-header-row">
-                <h3 class="card-title"><span class="card-icon--purple">🔗</span> クイックリンク</h3>
+                <h3 class="card-title flex items-center gap-2">
+                  <svg class="icon-sm text-purple-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13.828 10.172a4 4 0 00-5.656 0l-4 4a4 4 0 105.656 5.656l1.102-1.101m-.758-4.899a4 4 0 005.656 0l4-4a4 4 0 00-5.656-5.656l-1.1 1.1"/></svg>
+                  クイックリンク
+                </h3>
               </div>
               <div id="dashboard-quicklinks-list" class="space-y-2">
                 <div class="placeholder-text">読み込み中...</div>
@@ -343,24 +419,11 @@
 
       <!-- Classroom ページ -->
       <div id="page-classroom" class="page-section hidden fade-in space-y-6">
-        <div class="welcome-banner">
-          <div class="welcome-banner-glow"></div>
-          <div class="welcome-banner-row">
-            <div>
-              <p class="welcome-date-text">Google Classroom 連携</p>
-              <h2 class="welcome-heading-text">クラス投稿・課題一覧</h2>
-            </div>
-            <button onclick="fetchAndRenderClassroom()" class="button-primary">
-              🔄 データを再読み込み
-            </button>
-          </div>
-        </div>
-
         <div class="schedule-day-tabs" style="margin-bottom: 1rem;">
           <button id="cr-filter-all" onclick="filterClassroomData('all')" class="schedule-day-button active">すべて</button>
-          <button id="cr-filter-work" onclick="filterClassroomData('courseWork')" class="schedule-day-button">📝 課題</button>
-          <button id="cr-filter-announce" onclick="filterClassroomData('announcement')" class="schedule-day-button">📢 お知らせ</button>
-          <button id="cr-filter-material" onclick="filterClassroomData('material')" class="schedule-day-button">📚 資料・添付</button>
+          <button id="cr-filter-work" onclick="filterClassroomData('courseWork')" class="schedule-day-button">課題</button>
+          <button id="cr-filter-announce" onclick="filterClassroomData('announcement')" class="schedule-day-button">お知らせ</button>
+          <button id="cr-filter-material" onclick="filterClassroomData('material')" class="schedule-day-button">資料・添付</button>
         </div>
 
         <div id="classroom-data-list" class="space-y-4">
@@ -386,9 +449,9 @@
               <label style="display: block; font-size: 0.875rem; color: var(--color-text-secondary); margin-bottom: 0.5rem; font-weight: 500;">詳細な内容</label>
               <textarea rows="6" style="width: 100%; padding: 0.75rem; background: var(--color-bg); border: 1px solid var(--color-border); border-radius: 0.5rem; color: var(--color-text-primary); outline: none; resize: vertical;" placeholder="いつ、どこで、どのような問題が発生したか詳しく教えてください..."></textarea>
             </div>
-            <button type="submit" class="button-primary">
+            <button type="submit" class="button-primary flex items-center gap-2">
               <svg class="icon-sm" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 19l9 2-9-18-9 18 9-2zm0 0v-8"/></svg>
-              送信する
+              <span>送信する</span>
             </button>
           </form>
         </div>
@@ -437,19 +500,19 @@
 
             <div id="chat-messages-list" class="chat-messages-area">
               <div class="chat-center-message">
-                <div class="chat-center-message-text">暗号化メッセージを読み込んでいます...</div>
+                <div class="chat-center-message-text">メッセージを読み込んでいます...</div>
               </div>
             </div>
 
             <div class="chat-input-bar">
               <form id="chat-message-form" onsubmit="handleChatSubmit(event)" class="chat-input-form">
-                <button type="button" onclick="handleAttachment()" class="chat-attach-button">
+                <button type="button" onclick="handleAttachment()" class="chat-attach-button" title="添付">
                   <svg class="icon-nav" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15.172 7l-6.586 6.586a2 2 0 102.828 2.828l6.414-6.586a4 4 0 00-5.656-5.656l-6.415 6.585a6 6 0 108.486 8.486L20.5 13"/></svg>
                 </button>
                 <div class="chat-input-wrapper">
                   <input type="text" id="chat-message-input" placeholder="メッセージを入力..." class="chat-text-input" autocomplete="off" />
                 </div>
-                <button type="submit" class="chat-send-button">
+                <button type="submit" class="chat-send-button" title="送信">
                   <svg class="icon-nav" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 19l9 2-9-18-9 18 9-2zm0 0v-8"/></svg>
                 </button>
               </form>
@@ -475,492 +538,321 @@
   <script>
     let globalData = {
       profile: null,
-      schedule: [],
-      notices: [],
-      links: [],
-      calendar: [],
-      classroom: [] 
+      schedule: null,
+      notices: null,
+      links: null,
+      calendar: null,
+      classroom: null 
     };
 
     let currentChannel = 'grade';
     const socket = io();
 
-    function escapeHtml(str) {
-      if (!str) return '';
-      return String(str)
+    const DEFAULT_AVATAR = "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='%239ca3af'%3E%3Cpath d='M12 12c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4zm0 2c-2.67 0-8 1.34-8 4v2h16v-2c0-2.66-5.33-4-8-4z'/%3E%3C/svg%3E";
+
+    // ユーティリティ: URL自動リンク変換
+    function autoLinkText(text) {
+      if (!text) return '';
+      const escapedText = text
         .replace(/&/g, "&amp;")
         .replace(/</g, "&lt;")
         .replace(/>/g, "&gt;")
         .replace(/"/g, "&quot;")
         .replace(/'/g, "&#039;");
-    }
 
-    // テキスト内のURLを自動的にリンク化する関数
-    function linkify(text) {
-      if (!text) return '';
-      const escaped = escapeHtml(text);
-      const urlPattern = /(https?:\/\/[^\s<]+)/g;
-      return escaped.replace(urlPattern, function(url) {
+      const urlRegex = /(https?:\/\/[^\s<]+)/g;
+      return escapedText.replace(urlRegex, function(url) {
         return `<a href="${url}" target="_blank" rel="noopener noreferrer" class="auto-link">${url}</a>`;
       });
     }
 
-    function toggleAccountMenu(event) {
-      if (event) event.stopPropagation();
-      const menu = document.getElementById('account-popup-menu');
-      if (menu) menu.classList.toggle('show');
-    }
+    document.addEventListener('DOMContentLoaded', async () => {
+      initDateDisplay();
+      await fetchAllData();
+      
+      const savedTab = localStorage.getItem('namiki-active-tab') || 'home';
+      switchTab(savedTab);
 
-    document.addEventListener('click', (event) => {
-      const menu = document.getElementById('account-popup-menu');
-      const toggleBtn = document.getElementById('sidebar-user-toggle');
-      if (menu && menu.classList.contains('show')) {
-        if (!menu.contains(event.target) && !toggleBtn.contains(event.target)) {
-          menu.classList.remove('show');
-        }
-      }
+      setupSocketListeners();
     });
 
-    function initThemeToggle() {
-      const toggleSwitch = document.getElementById('theme-toggle-switch');
-      if(toggleSwitch) {
-        if (document.documentElement.classList.contains('dark')) {
-          toggleSwitch.classList.add('on');
-        } else {
-          toggleSwitch.classList.remove('on');
-        }
-      }
+    function initDateDisplay() {
+      const now = new Date();
+      const days = ['日', '月', '火', '水', '木', '金', '土'];
+      const dateStr = `${now.getFullYear()}年${now.getMonth() + 1}月${now.getDate()}日 (${days[now.getDay()]})`;
+      const el = document.getElementById('dashboard-date-display');
+      if (el) el.textContent = dateStr;
     }
 
     function toggleTheme() {
-      const htmlEl = document.documentElement;
-      const toggleSwitch = document.getElementById('theme-toggle-switch');
-      
-      if (htmlEl.classList.contains('dark')) {
-        htmlEl.classList.remove('dark');
-        htmlEl.classList.add('light');
+      const html = document.documentElement;
+      if (html.classList.contains('dark')) {
+        html.classList.remove('dark');
+        html.classList.add('light');
         localStorage.setItem('namiki-theme', 'light');
-        if (toggleSwitch) toggleSwitch.classList.remove('on');
       } else {
-        htmlEl.classList.remove('light');
-        htmlEl.classList.add('dark');
+        html.classList.remove('light');
+        html.classList.add('dark');
         localStorage.setItem('namiki-theme', 'dark');
-        if (toggleSwitch) toggleSwitch.classList.add('on');
       }
     }
 
-    function handleAdminSettings() { window.location.href = '/admin'; }
-    function handlePersonalSettings() { alert('個人用設定は開発中です。'); }
-    function handleAttachment() { alert('ファイルの添付機能は現在準備中です。'); }
-
-    const ENCRYPTION_SECRET = "NamikiPortalSecureKey2026";
-
-    async function getCryptoKey() {
-      const enc = new TextEncoder();
-      const keyMaterial = await window.crypto.subtle.importKey(
-        "raw",
-        enc.encode(ENCRYPTION_SECRET.padEnd(32, '0').slice(0, 32)),
-        { name: "PBKDF2" },
-        false,
-        ["deriveKey"]
-      );
-      return window.crypto.subtle.deriveKey(
-        {
-          name: "PBKDF2",
-          salt: enc.encode("namiki-school-salt"),
-          iterations: 100000,
-          hash: "SHA-256"
-        },
-        keyMaterial,
-        { name: "AES-GCM", length: 256 },
-        false,
-        ["encrypt", "decrypt"]
-      );
+    function toggleAccountMenu(e) {
+      if (e) e.stopPropagation();
+      const popup = document.getElementById('account-popup-menu');
+      if (popup) popup.classList.toggle('active');
     }
 
-    async function encryptData(plainText) {
-      try {
-        const key = await getCryptoKey();
-        const iv = window.crypto.getRandomValues(new Uint8Array(12));
-        const encoded = new TextEncoder().encode(plainText);
-        const cipherText = await window.crypto.subtle.encrypt({ name: "AES-GCM", iv: iv }, key, encoded);
-        const combined = new Uint8Array(iv.length + new Uint8Array(cipherText).length);
-        combined.set(iv);
-        combined.set(new Uint8Array(cipherText), iv.length);
-        return btoa(String.fromCharCode(...combined));
-      } catch (e) {
-        console.error("暗号化エラー:", e); return plainText;
+    document.addEventListener('click', (e) => {
+      const popup = document.getElementById('account-popup-menu');
+      const toggle = document.getElementById('sidebar-user-toggle');
+      if (popup && popup.classList.contains('active')) {
+        if (!popup.contains(e.target) && !toggle.contains(e.target)) {
+          popup.classList.remove('active');
+        }
       }
-    }
-
-    async function decryptData(base64Str) {
-      try {
-        const key = await getCryptoKey();
-        const binaryStr = atob(base64Str);
-        const bytes = new Uint8Array(binaryStr.length);
-        for (let i = 0; i < binaryStr.length; i++) bytes[i] = binaryStr.charCodeAt(i);
-        const iv = bytes.slice(0, 12);
-        const cipherText = bytes.slice(12);
-        const decrypted = await window.crypto.subtle.decrypt({ name: "AES-GCM", iv: iv }, key, cipherText);
-        return new TextDecoder().decode(decrypted);
-      } catch (e) {
-        console.error("復号エラー:", e); return base64Str;
-      }
-    }
+    });
 
     function switchTab(tabId) {
-      document.querySelectorAll('.page-section').forEach(el => el.classList.add('hidden'));
-      document.querySelectorAll('.sidebar-nav-button').forEach(btn => btn.classList.remove('active'));
-      document.querySelectorAll('.mobile-nav-button').forEach(btn => btn.classList.remove('active'));
+      const pages = document.querySelectorAll('.page-section');
+      pages.forEach(page => page.classList.add('hidden'));
 
-      const targetContent = document.getElementById(`page-${tabId}`);
-      if (targetContent) targetContent.classList.remove('hidden');
+      const activePage = document.getElementById(`page-${tabId}`);
+      if (activePage) activePage.classList.remove('hidden');
 
-      const targetBtnPC = document.getElementById(`sidebar-nav-${tabId}`);
-      if (targetBtnPC) targetBtnPC.classList.add('active');
+      const sideButtons = document.querySelectorAll('.sidebar-nav-button');
+      sideButtons.forEach(btn => btn.classList.remove('active'));
+      const activeSideBtn = document.getElementById(`sidebar-nav-${tabId}`);
+      if (activeSideBtn) activeSideBtn.classList.add('active');
 
-      const targetBtnM = document.getElementById(`mobile-nav-${tabId}`);
-      if (targetBtnM) {
-        targetBtnM.classList.add('active');
-        targetBtnM.scrollIntoView({ behavior: 'smooth', block: 'nearest', inline: 'center' });
-      }
+      const mobileButtons = document.querySelectorAll('.mobile-nav-button');
+      mobileButtons.forEach(btn => btn.classList.remove('active'));
+      const activeMobileBtn = document.getElementById(`mobile-nav-${tabId}`);
+      if (activeMobileBtn) activeMobileBtn.classList.add('active');
+
+      localStorage.setItem('namiki-active-tab', tabId);
 
       if (tabId === 'chat') {
-        socket.emit('joinRoom', currentChannel);
-      }
-      
-      if (tabId === 'classroom') {
-        fetchAndRenderClassroom();
+        loadChatMessages();
       }
     }
 
-    function initDateStr() {
-      const now = new Date();
-      const options = { year: 'numeric', month: 'long', day: 'numeric', weekday: 'long' };
-      document.getElementById('dashboard-date-display').textContent = now.toLocaleDateString('ja-JP', options);
-    }
-
-    async function loadDashboardData() {
+    async function fetchAllData() {
       try {
-        const [profileRes, scheduleRes, noticesRes, linksRes] = await Promise.all([
-          fetch('/api/profile').catch(() => ({ ok: false })),
-          fetch('/api/schedule').catch(() => ({ ok: false })),
-          fetch('/api/notices').catch(() => ({ ok: false })),
-          fetch('/api/links').catch(() => ({ ok: false }))
+        const [profileRes, scheduleRes, noticesRes, linksRes, calRes, classRes] = await Promise.all([
+          fetch('/api/profile').catch(() => null),
+          fetch('/api/schedule').catch(() => null),
+          fetch('/api/notices').catch(() => null),
+          fetch('/api/links').catch(() => null),
+          fetch('/api/calendar').catch(() => null),
+          fetch('/api/classroom-data').catch(() => null)
         ]);
 
-        if (profileRes.status === 401) {
-          window.location.href = '/login';
-          return;
-        }
+        if (profileRes && profileRes.ok) globalData.profile = await profileRes.json();
+        if (scheduleRes && scheduleRes.ok) globalData.schedule = await scheduleRes.json();
+        if (noticesRes && noticesRes.ok) globalData.notices = await noticesRes.json();
+        if (linksRes && linksRes.ok) globalData.links = await linksRes.json();
+        if (calRes && calRes.ok) globalData.calendar = await calRes.json();
+        if (classRes && classRes.ok) globalData.classroom = await classRes.json();
 
-        if (profileRes.ok) globalData.profile = await profileRes.json();
-        else globalData.profile = { name: '並木 太郎', email: 'namiki.taro@example.com', id: '180001', role: 'student', userClass: '3-A', picture: '' };
+        renderProfile();
+        renderDashboard();
+        renderSchedule();
+        renderNotices();
+        renderLinks();
+        renderCalendar();
+        renderClassroomData();
 
-        if (scheduleRes.ok) globalData.schedule = await scheduleRes.json();
-        else globalData.schedule = [
-          { id: 1, day: '月', time: '9:00-9:50', subject: '数学特講', room: 'A-102', teacher: '田中先生' },
-          { id: 2, day: '月', time: '10:00-10:50', subject: '英語表現', room: 'A-103', teacher: 'Smith先生' }
-        ];
-
-        if (noticesRes.ok) globalData.notices = await noticesRes.json();
-        else globalData.notices = [
-          { id: 1, title: 'システムメンテナンスのお知らせ', date: '2026-08-20', content: '8月20日22:00より、サーバーの定期メンテナンスを実施します。詳細は https://example.com を確認してください。', priority: 'high' }
-        ];
-
-        if (linksRes.ok) globalData.links = await linksRes.json();
-        else globalData.links = [
-          { id: 1, name: 'Google Classroom', url: 'https://classroom.google.com', description: '課題の管理と連絡事項の確認' }
-        ];
-
-        globalData.calendar = [
-          { date: '2026-09-01', title: '第2学期始業式' },
-          { date: '2026-09-15', title: '並木祭（文化祭）' }
-        ];
-
-        renderAll();
       } catch (err) {
-        console.error('データ取得エラー:', err);
+        console.error("Data loading error:", err);
       }
     }
 
-    function renderAll() {
-      if (globalData.profile) {
-        const p = globalData.profile;
-        const studentIdText = (p.id && p.id !== 'Unknown') ? p.id : '学籍番号未設定';
-        document.getElementById('sidebar-user-id').textContent = `${studentIdText}`;
-        document.getElementById('sidebar-user-name').textContent = p.name || 'ユーザー';
-        
-        const popupName = document.getElementById('popup-user-name');
-        if (popupName) popupName.textContent = p.name || 'ユーザー';
-        const popupEmail = document.getElementById('popup-user-email');
-        if (popupEmail) popupEmail.textContent = p.email || 'メールアドレス未設定';
-
-        const userAvatar = (p.picture && p.picture !== 'admin.png') ? p.picture : `https://via.placeholder.com/40/3b82f6/ffffff?text=${encodeURIComponent(p.name ? p.name.charAt(0) : 'U')}`;
-        
-        const sidebarAvatar = document.getElementById('sidebar-user-avatar');
-        if (sidebarAvatar) sidebarAvatar.src = userAvatar;
-
-        const mobileAvatar = document.getElementById('mobile-user-avatar');
-        if (mobileAvatar) mobileAvatar.src = userAvatar;
-
-        const popupAvatar = document.getElementById('popup-user-avatar');
-        if (popupAvatar) popupAvatar.src = userAvatar;
-
-        document.getElementById('dashboard-welcome-heading').textContent = `ようこそ、${p.name || 'ユーザー'} さん`;
-        document.getElementById('dashboard-user-class').textContent = p.userClass || '未設定';
-      }
-
-      const homeNotices = document.getElementById('dashboard-notices-list');
-      homeNotices.innerHTML = globalData.notices.slice(0, 3).map(n => `
-        <div class="notice-item">
-          <div class="notice-item-icon">${n.priority === 'high' ? '🔴' : '🔵'}</div>
-          <div>
-            <div class="notice-item-title">${escapeHtml(n.title)}</div>
-            <div class="notice-item-date">${escapeHtml(n.date)}</div>
-          </div>
-        </div>
-      `).join('');
-
-      const homeLinks = document.getElementById('dashboard-quicklinks-list');
-      homeLinks.innerHTML = globalData.links.slice(0, 4).map(l => `
-        <a href="${escapeHtml(l.url)}" target="_blank" class="quicklink-item">
-          <span>${escapeHtml(l.name)}</span>
-          <svg class="quicklink-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14"/></svg>
-        </a>
-      `).join('');
-
-      document.getElementById('notices-list-full').innerHTML = globalData.notices.map(n => `
-        <div class="notice-card">
-          <div class="notice-card-header">
-            <span class="notice-card-date">${escapeHtml(n.date)}</span>
-            <h4 class="notice-card-title">${escapeHtml(n.title)}</h4>
-          </div>
-          <p class="notice-card-body">${linkify(n.content)}</p>
-        </div>
-      `).join('');
-
-      document.getElementById('links-grid-full').innerHTML = globalData.links.map(l => `
-        <a href="${escapeHtml(l.url)}" target="_blank" class="link-card">
-          <div class="link-card-name">${escapeHtml(l.name)}</div>
-          <div class="link-card-desc">${escapeHtml(l.description || '')}</div>
-        </a>
-      `).join('');
-
-      document.getElementById('calendar-events-list').innerHTML = globalData.calendar.map(c => `
-        <div class="calendar-item">
-          <span class="calendar-item-title">${escapeHtml(c.title)}</span>
-          <span class="calendar-item-date">${escapeHtml(c.date)}</span>
-        </div>
-      `).join('');
-
-      filterSchedule('月');
-      renderDMUsers();
-    }
-
-    function renderDMUsers() {
-      const dmList = [
-        { id: 'u1', name: '佐藤 先生', avatar: 'https://via.placeholder.com/32/444/fff?text=S' },
-        { id: 'u2', name: '田中 太郎', avatar: 'https://via.placeholder.com/32/555/fff?text=T' },
-      ];
-      const container = document.getElementById('chat-dm-list');
-      container.innerHTML = dmList.map(u => `
-        <button onclick="switchChannel('dm_${u.id}', '${u.name}')" id="dm-button-${u.id}" class="channel-button dm-user-button">
-          <img src="${u.avatar}" class="dm-user-avatar" alt="User Avatar" onerror="this.src='https://via.placeholder.com/32?text=U'" />
-          <span class="truncate">${u.name}</span>
-        </button>
-      `).join('');
-    }
-
-    function filterSchedule(day) {
-      document.querySelectorAll('.schedule-day-button').forEach(btn => btn.classList.remove('active'));
-      const activeBtn = document.getElementById(`schedule-day-${day}`);
-      if (activeBtn) activeBtn.classList.add('active');
-
-      const schedule = globalData.schedule.filter(s => s.day === day);
-      const container = document.getElementById('schedule-table-wrapper');
-      const homeContainer = document.getElementById('dashboard-schedule-highlights');
-
-      if (schedule.length === 0) {
-        const emptyMsg = `<div class="placeholder-text">データがありません</div>`;
-        container.innerHTML = emptyMsg;
-        homeContainer.innerHTML = emptyMsg;
+    function renderProfile() {
+      if (!globalData.profile) {
+        document.getElementById('sidebar-user-name').textContent = "未ログイン";
+        document.getElementById('sidebar-user-id').textContent = "-";
+        document.getElementById('popup-user-name').textContent = "未ログイン";
+        document.getElementById('popup-user-email').textContent = "-";
         return;
       }
 
-      homeContainer.innerHTML = schedule.slice(0, 4).map(item => `
-        <div class="schedule-highlight-item">
-          <div class="schedule-highlight-period">${item.id}限</div>
-          <div class="min-w-0">
-            <div class="schedule-highlight-subject truncate">${escapeHtml(item.subject)}</div>
-            <div class="schedule-highlight-room truncate">${escapeHtml(item.room)} (${escapeHtml(item.time)})</div>
-          </div>
-        </div>
-      `).join('');
+      const { name, email, avatar, classNum, studentId } = globalData.profile;
+      
+      const userAvatar = avatar || DEFAULT_AVATAR;
 
-      container.innerHTML = `
-        <table>
+      document.getElementById('sidebar-user-name').textContent = name || "ユーザー";
+      document.getElementById('sidebar-user-id').textContent = studentId || "18th";
+      document.getElementById('sidebar-user-avatar').src = userAvatar;
+
+      document.getElementById('mobile-user-avatar').src = userAvatar;
+
+      document.getElementById('popup-user-name').textContent = name || "ユーザー";
+      document.getElementById('popup-user-email').textContent = email || "";
+      document.getElementById('popup-user-avatar').src = userAvatar;
+
+      document.getElementById('dashboard-welcome-heading').textContent = `おかえりなさい、${name || 'ゲスト'}さん`;
+      document.getElementById('dashboard-user-class').textContent = classNum ? `${classNum}組` : "未所属";
+    }
+
+    function renderDashboard() {
+      // お知らせハイライト
+      const noticesContainer = document.getElementById('dashboard-notices-list');
+      if (globalData.notices && Array.isArray(globalData.notices) && globalData.notices.length > 0) {
+        const top3 = globalData.notices.slice(0, 3);
+        noticesContainer.innerHTML = top3.map(n => `
+          <div class="notice-card" onclick="switchTab('notices')">
+            <div class="flex items-center justify-between gap-2">
+              <span class="notice-tag">${n.category || '連絡'}</span>
+              <span class="notice-date">${n.date || ''}</span>
+            </div>
+            <h4 class="notice-title">${n.title || ''}</h4>
+          </div>
+        `).join('');
+      } else {
+        noticesContainer.innerHTML = `<p class="empty-state-text">データを取得できませんでした</p>`;
+      }
+
+      // 今日の時間割ハイライト
+      const scheduleContainer = document.getElementById('dashboard-schedule-highlights');
+      const days = ['日', '月', '火', '水', '木', '金', '土'];
+      const today = days[new Date().getDay()];
+      
+      if (globalData.schedule && globalData.schedule[today] && globalData.schedule[today].length > 0) {
+        scheduleContainer.innerHTML = globalData.schedule[today].map((item, idx) => `
+          <div class="highlight-item">
+            <span class="highlight-period">${idx + 1}限</span>
+            <span class="highlight-subject">${item.subject}</span>
+            <span class="highlight-room">${item.room || ''}</span>
+          </div>
+        `).join('');
+      } else {
+        scheduleContainer.innerHTML = `<p class="empty-state-text col-span-2">データを取得できませんでした</p>`;
+      }
+
+      // クイックリンク
+      const linksContainer = document.getElementById('dashboard-quicklinks-list');
+      if (globalData.links && Array.isArray(globalData.links) && globalData.links.length > 0) {
+        const top4 = globalData.links.slice(0, 4);
+        linksContainer.innerHTML = top4.map(l => `
+          <a href="${l.url}" target="_blank" class="quicklink-item">
+            <span class="quicklink-title">${l.title}</span>
+            <svg class="icon-xs" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14"/></svg>
+          </a>
+        `).join('');
+      } else {
+        linksContainer.innerHTML = `<p class="empty-state-text">データを取得できませんでした</p>`;
+      }
+    }
+
+    let currentScheduleDay = '月';
+    function filterSchedule(day) {
+      currentScheduleDay = day;
+      const buttons = document.querySelectorAll('.schedule-day-button');
+      buttons.forEach(b => b.classList.remove('active'));
+      const activeBtn = document.getElementById(`schedule-day-${day}`);
+      if (activeBtn) activeBtn.classList.add('active');
+      renderSchedule();
+    }
+
+    function renderSchedule() {
+      const wrapper = document.getElementById('schedule-table-wrapper');
+      if (!globalData.schedule || !globalData.schedule[currentScheduleDay] || globalData.schedule[currentScheduleDay].length === 0) {
+        wrapper.innerHTML = `<p class="empty-state-text">データを取得できませんでした</p>`;
+        return;
+      }
+
+      const list = globalData.schedule[currentScheduleDay];
+      let html = `
+        <table class="schedule-table">
           <thead>
             <tr>
               <th>時限</th>
-              <th>時間</th>
               <th>教科</th>
-              <th>担当教員</th>
               <th>教室</th>
+              <th>担当教員</th>
             </tr>
           </thead>
           <tbody>
-            ${schedule.map(item => `
-              <tr>
-                <td class="cell-period">${item.id}限</td>
-                <td class="cell-room">${escapeHtml(item.time)}</td>
-                <td class="cell-subject">${escapeHtml(item.subject)}</td>
-                <td class="cell-teacher">${escapeHtml(item.teacher)}</td>
-                <td class="cell-room">${escapeHtml(item.room)}</td>
-              </tr>
-            `).join('')}
-          </tbody>
-        </table>
       `;
+      list.forEach((item, idx) => {
+        html += `
+          <tr>
+            <td>${idx + 1}限</td>
+            <td class="font-bold">${item.subject || '-'}</td>
+            <td>${item.room || '-'}</td>
+            <td>${item.teacher || '-'}</td>
+          </tr>
+        `;
+      });
+      html += `</tbody></table>`;
+      wrapper.innerHTML = html;
     }
 
-    function switchChannel(channelId, name = '') {
-      currentChannel = channelId;
-      document.querySelectorAll('.channel-button').forEach(btn => btn.classList.remove('active'));
-
-      const titleEl = document.getElementById('chat-channel-title');
-      const descEl = document.getElementById('chat-channel-description');
-
-      if (channelId === 'grade') {
-        document.getElementById('channel-button-grade')?.classList.add('active');
-        titleEl.innerHTML = '<span class="channel-hash">#</span> 学年全体チャット';
-        descEl.textContent = '学年全員で交流・情報共有するチャンネルです。';
-      } else if (channelId === 'class') {
-        document.getElementById('channel-button-class')?.classList.add('active');
-        const cls = globalData.profile?.userClass || 'クラス未設定';
-        titleEl.innerHTML = `<span class="channel-hash">#</span> ${cls} チャット`;
-        descEl.textContent = `${cls}の生徒専用の連絡・相談チャンネルです。`;
-      } else if (channelId.startsWith('dm_')) {
-        const userId = channelId.replace('dm_', '');
-        document.getElementById(`dm-button-${userId}`)?.classList.add('active');
-        titleEl.innerHTML = `<span class="channel-hash">@</span> ${name}`;
-        descEl.textContent = `${name}さんとのプライベートメッセージです。`;
+    function renderNotices() {
+      const container = document.getElementById('notices-list-full');
+      if (!globalData.notices || !Array.isArray(globalData.notices) || globalData.notices.length === 0) {
+        container.innerHTML = `<p class="empty-state-text">データを取得できませんでした</p>`;
+        return;
       }
 
-      socket.emit('joinRoom', currentChannel);
-      document.getElementById('chat-messages-list').innerHTML = '<div class="chat-center-message"><div class="chat-center-message-text">チャンネルに接続しました。</div></div>';
-    }
-
-    async function handleChatSubmit(event) {
-      event.preventDefault();
-      const input = document.getElementById('chat-message-input');
-      const text = input.value.trim();
-      if (!text) return;
-
-      const encryptedText = await encryptData(text);
-      const messageData = {
-        channel: currentChannel,
-        sender: globalData.profile?.name || 'ユーザー',
-        avatar: globalData.profile?.picture || '',
-        encryptedText: encryptedText,
-        timestamp: new Date().toISOString()
-      };
-
-      socket.emit('chatMessage', messageData);
-      input.value = '';
-    }
-
-    socket.on('message', async (msg) => {
-      const container = document.getElementById('chat-messages-list');
-      const decryptedText = await decryptData(msg.encryptedText);
-      const isSelf = msg.sender === (globalData.profile?.name || 'あなた');
-      const timeStr = msg.timestamp ? new Date(msg.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : '12:00';
-      const avatarSrc = isSelf ? (globalData.profile?.picture || 'https://via.placeholder.com/32/333/fff?text=Me') : (msg.avatar || 'https://via.placeholder.com/32/555/fff?text=U');
-
-      const msgDiv = document.createElement('div');
-      msgDiv.className = `chat-message ${isSelf ? 'chat-message--self' : 'chat-message--other'}`;
-      msgDiv.innerHTML = `
-        <img src="${escapeHtml(avatarSrc)}" class="chat-message-avatar" alt="Avatar" onerror="this.src='https://via.placeholder.com/32?text=U'" />
-        <div class="chat-message-content ${isSelf ? 'chat-message-content--self' : 'chat-message-content--other'}">
-          ${!isSelf ? `<span class="chat-message-sender">${escapeHtml(msg.sender)}</span>` : ''}
-          <div class="chat-bubble ${isSelf ? 'chat-bubble--self' : 'chat-bubble--other'}">
-            ${linkify(decryptedText)}
+      container.innerHTML = globalData.notices.map(n => `
+        <div class="app-card notice-full-card">
+          <div class="flex items-center justify-between gap-2 mb-2">
+            <span class="notice-tag">${n.category || '連絡'}</span>
+            <span class="notice-date">${n.date || ''}</span>
           </div>
-          <span class="chat-message-time">${timeStr}</span>
+          <h3 class="notice-full-title">${n.title}</h3>
+          <p class="notice-full-content">${autoLinkText(n.content)}</p>
         </div>
-      `;
-      container.appendChild(msgDiv);
-      container.scrollTop = container.scrollHeight;
-    });
-
-    // Classroom 連携処理群
-    let currentClassroomItems = [];
-    let currentFilterType = 'all';
-
-    async function fetchAndRenderClassroom() {
-      const container = document.getElementById('classroom-data-list');
-      if (!container) return;
-
-      container.innerHTML = '<div class="placeholder-text">最新のClassroomデータを取得中...</div>';
-
-      try {
-        const res = await fetch('/api/classroom').catch(() => ({ ok: false }));
-        if (res.ok) {
-          const data = await res.json();
-          currentClassroomItems = data.items || [];
-        } else {
-          // ダミーデータフォールバック
-          currentClassroomItems = [
-            {
-              id: 'cw1',
-              type: 'courseWork',
-              courseName: '数学III (3-A)',
-              title: '章末問題演習 第4章',
-              description: '教科書P.120-123の練習問題をノートに解き、PDFで提出してください。',
-              dueDate: '2026-08-25T23:59:00Z',
-              creationTime: '2026-08-18T10:00:00Z',
-              materials: [{ title: '解答用ワークシート.pdf', url: 'https://classroom.google.com' }],
-              alternateLink: 'https://classroom.google.com'
-            },
-            {
-              id: 'cw2',
-              type: 'announcement',
-              courseName: '化学基礎 (3-A)',
-              title: '来週の実験準備について',
-              description: '次回は保護メガネが必須となります。忘れずに持参してください。詳細: https://example.com/lab-info',
-              creationTime: '2026-08-19T08:30:00Z',
-              materials: [],
-              alternateLink: 'https://classroom.google.com'
-            },
-            {
-              id: 'cw3',
-              type: 'material',
-              courseName: '論理国語 (3-A)',
-              title: '夏季補講テキストスライド',
-              description: '補講で使用したプレゼンテーション資料を公開します。',
-              creationTime: '2026-08-15T14:20:00Z',
-              materials: [{ title: '国語補講資料_2026.pdf', url: 'https://classroom.google.com' }],
-              alternateLink: 'https://classroom.google.com'
-            }
-          ];
-        }
-        renderClassroomData();
-      } catch (err) {
-        console.error('Classroom Fetch Error:', err);
-        container.innerHTML = '<div class="empty-state-text">Classroomデータの取得に失敗しました。</div>';
-      }
+      `).join('');
     }
+
+    function renderLinks() {
+      const container = document.getElementById('links-grid-full');
+      if (!globalData.links || !Array.isArray(globalData.links) || globalData.links.length === 0) {
+        container.innerHTML = `<p class="empty-state-text grid-full-width">データを取得できませんでした</p>`;
+        return;
+      }
+
+      container.innerHTML = globalData.links.map(l => `
+        <a href="${l.url}" target="_blank" class="app-card link-full-card">
+          <h3 class="link-full-title flex items-center justify-between">
+            <span>${l.title}</span>
+            <svg class="icon-xs" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14"/></svg>
+          </h3>
+          <p class="link-full-desc">${l.description || ''}</p>
+        </a>
+      `).join('');
+    }
+
+    function renderCalendar() {
+      const container = document.getElementById('calendar-events-list');
+      if (!globalData.calendar || !Array.isArray(globalData.calendar) || globalData.calendar.length === 0) {
+        container.innerHTML = `<p class="empty-state-text grid-full-width">データを取得できませんでした</p>`;
+        return;
+      }
+
+      container.innerHTML = globalData.calendar.map(c => `
+        <div class="app-card calendar-card">
+          <div class="calendar-date-badge">${c.date}</div>
+          <h3 class="calendar-event-title">${c.title}</h3>
+          <p class="calendar-event-desc">${c.description || ''}</p>
+        </div>
+      `).join('');
+    }
+
+    /* Classroom レンダリング機能 */
+    let classroomFilter = 'all';
 
     function filterClassroomData(type) {
-      currentFilterType = type;
+      classroomFilter = type;
       ['all', 'work', 'announce', 'material'].forEach(t => {
         const btn = document.getElementById(`cr-filter-${t}`);
-        if(btn) btn.classList.remove('active');
+        if (btn) btn.classList.remove('active');
       });
-      const activeMap = { 'all':'all', 'courseWork':'work', 'announcement':'announce', 'material':'material' };
-      const activeBtn = document.getElementById(`cr-filter-${activeMap[type]}`);
-      if(activeBtn) activeBtn.classList.add('active');
-
+      const activeBtn = document.getElementById(`cr-filter-${type === 'courseWork' ? 'work' : type === 'announcement' ? 'announce' : type}`);
+      if (activeBtn) activeBtn.classList.add('active');
       renderClassroomData();
     }
 
@@ -968,53 +860,57 @@
       const container = document.getElementById('classroom-data-list');
       if (!container) return;
 
-      let items = currentClassroomItems;
-      if (currentFilterType !== 'all') {
-        items = items.filter(i => i.type === currentFilterType);
-      }
-
-      if (!items || items.length === 0) {
-        container.innerHTML = '<div class="empty-state-text">該当する情報がありません。</div>';
+      if (!globalData.classroom || !Array.isArray(globalData.classroom) || globalData.classroom.length === 0) {
+        container.innerHTML = `<p class="empty-state-text">データを取得できませんでした</p>`;
         return;
       }
 
-      const typeBadgeMap = {
-        courseWork: { text: '📝 課題', style: 'background: rgba(239, 68, 68, 0.15); color: #f87171;' },
-        announcement: { text: '📢 お知らせ', style: 'background: rgba(59, 130, 246, 0.15); color: #60a5fa;' },
-        material: { text: '📚 資料', style: 'background: rgba(16, 185, 129, 0.15); color: #34d399;' }
-      };
+      let filtered = globalData.classroom;
+      if (classroomFilter !== 'all') {
+        filtered = globalData.classroom.filter(item => item.type === classroomFilter);
+      }
 
-      container.innerHTML = items.map(item => {
-        const badge = typeBadgeMap[item.type] || { text: '📌 その他', style: 'background: rgba(156, 163, 175, 0.15); color: #9ca3af;' };
-        const createdDate = item.creationTime ? new Date(item.creationTime).toLocaleDateString('ja-JP', { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' }) : '';
-        const dueDate = item.dueDate ? new Date(item.dueDate).toLocaleDateString('ja-JP', { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' }) : null;
+      if (filtered.length === 0) {
+        container.innerHTML = `<p class="empty-state-text">該当するデータはありません</p>`;
+        return;
+      }
 
-        const materialsHtml = (item.materials && item.materials.length > 0) ? `
-          <div style="margin-top: 0.75rem; border-top: 1px dashed var(--color-border); padding-top: 0.5rem;">
-            <span style="font-size: 0.75rem; color: var(--color-text-muted); font-weight: 600;">添付ファイル / リンク:</span>
-            <div style="display: flex; flex-wrap: wrap; gap: 0.5rem; margin-top: 0.25rem;">
-              ${item.materials.map(m => `
-                <a href="${escapeHtml(m.url)}" target="_blank" style="font-size: 0.8125rem; background: var(--color-bg); padding: 0.25rem 0.5rem; border-radius: 0.25rem; border: 1px solid var(--color-border); color: var(--color-text-primary); text-decoration: none; display: inline-flex; items-center: center; gap: 0.25rem;">
-                  📎 ${escapeHtml(m.title || 'ファイル')}
-                </a>
-              `).join('')}
-            </div>
-          </div>
-        ` : '';
+      container.innerHTML = filtered.map(item => {
+        let badgeClass = 'notice-tag';
+        let typeName = '情報';
+        
+        if (item.type === 'courseWork') {
+          badgeClass = 'notice-tag notice-tag--work';
+          typeName = '課題';
+        } else if (item.type === 'announcement') {
+          badgeClass = 'notice-tag notice-tag--announce';
+          typeName = 'お知らせ';
+        } else if (item.type === 'material') {
+          badgeClass = 'notice-tag notice-tag--material';
+          typeName = '資料';
+        }
+
+        const dateStr = item.creationTime ? new Date(item.creationTime).toLocaleDateString('ja-JP') : '';
+        const dueDateStr = item.dueDate ? `提出期限: ${item.dueDate}` : '';
 
         return `
-          <div class="notice-card" style="position: relative;">
-            <div class="flex items-center justify-between" style="margin-bottom: 0.5rem;">
-              <span class="status-badge" style="${badge.style}">${badge.text}</span>
-              <span class="notice-card-date">${escapeHtml(item.courseName || '')} ・ ${createdDate}</span>
+          <div class="app-card notice-full-card">
+            <div class="flex items-center justify-between gap-2 mb-2">
+              <div class="flex items-center gap-2">
+                <span class="${badgeClass}">${typeName}</span>
+                <span class="text-xs text-gray-400">${item.courseName || ''}</span>
+              </div>
+              <span class="notice-date">${dateStr}</span>
             </div>
-            <h4 class="notice-card-title" style="margin-bottom: 0.5rem;">${escapeHtml(item.title || '無題')}</h4>
-            ${dueDate ? `<div style="font-size: 0.8125rem; color: #f87171; font-weight: 600; margin-bottom: 0.5rem;">⏰ 提出期限: ${dueDate}</div>` : ''}
-            <p class="notice-card-body">${linkify(item.description)}</p>
-            ${materialsHtml}
+            <h3 class="notice-full-title">${item.title || item.text || '無題'}</h3>
+            ${item.description ? `<p class="notice-full-content">${autoLinkText(item.description)}</p>` : ''}
+            ${dueDateStr ? `<div class="mt-2 text-xs text-red-400 font-bold">${dueDateStr}</div>` : ''}
             ${item.alternateLink ? `
-              <div style="margin-top: 0.75rem; text-align: right;">
-                <a href="${escapeHtml(item.alternateLink)}" target="_blank" class="card-link-button" style="font-size: 0.8125rem;">Classroomで開く &rarr;</a>
+              <div class="mt-3">
+                <a href="${item.alternateLink}" target="_blank" class="card-link-button flex items-center gap-1">
+                  <span>Google Classroom で開く</span>
+                  <svg class="icon-xs" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14"/></svg>
+                </a>
               </div>
             ` : ''}
           </div>
@@ -1022,11 +918,116 @@
       }).join('');
     }
 
-    document.addEventListener('DOMContentLoaded', () => {
-      initDateStr();
-      initThemeToggle();
-      loadDashboardData();
-    });
+    /* チャット機能 */
+    function switchChannel(channel) {
+      currentChannel = channel;
+      document.getElementById('channel-button-grade').classList.toggle('active', channel === 'grade');
+      document.getElementById('channel-button-class').classList.toggle('active', channel === 'class');
+      
+      const titleEl = document.getElementById('chat-channel-title');
+      const descEl = document.getElementById('chat-channel-description');
+
+      if (channel === 'grade') {
+        titleEl.textContent = '# 学年全体チャット';
+        descEl.textContent = '学年全員で交流・情報共有するチャンネルです。';
+      } else {
+        titleEl.textContent = '# クラスチャット';
+        descEl.textContent = '所属クラス専用の会話スペースです。';
+      }
+
+      loadChatMessages();
+    }
+
+    async function loadChatMessages() {
+      const container = document.getElementById('chat-messages-list');
+      try {
+        const res = await fetch(`/api/chat/messages?channel=${currentChannel}`);
+        if (!res.ok) throw new Error();
+        const messages = await res.json();
+        
+        if (!Array.isArray(messages) || messages.length === 0) {
+          container.innerHTML = `
+            <div class="chat-center-message">
+              <div class="chat-center-message-text">メッセージはまだありません。会話を始めましょう！</div>
+            </div>
+          `;
+          return;
+        }
+
+        renderMessagesList(messages);
+      } catch (e) {
+        container.innerHTML = `
+          <div class="chat-center-message">
+            <div class="chat-center-message-text">データを取得できませんでした</div>
+          </div>
+        `;
+      }
+    }
+
+    function renderMessagesList(messages) {
+      const container = document.getElementById('chat-messages-list');
+      const myId = globalData.profile ? globalData.profile.id : null;
+
+      container.innerHTML = messages.map(m => {
+        const isMine = m.senderId === myId;
+        const senderAvatar = m.senderAvatar || DEFAULT_AVATAR;
+
+        return `
+          <div class="chat-message-row ${isMine ? 'mine' : ''}">
+            <img src="${senderAvatar}" class="chat-message-avatar" alt="avatar" />
+            <div class="chat-message-content">
+              <div class="chat-message-meta">
+                <span class="chat-sender-name">${m.senderName || '匿名'}</span>
+                <span class="chat-timestamp">${m.timestamp || ''}</span>
+              </div>
+              <div class="chat-bubble">
+                ${autoLinkText(m.text)}
+              </div>
+            </div>
+          </div>
+        `;
+      }).join('');
+
+      container.scrollTop = container.scrollHeight;
+    }
+
+    function handleChatSubmit(e) {
+      e.preventDefault();
+      const input = document.getElementById('chat-message-input');
+      const text = input.value.trim();
+      if (!text) return;
+
+      const payload = {
+        channel: currentChannel,
+        text: text,
+        senderName: globalData.profile ? globalData.profile.name : 'ゲスト',
+        senderAvatar: globalData.profile ? globalData.profile.avatar : DEFAULT_AVATAR,
+        timestamp: new Date().toLocaleTimeString('ja-JP', { hour: '2-digit', minute: '2-digit' })
+      };
+
+      socket.emit('chat-message', payload);
+      input.value = '';
+    }
+
+    function setupSocketListeners() {
+      socket.on('new-message', (msg) => {
+        if (msg.channel === currentChannel) {
+          loadChatMessages();
+        }
+      });
+    }
+
+    function handleAttachment() {
+      alert("ファイル添付機能は準備中です。");
+    }
+
+    function handleAdminSettings() {
+      alert("管理者権限が必要です。");
+    }
+
+    function handlePersonalSettings() {
+      alert("個人設定画面へ移動します。");
+    }
   </script>
 </body>
 </html>
