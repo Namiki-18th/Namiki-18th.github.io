@@ -23,6 +23,28 @@
   </script>
 
   <style>
+    .policy-section {
+      margin-top: 1.5rem;
+    }
+    .policy-section h3 {
+      color: var(--color-text-primary);
+      font-weight: 600;
+      font-size: 1rem;
+      margin-bottom: 0.5rem;
+      display: flex;
+      align-items: center; /* 修正: CSSプロパティ名を修復 */
+    }
+    .policy-section p, .policy-section ul {
+      color: var(--color-text-body);
+      font-size: 0.875rem;
+      line-height: 1.7;
+    }
+    .policy-section ul {
+      list-style-type: disc;
+      padding-left: 1.25rem;
+      margin-top: 0.25rem;
+      margin-bottom: 0.5rem;
+    }
   </style>
 </head>
 <body>
@@ -42,7 +64,8 @@
     </div>
 
     <nav class="sidebar-nav">
-      <button onclick="switchTab('home')" id="sidebar-nav-home" class="sidebar-nav-button active" title="ホーム">
+      <!-- 修正: 重複していた active クラスを削除 -->
+      <button onclick="switchTab('home')" id="sidebar-nav-home" class="sidebar-nav-button" title="ホーム">
         <svg class="icon-nav" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6"/></svg>
         <span class="sidebar-nav-text">ホーム</span>
       </button>
@@ -55,7 +78,7 @@
         <span class="sidebar-nav-text">お知らせ</span>
       </button>
       <button onclick="switchTab('links')" id="sidebar-nav-links" class="sidebar-nav-button" title="リンク">
-        <svg class="icon-nav" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13.828 10.172a4 4 0 00-5.656 0l-4 4a4 4 0 105.656 5.656l1.102-1.101m-.758-4.899a4 4 0 005.656 0l4-4a4 4 0 005.656-5.656l-1.1 1.1"/></svg>
+        <svg class="icon-nav" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13.828 10.172a4 4 0 00-5.656 0l-4 4a4 4 0 105.656 5.656l1.102-1.101m-.758-4.899a4 4 0 005.656 0l4-4a4 4 0 00-5.656-5.656l-1.1 1.1"/></svg>
         <span class="sidebar-nav-text">リンク</span>
       </button>
       <button onclick="switchTab('calendar')" id="sidebar-nav-calendar" class="sidebar-nav-button" title="カレンダー">
@@ -63,7 +86,7 @@
         <span class="sidebar-nav-text">カレンダー</span>
       </button>
       <button onclick="switchTab('classroom')" id="sidebar-nav-classroom" class="sidebar-nav-button" title="Classroom">
-        <svg class="icon-nav" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 00-2-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10"/></svg>
+        <svg class="icon-nav" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10"/></svg>
         <span class="sidebar-nav-text">Classroom</span>
       </button>
 
@@ -73,7 +96,7 @@
       </button>
 
       <div class="sidebar-nav-divider">
-        <a href="/privacy" id="sidebar-nav-privacy" class="sidebar-nav-button" title="プライバシーポリシー">
+        <a href="/privacy" id="sidebar-nav-privacy" class="sidebar-nav-button active" title="プライバシーポリシー">
           <svg class="icon-nav" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
               d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z"/>
@@ -81,10 +104,13 @@
           <span class="sidebar-nav-text">プライバシーポリシー</span>
         </a>
 
-        <button onclick="switchTab('terms')" id="sidebar-nav-terms" class="sidebar-nav-button" title="利用規約">
-          <svg class="icon-nav" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/></svg>
+        <a href="/terms" id="sidebar-nav-terms" class="sidebar-nav-button" title="利用規約">
+          <svg class="icon-nav" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+              d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/>
+          </svg>
           <span class="sidebar-nav-text">利用規約</span>
-        </button>
+        </a>
       </div>
 
       <button onclick="switchTab('report')" id="sidebar-nav-report" class="sidebar-nav-button" title="報告" style="margin-top: auto; margin-bottom: 1rem;">
@@ -94,7 +120,6 @@
     </nav>
 
     <div class="sidebar-footer">
-      
       <div id="account-popup-menu" class="account-popup-menu">
         <div class="user-info-header" style="padding: 0.5rem 0.75rem; border-bottom: 1px solid var(--color-border); margin-bottom: 0.5rem;">
           <span id="popup-user-name" style="display: block; font-weight: 600; color: var(--color-text-primary); font-size: 0.875rem;">読み込み中...</span>
@@ -113,7 +138,7 @@
         <button class="account-popup-item toggle-row" onclick="toggleTheme()">
           <div class="flex items-center gap-2">
             <svg class="icon-sm" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 3v1m0 16v1m9-9h-1M4 12H3m15.364 6.364l-.707-.707M6.343 6.343l-.707-.707m12.728 0l-.707.707M6.343 17.657l-.707.707M16 12a4 4 0 11-8 0 4 4 0 018 0z"/></svg>
-            ダークモード
+            表示切替
           </div>
           <div class="toggle-switch" id="theme-toggle-switch">
             <div class="toggle-circle"></div>
@@ -130,7 +155,7 @@
       <div id="sidebar-user-toggle" class="sidebar-user-row" onclick="toggleAccountMenu(event)" title="ユーザーメニュー">
         <img id="sidebar-user-avatar" src="https://placehold.co/40x40/333/fff?text=U" alt="Avatar" class="sidebar-avatar-image" onerror="this.src='https://placehold.co/40x40/333/fff?text=U'" />
         <div class="flex-1 min-w-0 sidebar-user-info">
-          <p id="sidebar-user-id" class="text-xs sidebar-user-id-text truncate">学籍番号: 読み込み中...</p>
+          <p id="sidebar-user-id" class="text-xs sidebar-user-id-text truncate">読み込み中...</p>
           <p id="sidebar-user-name" class="text-sm truncate sidebar-user-name-text">読み込み中...</p>
         </div>
       </div>
@@ -155,7 +180,8 @@
     </header>
 
     <div class="mobile-tab-bar">
-      <button onclick="switchTab('home')" id="mobile-nav-home" class="mobile-nav-button active">ホーム</button>
+      <!-- 修正: 重複していた active クラスを削除 -->
+      <button onclick="switchTab('home')" id="mobile-nav-home" class="mobile-nav-button">ホーム</button>
       <button onclick="switchTab('schedule')" id="mobile-nav-schedule" class="mobile-nav-button">時間割</button>
       <button onclick="switchTab('notices')" id="mobile-nav-notices" class="mobile-nav-button">お知らせ</button>
       <button onclick="switchTab('links')" id="mobile-nav-links" class="mobile-nav-button">リンク</button>
@@ -167,24 +193,70 @@
     <main class="content-area">
       <div class="app-card content-card">
         <h2 class="content-card-title">プライバシーポリシー</h2>
-        <p class="content-card-subtitle">本ポータルサイトにおける個人情報の取扱いについて記載しています。</p>
-        <div class="space-y-4" style="font-size: 0.875rem; color: var(--color-text-body); line-height: 1.6;">
-          <p>当ポータルサイト（以下、「当サイト」）では、利用者（生徒・教職員）のプライバシーを尊重し、個人情報の保護に努めています。</p>
-          <h3 style="color: var(--color-text-primary); font-weight: 600; margin-top: 1rem;">1. ユーザー名簿データの保護について</h3>
-          <p>当サイトに登録されているユーザーの名簿データは、<strong>AES-256-GCM</strong>という堅牢な暗号化方式によって保護されており、外部からの不正な解読は不可能な仕組みとなっています。</p>
-          <h3 style="color: var(--color-text-primary); font-weight: 600; margin-top: 1rem;">2. 外部認証（OAuth2）による取得情報</h3>
-          <p>当サイトでは、GoogleおよびClaudeのOAuth2認証を利用してログインを行います。この際、ユーザーの<strong>「名前」「メールアドレス」「アイコン画像」</strong>を取得しますが、<strong>パスワードは一切取得・保存しません</strong>。</p>
-          <h3 style="color: var(--color-text-primary); font-weight: 600; margin-top: 1rem;">3. チャットデータの取り扱いと復元について</h3>
-          <p>送信されたチャットメッセージは暗号化されて保存されます。原則として安全に管理されますが、管理者が復号鍵を使用してメッセージを復元・閲覧する場合があります。その際は、対象のユーザーに対して事前に（または事後速やかに）通知を行います。</p>
-          <h3 style="color: var(--color-text-primary); font-weight: 600; margin-top: 1rem;">4. 安全管理措置</h3>
-          <p>通信および保存データ全般において、適切な暗号化技術を用いて不正アクセスや情報漏洩の防止に努めます。</p>
+        <p class="content-card-subtitle">本ポータルサイトにおける個人情報の取扱いおよびセキュリティ方針について規定しています。</p>
+        
+        <div style="font-size: 0.875rem; color: var(--color-text-body); line-height: 1.7; margin-top: 1rem;">
+          <p>「並木中等教育学校18回生ポータルサイト」（以下、「当サイト」といいます。）は、利用者のプライバシーを尊重し、個人情報の保護と適切な管理に努めます。</p>
+
+          <div class="policy-section">
+            <h3>1. 収集する情報</h3>
+            <p>当サイトでは、Google OAuth2 等の認証連携を利用してログインを行う際、以下の情報を自動的に取得します。</p>
+            <ul>
+              <li>氏名（表示名）</li>
+              <li>メールアドレス</li>
+              <li>プロフィール画像（アイコン）</li>
+              <li>学籍番号・クラス情報（アカウント照合に使用）</li>
+            </ul>
+            <p>※当サイトが利用者のGoogleアカウント等のパスワードを取得・保存することは一切ありません。</p>
+          </div>
+
+          <div class="policy-section">
+            <h3>2. 個人情報の利用目的</h3>
+            <p>取得した個人情報は、以下の目的でのみ利用します。</p>
+            <ul>
+              <li>利用者認証および本人確認</li>
+              <li>当サイトにおけるクラス・学年機能（お知らせ、時間割、チャット等）の提供</li>
+              <li>不正アクセスや違反行為の防止および安全な運用管理</li>
+            </ul>
+          </div>
+
+          <div class="policy-section">
+            <h3>3. データの安全管理と暗号化</h3>
+            <p>当サイトは、利用者の個人情報およびメッセージデータを保護するため、以下の安全対策を導入しています。</p>
+            <ul>
+              <li><strong>データ暗号化：</strong> 登録されている名簿データおよびチャットメッセージは、暗号化規格（AES-256-GCM等）を用いて厳重に保護されています。</li>
+              <li><strong>通信の保護：</strong> 全ての通信は暗号化（HTTPS/TLS）を通じて行われます。</li>
+            </ul>
+          </div>
+
+          <div class="policy-section">
+            <h3>4. チャットデータの管理とアクセス制限</h3>
+            <p>チャット機能で送信されたデータは暗号化して保存されます。原則として第三者に公開されることはありませんが、システムセキュリティの保持や不正行為調査等の正当な理由がある場合、管理者が適切かつ必要最小限の範囲で確認を行うことがあります。</p>
+          </div>
+
+          <div class="policy-section">
+            <h3>5. 第三者への提供の禁止</h3>
+            <p>当サイトは、法令に基づく場合を除き、利用者の同意を得ることなく個人情報を第三者に提供・開示することはありません。</p>
+          </div>
+
+          <div class="policy-section">
+            <h3>6. プライバシーポリシーの改定</h3>
+            <p>当サイトは、法令の改正や運用の変更に応じて、本プライバシーポリシーを適宜見直し、改定することがあります。改定後の内容は、当サイト上に掲載した時点より効力を生じるものとします。</p>
+          </div>
+
+          <div class="policy-section" style="margin-top: 2rem; border-top: 1px solid var(--color-border); padding-top: 1rem;">
+            <p><strong>【お問い合わせ窓口】</strong></p>
+            <p>本ポリシーに関するご質問やご報告は、サイドバーの「報告」フォームまたはサイト管理者までご連絡ください。</p>
+            <p style="font-size: 0.75rem; color: var(--color-text-muted); margin-top: 0.5rem;">制定日: 2026年4月1日<br>最終改定日: 2026年8月19日</p>
+          </div>
         </div>
       </div>
+
       <footer class="site-footer">
         <p>&copy; 2026 Taichi Kimura. All rights reserved.</p>
         <div class="footer-links">
-          <span href="privacy.html" class="footer-link">プライバシーポリシー</span>
-          <span href="terms.html" class="footer-link">利用規約</span>
+          <a href="/privacy" class="footer-link">プライバシーポリシー</a>
+          <a href="/terms" class="footer-link">利用規約</a>
           <a href="https://github.com/Namiki-18th/Namiki-18th.github.io" target="_blank" class="footer-link">
             <svg class="icon-sm" fill="currentColor" viewBox="0 0 24 24"><path fill-rule="evenodd" clip-rule="evenodd" d="M12 2C6.477 2 2 6.484 2 12.017c0 4.425 2.865 8.18 6.839 9.504.5.092.682-.217.682-.483 0-.237-.008-.868-.013-1.703-2.782.605-3.369-1.343-3.369-1.343-.454-1.158-1.11-1.466-1.11-1.466-.908-.62.069-.608.069-.608 1.003.07 1.53 1.032 1.53 1.032.892 1.53 2.341 1.088 2.91.832.092-.647.35-1.088.636-1.338-2.22-.253-4.555-1.113-4.555-4.951 0-1.093.39-1.988 1.029-2.688-.103-.253-.446-1.272.098-2.65 0 0 .84-.27 2.75 1.026A9.564 9.564 0 0112 6.844c.85.004 1.705.115 2.504.337 1.909-1.296 2.747-1.027 2.747-1.027.546 1.379.202 2.398.1 2.651.64.7 1.028 1.595 1.028 2.688 0 3.848-2.339 4.695-4.566 4.943.359.309.678.92.678 1.855 0 1.338-.012 2.419-.012 2.747 0 .268.18.58.688.482A10.019 10.019 0 0022 12.017C22 6.84 17.522 2 12 2z"/></svg>
             GitHub
@@ -208,7 +280,6 @@
         if (res.ok) {
           p = await res.json();
         } else {
-          // フォールバックデータ
           p = { name: '並木 太郎', email: 'namiki.taro@example.com', id: '180001', picture: '' };
         }
 
@@ -283,16 +354,21 @@
     }
 
     function handleAdminSettings() { window.location.href = '/admin'; }
-    function handlePersonalSettings() { alert('個人用設定ダイアログを開きます。'); }
+    function handlePersonalSettings() { alert('個人用設定は開発中です。'); }
 
-    // タブ切り替え処理
+    // タブ切り替え処理（修正: ページ内に対象セクションがない場合、/index へリダイレクト）
     function switchTab(tabId) {
+      const targetContent = document.getElementById(`page-${tabId}`);
+      if (!targetContent) {
+        window.location.href = `/index?tab=${tabId}`;
+        return;
+      }
+
       document.querySelectorAll('.page-section').forEach(el => el.classList.add('hidden'));
       document.querySelectorAll('.sidebar-nav-button').forEach(btn => btn.classList.remove('active'));
       document.querySelectorAll('.mobile-nav-button').forEach(btn => btn.classList.remove('active'));
 
-      const targetContent = document.getElementById(`page-${tabId}`);
-      if (targetContent) targetContent.classList.remove('hidden');
+      targetContent.classList.remove('hidden');
 
       const targetBtnPC = document.getElementById(`sidebar-nav-${tabId}`);
       if (targetBtnPC) targetBtnPC.classList.add('active');

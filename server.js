@@ -340,6 +340,8 @@ app.get('/logout', (req, res, next) => {
 });
 
 app.get('/index', ensurePageAuthenticated, (req, res) => res.sendFile(path.join(__dirname, 'public', 'index.html')));
+app.get('/terms', ensurePageAuthenticated, (req, res) => res.sendFile(path.join(__dirname, 'public', 'terms.html')));
+app.get('/privacy', ensurePageAuthenticated, (req, res) => res.sendFile(path.join(__dirname, 'public', 'privacy.html')));
 app.get('/dashboard', ensurePageAuthenticated, (req, res) => res.redirect('/index'));
 app.get('/admin', ensureAdminAuthenticated, (req, res) => res.sendFile(path.join(__dirname, 'public', 'admin.html')));
 
