@@ -342,22 +342,40 @@
       </div>
 
       <!-- Classroom ページ -->
+      <!-- Classroom ページ -->
       <div id="page-classroom" class="page-section hidden fade-in space-y-6">
-        <div class="schedule-day-tabs" style="margin-bottom: 1rem;">
-          <button id="cr-filter-work" onclick="filterClassroomData('courseWork')" class="schedule-day-button active flex items-center gap-1">
-            <svg class="icon-sm" style="width: 1.1em; height: 1.1em; display: inline-block;" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/></svg>
-            課題
-          </button>
-          <button id="cr-filter-announce" onclick="filterClassroomData('announcement')" class="schedule-day-button flex items-center gap-1">
-            <svg class="icon-sm" style="width: 1.1em; height: 1.1em; display: inline-block;" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5.882V19.24a1.76 1.76 0 01-3.417.592l-2.147-6.15M18 13a3 3 0 100-6M5.436 13.683A2.001 2.001 0 013 12c0-.89.584-1.65 1.4-1.916l4.288-1.373a1.998 1.998 0 011.085-.027m0 0a2.001 2.001 0 011.66 1.258m-.001.001A2.001 2.001 0 0111 11c.21 0 .412.032.602.093"/></svg>
-            お知らせ
-          </button>
-          <button id="cr-filter-material" onclick="filterClassroomData('material')" class="schedule-day-button flex items-center gap-1">
-            <svg class="icon-sm" style="width: 1.1em; height: 1.1em; display: inline-block;" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253"/></svg>
-            資料・添付
-          </button>
+        
+        <!-- 固定表示ヘッダー（スクロール時も上に固定） -->
+        <div style="position: sticky; top: 0; z-index: 20; background: var(--color-bg, #111827); padding: 0.75rem 0; border-bottom: 1px solid var(--color-border); margin-bottom: 1rem;">
+          <!-- タブ切替（等幅配置） -->
+          <div class="schedule-day-tabs" style="display: flex; gap: 0.5rem; margin-bottom: 0.75rem; width: 100%;">
+            <button id="cr-filter-work" onclick="setFilterType('courseWork')" class="schedule-day-button active" style="flex: 1; justify-content: center; display: inline-flex; align-items: center; gap: 0.375rem; font-weight: 600;">
+              <svg style="width: 1.15rem; height: 1.15rem; flex-shrink: 0;" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-3 7h3m-3 4h3m-6-4h.01M9 16h.01"/></svg>
+              課題
+            </button>
+            <button id="cr-filter-announce" onclick="setFilterType('announcement')" class="schedule-day-button" style="flex: 1; justify-content: center; display: inline-flex; align-items: center; gap: 0.375rem; font-weight: 600;">
+              <svg style="width: 1.15rem; height: 1.15rem; flex-shrink: 0;" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15.536 8.464a5 5 0 010 7.072m2.828-9.9a9 9 0 010 12.728M5.586 15H4a1 1 0 01-1-1v-4a1 1 0 011-1h1.586l4.707-4.707C10.923 3.663 12 4.109 12 5v14c0 .891-1.077 1.337-1.707.707L5.586 15z"/></svg>
+              お知らせ
+            </button>
+            <button id="cr-filter-material" onclick="setFilterType('material')" class="schedule-day-button" style="flex: 1; justify-content: center; display: inline-flex; align-items: center; gap: 0.375rem; font-weight: 600;">
+              <svg style="width: 1.15rem; height: 1.15rem; flex-shrink: 0;" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253"/></svg>
+              資料・添付
+            </button>
+          </div>
+
+          <!-- 検索・日付指定・ソート フィルターバー -->
+          <div style="display: flex; flex-wrap: wrap; gap: 0.5rem; align-items: center;">
+            <input type="text" id="cr-search-input" oninput="renderClassroomData()" placeholder="キーワードで検索..." style="flex: 2; min-width: 140px; padding: 0.4rem 0.6rem; font-size: 0.8125rem; background: var(--color-bg); border: 1px solid var(--color-border); border-radius: 0.375rem; color: var(--color-text-primary);" />
+            <input type="date" id="cr-date-input" onchange="renderClassroomData()" style="flex: 1; min-width: 120px; padding: 0.4rem 0.6rem; font-size: 0.8125rem; background: var(--color-bg); border: 1px solid var(--color-border); border-radius: 0.375rem; color: var(--color-text-primary);" />
+            <select id="cr-sort-select" onchange="renderClassroomData()" style="flex: 1; min-width: 120px; padding: 0.4rem 0.6rem; font-size: 0.8125rem; background: var(--color-bg); border: 1px solid var(--color-border); border-radius: 0.375rem; color: var(--color-text-primary);">
+              <option value="asc">旧 → 新（下ほど最新）</option>
+              <option value="desc">新 → 旧（上ほど最新）</option>
+            </select>
+            <button onclick="resetClassroomFilters()" style="padding: 0.4rem 0.6rem; font-size: 0.75rem; background: var(--color-border); border: none; border-radius: 0.375rem; color: var(--color-text-secondary); cursor: pointer;">リセット</button>
+          </div>
         </div>
 
+        <!-- 投稿カード一覧 -->
         <div id="classroom-data-list" class="space-y-4">
           <div class="placeholder-text">データを読み込んでいます...</div>
         </div>
@@ -888,9 +906,9 @@
       container.scrollTop = container.scrollHeight;
     });
 
-    // Classroom 連携処理群
+// Classroom 連携処理群
     let currentClassroomItems = [];
-    let currentFilterType = 'courseWork'; // デフォルトを課題に変更
+    let currentFilterType = 'courseWork';
 
     async function fetchAndRenderClassroom() {
       const container = document.getElementById('classroom-data-list');
@@ -913,7 +931,7 @@
       }
     }
 
-    function filterClassroomData(type) {
+    function setFilterType(type) {
       currentFilterType = type;
       ['work', 'announce', 'material'].forEach(t => {
         const btn = document.getElementById(`cr-filter-${t}`);
@@ -926,18 +944,56 @@
       renderClassroomData();
     }
 
+    function resetClassroomFilters() {
+      const searchEl = document.getElementById('cr-search-input');
+      const dateEl = document.getElementById('cr-date-input');
+      const sortEl = document.getElementById('cr-sort-select');
+      if (searchEl) searchEl.value = '';
+      if (dateEl) dateEl.value = '';
+      if (sortEl) sortEl.value = 'asc';
+      renderClassroomData();
+    }
+
     function renderClassroomData() {
       const container = document.getElementById('classroom-data-list');
       if (!container) return;
 
       let items = currentClassroomItems.filter(i => i.type === currentFilterType);
 
+      // フィルター処理 (検索 & 日付)
+      const searchQuery = (document.getElementById('cr-search-input')?.value || '').toLowerCase().trim();
+      const dateFilter = document.getElementById('cr-date-input')?.value;
+      const sortOrder = document.getElementById('cr-sort-select')?.value || 'asc';
+
+      if (searchQuery) {
+        items = items.filter(item => 
+          (item.title && item.title.toLowerCase().includes(searchQuery)) ||
+          (item.description && item.description.toLowerCase().includes(searchQuery)) ||
+          (item.author && item.author.toLowerCase().includes(searchQuery))
+        );
+      }
+
+      if (dateFilter) {
+        items = items.filter(item => {
+          if (!item.creationTime) return false;
+          const itemDate = new Date(item.creationTime).toISOString().split('T')[0];
+          return itemDate === dateFilter;
+        });
+      }
+
+      // 並び替え処理 (デフォルト: 下に行くほど新しい / asc)
+      items.sort((a, b) => {
+        const timeA = a.creationTime ? new Date(a.creationTime).getTime() : 0;
+        const timeB = b.creationTime ? new Date(b.creationTime).getTime() : 0;
+        return sortOrder === 'asc' ? timeA - timeB : timeB - timeA;
+      });
+
       if (!items || items.length === 0) {
         container.innerHTML = '<div class="empty-state-text">該当する情報がありません。</div>';
         return;
       }
 
-      // 添付画像の種別に応じたSVGアイコンを返すヘルパー
+      // 添付資料用 SVG アイコン取得ヘルパー
       const getMaterialIcon = (m) => {
         const type = (m.type || '').toLowerCase();
         const url = (m.url || '').toLowerCase();
@@ -958,25 +1014,30 @@
         const createdDate = item.creationTime ? new Date(item.creationTime).toLocaleDateString('ja-JP', { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' }) : '';
         const dueDate = item.dueDate ? new Date(item.dueDate).toLocaleDateString('ja-JP', { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' }) : null;
 
+        // アイコン・名前の表示（拡大サイズ化: 30px & 0.95rem）
         const authorAvatar = item.authorPhotoUrl
-          ? `<img src="${escapeHtml(item.authorPhotoUrl)}" alt="${escapeHtml(item.author || 'User')}" style="width: 22px; height: 22px; border-radius: 50%; object-fit: cover; flex-shrink: 0;" onerror="this.style.display='none'" />`
-          : (item.author ? `<div style="width: 22px; height: 22px; border-radius: 50%; background: var(--color-border); display: inline-flex; align-items: center; justify-content: center; font-size: 0.6875rem; font-weight: 600; flex-shrink: 0; color: var(--color-text-secondary);">${escapeHtml(item.author.charAt(0))}</div>` : '');
+          ? `<img src="${escapeHtml(item.authorPhotoUrl)}" alt="${escapeHtml(item.author || 'User')}" style="width: 30px; height: 30px; border-radius: 50%; object-fit: cover; flex-shrink: 0;" onerror="this.style.display='none'" />`
+          : (item.author ? `<div style="width: 30px; height: 30px; border-radius: 50%; background: var(--color-border); display: inline-flex; align-items: center; justify-content: center; font-size: 0.8125rem; font-weight: 600; flex-shrink: 0; color: var(--color-text-secondary);">${escapeHtml(item.author.charAt(0))}</div>` : '');
 
-        const authorInfoHtml = (item.author || item.authorPhotoUrl) ? `
-          <div style="display: flex; align-items: center; gap: 0.375rem; margin-bottom: 0.5rem; font-size: 0.8125rem; color: var(--color-text-secondary);">
+        const authorInfoHtml = `
+          <div style="display: flex; align-items: center; gap: 0.5rem;">
             ${authorAvatar}
-            <span style="font-weight: 500;" class="truncate">${escapeHtml(item.author || '投稿者')}</span>
+            <span style="font-weight: 600; font-size: 0.95rem; color: var(--color-text-primary);" class="truncate">${escapeHtml(item.author || '投稿者')}</span>
           </div>
-        ` : '';
+        `;
 
+        // 枠線なしのシンプルな日時表示
+        const dateHtml = `<span style="font-size: 0.8125rem; color: var(--color-text-muted); font-weight: 400; flex-shrink: 0;">${escapeHtml(item.courseName || '')}${item.courseName ? ' ・ ' : ''}${createdDate}</span>`;
+
+        // 横幅統一（幅100%）の添付ファイル構造
         const materialsHtml = (item.materials && item.materials.length > 0) ? `
           <div style="margin-top: 0.75rem; border-top: 1px dashed var(--color-border); padding-top: 0.5rem;">
             <span style="font-size: 0.75rem; color: var(--color-text-muted); font-weight: 600;">添付資料:</span>
-            <div style="display: flex; flex-wrap: wrap; gap: 0.5rem; margin-top: 0.25rem;">
+            <div style="display: flex; flex-direction: column; gap: 0.375rem; margin-top: 0.375rem;">
               ${item.materials.map(m => `
-                <a href="${escapeHtml(m.url)}" target="_blank" rel="noopener noreferrer" style="font-size: 0.8125rem; background: var(--color-bg); padding: 0.375rem 0.625rem; border-radius: 0.375rem; border: 1px solid var(--color-border); color: var(--color-text-primary); text-decoration: none; display: inline-flex; align-items: center; gap: 0.375rem; max-width: 100%;" class="truncate">
+                <a href="${escapeHtml(m.url)}" target="_blank" rel="noopener noreferrer" style="width: 100%; box-sizing: border-box; font-size: 0.8125rem; background: var(--color-bg); padding: 0.5rem 0.75rem; border-radius: 0.375rem; border: 1px solid var(--color-border); color: var(--color-text-primary); text-decoration: none; display: flex; align-items: center; gap: 0.5rem;" class="truncate">
                   ${getMaterialIcon(m)}
-                  <span class="truncate">${escapeHtml(m.title || 'リンクを開く')}</span>
+                  <span class="truncate" style="flex: 1;">${escapeHtml(m.title || 'リンクを開く')}</span>
                 </a>
               `).join('')}
             </div>
@@ -985,19 +1046,29 @@
 
         return `
           <div class="notice-card" style="position: relative;">
-            <div class="flex items-center justify-between" style="margin-bottom: 0.5rem;">
-              <span class="notice-card-date">${escapeHtml(item.courseName || '')}${item.courseName ? ' ・ ' : ''}${createdDate}</span>
+            <!-- ヘッダー: [アイコン] [名前]                 [日時] -->
+            <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 0.75rem;">
+              ${authorInfoHtml}
+              ${dateHtml}
             </div>
-            ${authorInfoHtml}
-            <h4 class="notice-card-title" style="margin-bottom: 0.5rem;">${escapeHtml(item.title || '無題')}</h4>
+
+            <!-- タイトル -->
+            <h4 class="notice-card-title" style="margin-bottom: 0.5rem; font-size: 1.05rem;">${escapeHtml(item.title || '無題')}</h4>
+
+            <!-- 提出期限 -->
             ${dueDate ? `
               <div style="display: flex; align-items: center; gap: 0.25rem; font-size: 0.8125rem; color: #f87171; font-weight: 600; margin-bottom: 0.5rem;">
                 <svg style="width: 1rem; height: 1rem;" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
                 提出期限: ${dueDate}
               </div>
             ` : ''}
-            <p class="notice-card-body" style="white-space: pre-wrap; word-break: break-word;">${linkify(item.description)}</p>
+
+            <!-- 本文（指定通り文字色を黒 #000 に設定） -->
+            <p class="notice-card-body" style="color: #000; white-space: pre-wrap; word-break: break-word; font-size: 0.875rem; line-height: 1.5;">${linkify(item.description)}</p>
+
+            <!-- 添付ファイル (横幅統一) -->
             ${materialsHtml}
+
             ${item.alternateLink ? `
               <div style="margin-top: 0.75rem; text-align: right;">
                 <a href="${escapeHtml(item.alternateLink)}" target="_blank" rel="noopener noreferrer" class="card-link-button" style="font-size: 0.8125rem;">Classroomで開く &rarr;</a>
