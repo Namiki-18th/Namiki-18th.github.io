@@ -295,7 +295,7 @@
         </div>
       </div>
 
-      <!-- Classroom ページを全面刷新 -->
+      <!-- Classroom ページ -->
       <div id="page-classroom" class="page-section hidden fade-in space-y-6">
         <div class="welcome-banner">
           <div class="welcome-banner-glow"></div>
@@ -427,7 +427,6 @@
   </div>
 
   <script>
-    // Classroom データをグローバルに分離
     let globalData = {
       profile: null,
       schedule: [],
@@ -440,15 +439,10 @@
     let currentChannel = 'grade';
     const socket = io();
 
-    // ==========================================
-    // アカウントポップアップ・モード切替の制御
-    // ==========================================
     function toggleAccountMenu(event) {
       if (event) event.stopPropagation();
       const menu = document.getElementById('account-popup-menu');
-      if (menu) {
-        menu.classList.toggle('show');
-      }
+      if (menu) menu.classList.toggle('show');
     }
 
     document.addEventListener('click', (event) => {
@@ -493,9 +487,6 @@
     function handlePersonalSettings() { alert('個人用設定は開発中です。'); }
     function handleAttachment() { alert('ファイルの添付機能は現在準備中です。'); }
 
-    // ==========================================
-    // 暗号化処理 (AES-GCM)
-    // ==========================================
     const ENCRYPTION_SECRET = "NamikiPortalSecureKey2026";
 
     async function getCryptoKey() {
@@ -551,11 +542,6 @@
       }
     }
 
-    // ==========================================
-    // UI制御とデータ処理
-    // ==========================================
-    
-    // タブ切り替え処理の統合（Classroomデータ取得連動）
     function switchTab(tabId) {
       document.querySelectorAll('.page-section').forEach(el => el.classList.add('hidden'));
       document.querySelectorAll('.sidebar-nav-button').forEach(btn => btn.classList.remove('active'));
@@ -573,12 +559,10 @@
         targetBtnM.scrollIntoView({ behavior: 'smooth', block: 'nearest', inline: 'center' });
       }
 
-      // チャット用
       if (tabId === 'chat') {
         socket.emit('joinRoom', currentChannel);
       }
       
-      // Classroom タブが開かれたら最新データをフェッチ
       if (tabId === 'classroom') {
         fetchAndRenderClassroom();
       }
@@ -637,7 +621,6 @@
     function renderAll() {
       if (globalData.profile) {
         const p = globalData.profile;
-        
         const studentIdText = (p.id && p.id !== 'Unknown') ? p.id : '学籍番号未設定';
         document.getElementById('sidebar-user-id').textContent = `${studentIdText}`;
         document.getElementById('sidebar-user-name').textContent = p.name || 'ユーザー';
@@ -843,12 +826,11 @@
     }
 
     // ==========================================
-    // Classroom 連携処理群 (全面刷新)
+    // Classroom 連携処理群 (最新JSONフォーマット対応)
     // ==========================================
     let currentClassroomItems = [];
     let currentFilterType = 'all';
 
-    // 実際の /api/classroom からデータを取得して描画する
     async function fetchAndRenderClassroom() {
       const container = document.getElementById('classroom-data-list');
       if (!container) return;
@@ -856,12 +838,10 @@
       container.innerHTML = '<div class="placeholder-text">最新データを取得中...</div>';
 
       try {
-        // server_2.jsで定義したエンドポイントを叩く
         const res = await fetch('/api/classroom');
         if (!res.ok) throw new Error('データの取得に失敗しました');
         const data = await res.json();
 
-        // データをグローバルに保持
         globalData.classroom = data;
         currentClassroomItems = data;
 
@@ -872,11 +852,9 @@
       }
     }
 
-    // フィルター切り替え処理
     function filterClassroomData(type) {
       currentFilterType = type;
 
-      // ボタンの active 状態更新
       ['all', 'courseWork', 'announcement', 'material'].forEach(t => {
         const btnId = `cr-filter-${t === 'courseWork' ? 'work' : t === 'announcement' ? 'announce' : t === 'material' ? 'material' : 'all'}`;
         const btn = document.getElementById(btnId);
@@ -899,7 +877,6 @@
         return;
       }
 
-      // タイプ別にフィルタリング
       const filtered = items.filter(item => {
         if (filter === 'all') return true;
         return item.type === filter;
@@ -914,7 +891,7 @@
         let badgeClass = 'rgba(59, 130, 246, 0.1)';
         let badgeColor = 'var(--color-accent-blue-light)';
         let typeLabel = 'お知らせ';
-        let icon = item.icon || '📢';
+        let icon = '📢';
 
         if (item.type === 'courseWork') {
           badgeClass = 'rgba(234, 179, 8, 0.15)';
@@ -928,7 +905,7 @@
           icon = '📚';
         }
 
-        // 締切日のフォーマット
+        // 提出期限（dueDate）のフォーマット
         let dueDateText = '';
         if (item.dueDate) {
           if (typeof item.dueDate === 'object' && item.dueDate.year) {
@@ -936,6 +913,37 @@
           } else {
             dueDateText = `⏳ 提出期限: ${item.dueDate}`;
           }
+        }
+
+        // 投稿日時（creationTime）の整形
+        let formattedDate = '';
+        if (item.creationTime) {
+          const d = new Date(item.creationTime);
+          formattedDate = `${d.getFullYear()}/${d.getMonth() + 1}/${d.getDate()} ${String(d.getHours()).padStart(2, '0')}:${String(d.getMinutes()).padStart(2, '0')}`;
+        }
+
+        // 添付ファイル（attachments）の表示生成
+        let attachmentsHtml = '';
+        if (Array.isArray(item.attachments) && item.attachments.length > 0) {
+          const links = item.attachments.map(att => {
+            let attIcon = '📎';
+            if (att.type === 'drive') attIcon = '📁';
+            if (att.type === 'youtube') attIcon = '▶️';
+            if (att.type === 'form') attIcon = '📋';
+
+            return `
+              <a href="${escapeHtml(att.url)}" target="_blank" style="display: inline-flex; align-items: center; gap: 0.375rem; font-size: 0.8125rem; color: var(--color-accent-blue-light); text-decoration: none; padding: 0.25rem 0.5rem; background: var(--color-bg); border: 1px solid var(--color-border); border-radius: 0.375rem;">
+                <span>${attIcon}</span>
+                <span class="truncate" style="max-width: 240px;">${escapeHtml(att.title || 'ファイルを開く')}</span>
+              </a>
+            `;
+          }).join('');
+
+          attachmentsHtml = `
+            <div style="display: flex; flex-wrap: wrap; gap: 0.5rem; margin-top: 0.75rem; padding-top: 0.5rem; border-top: 1px dashed var(--color-border);">
+              ${links}
+            </div>
+          `;
         }
 
         return `
@@ -946,7 +954,8 @@
                 <span style="font-size: 0.75rem; padding: 0.2rem 0.6rem; border-radius: 0.375rem; background: ${badgeClass}; color: ${badgeColor}; font-weight: 600;">
                   ${typeLabel}
                 </span>
-                <span class="notice-card-date">${escapeHtml(item.date || '')}</span>
+                <span class="notice-card-date">${escapeHtml(formattedDate)}</span>
+                ${item.author ? `<span style="font-size: 0.75rem; color: var(--color-text-muted);">👤 ${escapeHtml(item.author)}</span>` : ''}
               </div>
               ${dueDateText ? `<span style="font-size: 0.75rem; color: var(--color-accent-red); font-weight: 600;">${dueDateText}</span>` : ''}
             </div>
@@ -955,28 +964,20 @@
               ${escapeHtml(item.title || '無題')}
             </h3>
 
-            <div class="notice-card-body" style="white-space: pre-wrap; line-height: 1.5; margin-bottom: 0.75rem;">
-              ${escapeHtml(item.content || '詳細なし')}
+            <div class="notice-card-body" style="white-space: pre-wrap; line-height: 1.5;">
+              ${escapeHtml(item.description || '詳細なし')}
             </div>
 
-            ${item.url ? `
-              <div style="text-align: right; border-top: 1px solid var(--color-border); padding-top: 0.5rem; margin-top: 0.5rem;">
-                <a href="${escapeHtml(item.url)}" target="_blank" class="card-link-button" style="text-decoration: none; display: inline-flex; align-items: center; gap: 0.25rem;">
-                  Google Classroom で開く ↗
-                </a>
-              </div>
-            ` : ''}
+            ${attachmentsHtml}
           </div>
         `;
       }).join('');
     }
 
-    // Socket.io リアルタイム更新時（GASからのPOSTが完了した時）に画面も更新する
     if (typeof socket !== 'undefined') {
       socket.on('classroomUpdated', (updatedData) => {
         globalData.classroom = updatedData;
         currentClassroomItems = updatedData;
-        // 開いているときだけ自動再描画
         if (!document.getElementById('page-classroom').classList.contains('hidden')) {
           renderClassroomCards(currentClassroomItems, currentFilterType);
         }
