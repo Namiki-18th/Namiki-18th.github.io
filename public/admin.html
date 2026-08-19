@@ -1,227 +1,482 @@
 <!DOCTYPE html>
 <html lang="ja" class="dark">
-  <head>
-    <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>管理者ダッシュボード - 学校生活ポータル</title>
-    <!-- Tailwind CSS -->
-    <script src="https://cdn.tailwindcss.com"></script>
-    <script>
-      tailwind.config = {
-        darkMode: 'class',
-        theme: {
-          extend: {
-            colors: {
-              dark: {
-                bg: '#000000',
-                card: '#0a0a0c',
-                border: 'rgba(255, 255, 255, 0.1)',
-                hover: 'rgba(255, 255, 255, 0.06)'
-              }
-            }
-          }
-        }
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>管理者パネル - 並木中等教育学校18回生</title>
+  <link rel="stylesheet" href="style.css">
+  <link rel="icon" href="favicon.ico" type="image/x-icon">
+  <link rel="icon" href="favicon.png" type="image/png" sizes="256x256">
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" />
+  <script src="/socket.io/socket.io.js"></script>
+  
+  <script>
+    (function() {
+      const savedTheme = localStorage.getItem('namiki-theme');
+      if (savedTheme === 'light') {
+        document.documentElement.classList.remove('dark');
+        document.documentElement.classList.add('light');
+      } else {
+        document.documentElement.classList.remove('light');
+        document.documentElement.classList.add('dark');
       }
-    </script>
-    <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" />
-    <style> body { font-family: 'Inter', sans-serif; } </style>
-  </head>
-  <body class="bg-dark-bg text-gray-100 min-h-screen flex flex-col">
+    })();
+  </script>
+</head>
+<body>
 
-    <!-- Header -->
-    <header class="bg-dark-card border-b border-white/15 sticky top-0 z-50">
-      <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between">
-        <div class="flex items-center space-x-3">
-          <span class="text-2xl">⚙️</span>
-          <h1 class="font-bold text-lg text-white">管理者コントロールパネル</h1>
+  <!-- サイドバー (index.htmlと同構造) -->
+  <aside class="sidebar">
+    <div class="sidebar-header" onclick="location.href='/index'">
+      <div class="flex items-center gap-3">
+        <div class="logo-badge">
+          <img src="/logo.webp" alt="Logo" class="logo-badge-img" onerror="this.style.display='none'; this.nextElementSibling.style.display='inline';" />
+          <span class="logo-badge-emoji" style="display:none;">⚙️</span>
         </div>
-        <div class="flex items-center gap-4">
-          <span id="current-admin-name" class="text-xs text-gray-400 hidden sm:inline">認証確認中...</span>
-          <a href="index.html" class="px-4 py-2 rounded-xl bg-white/10 hover:bg-white/20 text-sm font-semibold transition-all">
-            ← ダッシュボードに戻る
-          </a>
+        <h1 class="font-bold text-sm sidebar-brand-name sidebar-brand-text">
+          管理者パネル<br>
+          <span class="text-xs font-normal sidebar-brand-tagline">システム管理・各種更新</span>
+        </h1>
+      </div>
+    </div>
+
+    <nav class="sidebar-nav">
+      <button onclick="switchAdminTab('users')" id="sidebar-nav-users" class="sidebar-nav-button active" title="ユーザー管理">
+        <svg class="icon-nav" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z"/></svg>
+        <span class="sidebar-nav-text">ユーザー管理</span>
+      </button>
+      <button onclick="switchAdminTab('notices')" id="sidebar-nav-notices" class="sidebar-nav-button" title="お知らせ投稿">
+        <svg class="icon-nav" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5.882V19.24a1.76 1.76 0 01-3.417.592l-2.147-6.15M18 13a3 3 0 100-6M5.436 13.683A4.001 4.001 0 017 6h1.832c.41 0 .789.24 1.002.618L12.5 12.5"/></svg>
+        <span class="sidebar-nav-text">お知らせ配信</span>
+      </button>
+      <button onclick="switchAdminTab('schedule')" id="sidebar-nav-schedule" class="sidebar-nav-button" title="時間割管理">
+        <svg class="icon-nav" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"/></svg>
+        <span class="sidebar-nav-text">時間割・行事管理</span>
+      </button>
+      <button onclick="switchAdminTab('system')" id="sidebar-nav-system" class="sidebar-nav-button" title="システム状態">
+        <svg class="icon-nav" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z"/></svg>
+        <span class="sidebar-nav-text">システム連携</span>
+      </button>
+
+      <div class="sidebar-nav-divider">
+        <a href="/index" class="sidebar-nav-button">
+          <svg class="icon-nav" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 15l-3-3m0 0l3-3m-3 3h8M3 12a9 9 0 1118 0 9 9 0 01-18 0z"/></svg>
+          <span class="sidebar-nav-text">ダッシュボードへ戻る</span>
+        </a>
+      </div>
+    </nav>
+
+    <div class="sidebar-footer">
+      <div id="account-popup-menu" class="account-popup-menu">
+        <div class="user-info-header" style="padding: 0.5rem 0.75rem; border-bottom: 1px solid var(--color-border); margin-bottom: 0.5rem;">
+          <span id="popup-user-name" style="display: block; font-weight: 600; color: var(--color-text-primary); font-size: 0.875rem;">管理者</span>
+          <span id="popup-user-email" style="display: block; font-size: 0.75rem; color: var(--color-text-muted); margin-top: 0.125rem;">認証確認中...</span>
         </div>
+        <button class="account-popup-item toggle-row" onclick="toggleTheme()">
+          <div class="flex items-center gap-2">
+            <svg class="icon-sm" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 3v1m0 16v1m9-9h-1M4 12H3m15.364 6.364l-.707-.707M6.343 6.343l-.707-.707m12.728 0l-.707.707M6.343 17.657l-.707.707M16 12a4 4 0 11-8 0 4 4 0 018 0z"/></svg>
+            表示切替
+          </div>
+          <div class="toggle-switch" id="theme-toggle-switch">
+            <div class="toggle-circle"></div>
+          </div>
+        </button>
+        <div style="border-top: 1px solid var(--color-border); margin: 0.25rem 0;"></div>
+        <a href="/logout" class="account-popup-item text-red">
+          <svg class="icon-sm" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1"/></svg>
+          ログアウト
+        </a>
+      </div>
+
+      <div id="sidebar-user-toggle" class="sidebar-user-row" onclick="toggleAccountMenu(event)">
+        <img id="sidebar-user-avatar" src="https://placehold.co/40x40/333/fff?text=A" alt="Avatar" class="sidebar-avatar-image" />
+        <div class="flex-1 min-w-0 sidebar-user-info">
+          <p id="sidebar-user-id" class="text-xs sidebar-user-id-text truncate">Admin</p>
+          <p id="sidebar-user-name" class="text-sm truncate sidebar-user-name-text">管理者</p>
+        </div>
+      </div>
+    </div>
+  </aside>
+
+  <!-- メインコンテンツ -->
+  <div class="app-main">
+    <header class="mobile-topbar">
+      <div class="flex items-center gap-2" onclick="location.href='/index'" style="cursor: pointer;">
+        <h1 class="font-bold text-sm mobile-brand-name">⚙️ 管理者コントロール</h1>
+      </div>
+      <div class="flex items-center gap-3">
+        <button onclick="toggleTheme()" style="background:none; border:none; cursor:pointer; color:var(--color-text-secondary);">
+          <svg class="icon-sm" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 3v1m0 16v1m9-9h-1M4 12H3m15.364 6.364l-.707-.707M6.343 6.343l-.707-.707m12.728 0l-.707.707M6.343 17.657l-.707.707M16 12a4 4 0 11-8 0 4 4 0 018 0z"/></svg>
+        </button>
       </div>
     </header>
 
-    <!-- Main Content -->
-    <main class="flex-grow max-w-7xl w-full mx-auto px-4 sm:px-6 lg:px-8 py-8 space-y-6">
-      
-      <!-- Section Header -->
-      <div class="bg-dark-card border border-white/10 rounded-2xl p-6 shadow-xl flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
-        <div>
-          <h2 class="text-xl font-bold text-white">ユーザー権限・クラス・アカウント管理</h2>
-          <p class="text-gray-400 text-sm mt-1">生徒・教員の所属クラス、権限、およびアカウントの停止（Suspend）を設定します。</p>
+    <div class="mobile-tab-bar">
+      <button onclick="switchAdminTab('users')" id="mobile-nav-users" class="mobile-nav-button active">ユーザー</button>
+      <button onclick="switchAdminTab('notices')" id="mobile-nav-notices" class="mobile-nav-button">お知らせ</button>
+      <button onclick="switchAdminTab('schedule')" id="mobile-nav-schedule" class="mobile-nav-button">時間割</button>
+      <button onclick="switchAdminTab('system')" id="mobile-nav-system" class="mobile-nav-button">システム</button>
+    </div>
+
+    <main class="content-area">
+      <!-- 1. ユーザー管理セクション -->
+      <div id="page-users" class="page-section fade-in space-y-6">
+        <div class="welcome-banner">
+          <div class="welcome-banner-glow"></div>
+          <div class="welcome-banner-row">
+            <div>
+              <p class="welcome-date-text">User Authorization & Class Control</p>
+              <h2 class="welcome-heading-text">ユーザー権限・クラス・アカウント設定</h2>
+            </div>
+            <button onclick="saveAllSettings()" class="button-primary">
+              💾 全ユーザーの一括保存
+            </button>
+          </div>
         </div>
-        <button onclick="saveAllSettings()" class="px-5 py-2.5 rounded-xl bg-blue-600 hover:bg-blue-500 text-white text-sm font-semibold shadow-lg transition-all">
-          💾 すべての変更を保存する
-        </button>
+
+        <div class="app-card overflow-x-auto">
+          <table>
+            <thead>
+              <tr>
+                <th>ユーザー名 / Email</th>
+                <th>所属クラス</th>
+                <th>権限</th>
+                <th>アカウント状態</th>
+                <th style="text-align: right;">操作</th>
+              </tr>
+            </thead>
+            <tbody id="admin-user-table">
+              <tr><td colspan="5" class="placeholder-text">ユーザーデータを読み込んでいます...</td></tr>
+            </tbody>
+          </table>
+        </div>
       </div>
 
-      <!-- Users Table -->
-      <div class="bg-dark-card border border-white/10 rounded-2xl shadow-xl overflow-hidden">
-        <table class="w-full text-left border-collapse">
-          <thead>
-            <tr class="border-b border-white/10 text-gray-400 text-xs uppercase tracking-wider bg-white/5">
-              <th class="py-4 px-6 font-semibold">ユーザー名 / メール</th>
-              <th class="py-4 px-6 font-semibold">所属クラス</th>
-              <th class="py-4 px-6 font-semibold">権限</th>
-              <th class="py-4 px-6 font-semibold">アカウント状態</th>
-              <th class="py-4 px-6 font-semibold text-right">操作</th>
-            </tr>
-          </thead>
-          <tbody id="admin-user-table" class="divide-y divide-white/5">
-            <tr>
-              <td colspan="5" class="text-center py-8 text-gray-400 text-sm">ユーザーデータを読み込んでいます...</td>
-            </tr>
-          </tbody>
-        </table>
+      <!-- 2. お知らせ作成・管理セクション (追加機能) -->
+      <div id="page-notices" class="page-section hidden fade-in space-y-6">
+        <div class="app-card content-card">
+          <h2 class="content-card-title">📢 お知らせの新規配信</h2>
+          <p class="content-card-subtitle">ダッシュボードおよびClassroom連携タブへ即座に反映されます。</p>
+          <form onsubmit="handleNoticeSubmit(event)" class="space-y-4">
+            <div>
+              <label style="display:block; font-size:0.875rem; color:var(--color-text-secondary); margin-bottom:0.5rem;">タイトル</label>
+              <input type="text" id="notice-title" required placeholder="例: 定期テストの範囲発表" style="width:100%; padding:0.75rem; background:var(--color-bg); border:1px solid var(--color-border); border-radius:0.5rem; color:var(--color-text-primary);" />
+            </div>
+            <div style="display:grid; grid-template-columns: 1fr 1fr; gap:1rem;">
+              <div>
+                <label style="display:block; font-size:0.875rem; color:var(--color-text-secondary); margin-bottom:0.5rem;">優先度</label>
+                <select id="notice-priority" style="width:100%; padding:0.75rem; background:var(--color-bg); border:1px solid var(--color-border); border-radius:0.5rem; color:var(--color-text-primary);">
+                  <option value="normal">通常 (Normal)</option>
+                  <option value="high">重要 (High)</option>
+                </select>
+              </div>
+              <div>
+                <label style="display:block; font-size:0.875rem; color:var(--color-text-secondary); margin-bottom:0.5rem;">タイプ / アイコン</label>
+                <select id="notice-type" style="width:100%; padding:0.75rem; background:var(--color-bg); border:1px solid var(--color-border); border-radius:0.5rem; color:var(--color-text-primary);">
+                  <option value="announcement">📢 お知らせ</option>
+                  <option value="courseWork">📝 課題</option>
+                  <option value="material">📚 資料・添付</option>
+                </select>
+              </div>
+            </div>
+            <div>
+              <label style="display:block; font-size:0.875rem; color:var(--color-text-secondary); margin-bottom:0.5rem;">本文内容</label>
+              <textarea id="notice-content" rows="4" required placeholder="お知らせの詳しい本文を入力してください..." style="width:100%; padding:0.75rem; background:var(--color-bg); border:1px solid var(--color-border); border-radius:0.5rem; color:var(--color-text-primary);"></textarea>
+            </div>
+            <button type="submit" class="button-primary">配信・投稿する</button>
+          </form>
+        </div>
+
+        <div class="app-card content-card">
+          <h2 class="content-card-title">配信済みお知らせ一覧</h2>
+          <div id="admin-notices-list" class="space-y-3" style="margin-top:1rem;">
+            <div class="placeholder-text">読み込み中...</div>
+          </div>
+        </div>
       </div>
 
+      <!-- 3. 時間割・スケジュール設定 (追加機能) -->
+      <div id="page-schedule" class="page-section hidden fade-in space-y-6">
+        <div class="app-card content-card">
+          <h2 class="content-card-title">📅 時間割データ管理</h2>
+          <p class="content-card-subtitle">曜日ごとの授業予定を一発更新します。</p>
+          <div class="placeholder-text">時間割データ編集インターフェース（API連動可能）</div>
+        </div>
+      </div>
+
+      <!-- 4. システム状態・Classroom GAS連携テスト (追加機能) -->
+      <div id="page-system" class="page-section hidden fade-in space-y-6">
+        <div class="app-card status-card">
+          <h3 class="status-card-title">Google Classroom / GAS 同期連携設定</h3>
+          <p class="content-card-subtitle" style="margin-bottom:1rem;">External API & Webhook URL: <code>/api/classroom</code></p>
+          <button onclick="triggerAdminClassroomSync()" class="button-primary">
+            🔄 テスト用同期リクエストを送信
+          </button>
+          <pre id="admin-sync-log" style="margin-top:1rem; padding:1rem; background:var(--color-bg); border:1px solid var(--color-border); border-radius:0.5rem; font-size:0.75rem; color:var(--color-text-secondary); overflow-x:auto;">ログ待ち...</pre>
+        </div>
+      </div>
+
+      <footer class="site-footer">
+        <p>&copy; 2026 学校生活ダッシュボード 管理者システム</p>
+      </footer>
     </main>
+  </div>
 
-    <!-- Footer -->
-    <footer class="bg-dark-card border-t border-white/10 py-6 text-center text-gray-400 text-xs">
-      &copy; 2026 学校生活ダッシュボード 管理者システム
-    </footer>
+  <script>
+    let usersData = [];
 
-    <!-- Admin Logic & Access Control -->
-    <script>
-      let usersData = [];
+    function switchAdminTab(tabId) {
+      document.querySelectorAll('.page-section').forEach(el => el.classList.add('hidden'));
+      document.querySelectorAll('.sidebar-nav-button').forEach(btn => btn.classList.remove('active'));
+      document.querySelectorAll('.mobile-nav-button').forEach(btn => btn.classList.remove('active'));
 
-      async function checkAdminAuthAndLoad() {
-        try {
-          const res = await fetch('/api/profile');
-          if (!res.ok) throw new Error('未認証またはセッションが切れています');
-          const profile = await res.json();
-          
-          if (!profile || profile.role !== 'admin') {
-            alert('アクセス権限がありません。管理者のみアクセス可能です。');
-            window.location.href = 'index.html';
-            return;
-          }
+      document.getElementById(`page-${tabId}`)?.classList.remove('hidden');
+      document.getElementById(`sidebar-nav-${tabId}`)?.classList.add('active');
+      document.getElementById(`mobile-nav-${tabId}`)?.classList.add('active');
 
-          document.getElementById('current-admin-name').textContent = `ログイン中: ${profile.name}`;
-          loadAdminData();
-        } catch (err) {
-          console.error('認証チェックエラー:', err);
-          window.location.href = 'login';
-        }
+      if (tabId === 'notices') loadAdminNotices();
+    }
+
+    function toggleAccountMenu(event) {
+      if (event) event.stopPropagation();
+      document.getElementById('account-popup-menu')?.classList.toggle('show');
+    }
+
+    function toggleTheme() {
+      const htmlEl = document.documentElement;
+      const toggleSwitch = document.getElementById('theme-toggle-switch');
+      if (htmlEl.classList.contains('dark')) {
+        htmlEl.classList.remove('dark');
+        htmlEl.classList.add('light');
+        localStorage.setItem('namiki-theme', 'light');
+        toggleSwitch?.classList.remove('on');
+      } else {
+        htmlEl.classList.remove('light');
+        htmlEl.classList.add('dark');
+        localStorage.setItem('namiki-theme', 'dark');
+        toggleSwitch?.classList.add('on');
       }
+    }
 
-      async function loadAdminData() {
-        try {
-          const res = await fetch('/api/admin/users');
-          if (!res.ok) throw new Error('ユーザー一覧の取得に失敗しました');
-          usersData = await res.json();
-          renderAdminTable();
-        } catch (err) {
-          console.error(err);
-          document.getElementById('admin-user-table').innerHTML = `
-            <tr><td colspan="5" class="text-center py-8 text-red-400 text-sm">データ読み込みエラーが発生しました。</td></tr>
-          `;
-        }
-      }
-
-      function renderAdminTable() {
-        const tbody = document.getElementById('admin-user-table');
-        if (usersData.length === 0) {
-          tbody.innerHTML = `<tr><td colspan="5" class="text-center py-8 text-gray-400 text-sm">ユーザーが登録されていません。</td></tr>`;
+    async function checkAdminAuthAndLoad() {
+      try {
+        const res = await fetch('/api/profile');
+        if (!res.ok) throw new Error('未認証');
+        const profile = await res.json();
+        
+        if (!profile || profile.role !== 'admin') {
+          alert('管理者権限がありません。');
+          window.location.href = '/index';
           return;
         }
 
-        tbody.innerHTML = usersData.map(u => {
-          const encodedEmail = encodeURIComponent(u.email);
-          const currentClass = u.userClass || 'A組';
-          const currentStatus = u.status || 'active'; // 'active' または 'suspended'
-          
-          return `
-            <tr class="hover:bg-white/5 transition-colors">
-              <td class="py-4 px-6 flex items-center gap-3">
-                ${u.picture ? `<img src="${u.picture}" alt="" class="w-8 h-8 rounded-full object-cover border border-white/20">` : ''}
-                <div>
-                  <div class="font-bold text-white text-sm">${u.name}</div>
-                  <div class="text-xs text-gray-400 font-mono">${u.email}</div>
-                </div>
-              </td>
-              <td class="py-4 px-6">
-                <select id="class-${encodedEmail}" class="bg-black/50 border border-white/15 rounded-lg px-3 py-1.5 text-sm text-white focus:outline-none focus:border-blue-500">
-                  <option value="管理者" ${currentClass === '管理者' ? 'selected' : ''}>管理者</option>
-                  <option value="A組" ${currentClass === 'A組' ? 'selected' : ''}>A組</option>
-                  <option value="B組" ${currentClass === 'B組' ? 'selected' : ''}>B組</option>
-                  <option value="C組" ${currentClass === 'C組' ? 'selected' : ''}>C組</option>
-                  <option value="D組" ${currentClass === 'D組' ? 'selected' : ''}>D組</option>
-                </select>
-              </td>
-              <td class="py-4 px-6">
-                <select id="role-${encodedEmail}" class="bg-black/50 border border-white/15 rounded-lg px-3 py-1.5 text-sm text-white focus:outline-none focus:border-blue-500">
-                  <option value="student" ${u.role === 'student' ? 'selected' : ''}>生徒</option>
-                  <option value="admin" ${u.role === 'admin' ? 'selected' : ''}>管理者</option>
-                </select>
-              </td>
-              <td class="py-4 px-6">
-                <select id="status-${encodedEmail}" class="bg-black/50 border border-white/15 rounded-lg px-3 py-1.5 text-sm text-white focus:outline-none focus:border-red-500">
-                  <option value="active" ${currentStatus === 'active' ? 'selected' : ''}>🟢 有効 (Active)</option>
-                  <option value="suspended" ${currentStatus === 'suspended' ? 'selected' : ''}>🔴 停止 (Suspended)</option>
-                </select>
-              </td>
-              <td class="py-4 px-6 text-right">
-                <button onclick="saveUser('${encodedEmail}')" class="px-3 py-1.5 rounded-lg bg-white/10 hover:bg-white/20 text-xs font-semibold text-gray-200 transition-all">更新</button>
-              </td>
-            </tr>
-          `;
-        }).join('');
+        document.getElementById('sidebar-user-name').textContent = profile.name;
+        document.getElementById('popup-user-name').textContent = profile.name;
+        document.getElementById('popup-user-email').textContent = profile.email;
+        if (profile.picture && profile.picture !== 'admin.png') {
+          document.getElementById('sidebar-user-avatar').src = profile.picture;
+        }
+
+        loadAdminData();
+      } catch (err) {
+        window.location.href = '/login';
+      }
+    }
+
+    async function loadAdminData() {
+      try {
+        const res = await fetch('/api/admin/users');
+        if (!res.ok) throw new Error('ユーザー一覧取得失敗');
+        usersData = await res.json();
+        renderAdminTable();
+      } catch (err) {
+        document.getElementById('admin-user-table').innerHTML = `
+          <tr><td colspan="5" class="placeholder-text" style="color:var(--color-accent-red);">データの読み込みに失敗しました。</td></tr>
+        `;
+      }
+    }
+
+    function renderAdminTable() {
+      const tbody = document.getElementById('admin-user-table');
+      if (!usersData.length) {
+        tbody.innerHTML = `<tr><td colspan="5" class="placeholder-text">登録ユーザーが存在しません。</td></tr>`;
+        return;
       }
 
-      async function saveUser(encodedEmail) {
-        const newClass = document.getElementById(`class-${encodedEmail}`).value;
-        const newRole = document.getElementById(`role-${encodedEmail}`).value;
-        const newStatus = document.getElementById(`status-${encodedEmail}`).value;
+      tbody.innerHTML = usersData.map(u => {
+        const encodedEmail = encodeURIComponent(u.email);
+        const currentClass = u.userClass || 'A組';
+        const currentStatus = u.status || 'active';
+        
+        return `
+          <tr>
+            <td style="display:flex; align-items:center; gap:0.75rem;">
+              <img src="${u.picture || 'https://placehold.co/32x32/333/fff?text=U'}" style="width:2rem; height:2rem; border-radius:50%; object-fit:cover;">
+              <div>
+                <div style="font-weight:600; color:var(--color-text-primary); font-size:0.875rem;">${escapeHtml(u.name)}</div>
+                <div style="font-size:0.75rem; color:var(--color-text-muted); font-family:monospace;">${escapeHtml(u.email)}</div>
+              </div>
+            </td>
+            <td>
+              <select id="class-${encodedEmail}" style="padding:0.35rem 0.5rem; background:var(--color-bg); border:1px solid var(--color-border); border-radius:0.375rem; color:var(--color-text-primary); font-size:0.85rem;">
+                <option value="管理者" ${currentClass === '管理者' ? 'selected' : ''}>管理者</option>
+                <option value="A組" ${currentClass === 'A組' ? 'selected' : ''}>A組</option>
+                <option value="B組" ${currentClass === 'B組' ? 'selected' : ''}>B組</option>
+                <option value="C組" ${currentClass === 'C組' ? 'selected' : ''}>C組</option>
+                <option value="D組" ${currentClass === 'D組' ? 'selected' : ''}>D組</option>
+              </select>
+            </td>
+            <td>
+              <select id="role-${encodedEmail}" style="padding:0.35rem 0.5rem; background:var(--color-bg); border:1px solid var(--color-border); border-radius:0.375rem; color:var(--color-text-primary); font-size:0.85rem;">
+                <option value="student" ${u.role === 'student' ? 'selected' : ''}>生徒</option>
+                <option value="admin" ${u.role === 'admin' ? 'selected' : ''}>管理者</option>
+              </select>
+            </td>
+            <td>
+              <select id="status-${encodedEmail}" style="padding:0.35rem 0.5rem; background:var(--color-bg); border:1px solid var(--color-border); border-radius:0.375rem; color:var(--color-text-primary); font-size:0.85rem;">
+                <option value="active" ${currentStatus === 'active' ? 'selected' : ''}>🟢 有効 (Active)</option>
+                <option value="suspended" ${currentStatus === 'suspended' ? 'selected' : ''}>🔴 停止 (Suspended)</option>
+              </select>
+            </td>
+            <td style="text-align:right;">
+              <button onclick="saveUser('${encodedEmail}')" class="button-primary" style="padding:0.25rem 0.75rem; font-size:0.75rem;">更新</button>
+            </td>
+          </tr>
+        `;
+      }).join('');
+    }
 
-        try {
-          const res = await fetch(`/api/admin/user/${encodedEmail}`, {
+    async function saveUser(encodedEmail) {
+      const newClass = document.getElementById(`class-${encodedEmail}`).value;
+      const newRole = document.getElementById(`role-${encodedEmail}`).value;
+      const newStatus = document.getElementById(`status-${encodedEmail}`).value;
+
+      try {
+        const res = await fetch(`/api/admin/user/${encodedEmail}`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ userClass: newClass, role: newRole, status: newStatus })
+        });
+        const data = await res.json();
+        if (res.ok && data.success) {
+          alert('設定を更新しました。');
+          loadAdminData();
+        } else {
+          alert('更新失敗: ' + (data.error || '不明なエラー'));
+        }
+      } catch (err) {
+        alert('通信エラーが発生しました。');
+      }
+    }
+
+    async function saveAllSettings() {
+      if (!confirm('全ユーザーの表示変更内容を保存しますか？')) return;
+      try {
+        for (const u of usersData) {
+          const encodedEmail = encodeURIComponent(u.email);
+          const newClass = document.getElementById(`class-${encodedEmail}`).value;
+          const newRole = document.getElementById(`role-${encodedEmail}`).value;
+          const newStatus = document.getElementById(`status-${encodedEmail}`).value;
+
+          await fetch(`/api/admin/user/${encodedEmail}`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ userClass: newClass, role: newRole, status: newStatus })
           });
-          const data = await res.json();
-          if (res.ok && data.success) {
-            alert('ユーザー情報およびアカウント状態を更新しました。');
-            loadAdminData();
-          } else {
-            alert('更新に失敗しました: ' + (data.error || '不明なエラー'));
-          }
-        } catch (err) {
-          console.error(err);
-          alert('通信エラーが発生しました。');
         }
+        alert('すべてのユーザー設定を一括保存しました。');
+        loadAdminData();
+      } catch (err) {
+        alert('保存中にエラーが発生しました。');
       }
+    }
 
-      async function saveAllSettings() {
-        if (!confirm('表示されているすべてのユーザー情報を保存しますか？')) return;
+    // --- お知らせ追加 API 連動 ---
+    async function handleNoticeSubmit(e) {
+      e.preventDefault();
+      const title = document.getElementById('notice-title').value;
+      const priority = document.getElementById('notice-priority').value;
+      const type = document.getElementById('notice-type').value;
+      const content = document.getElementById('notice-content').value;
 
-        try {
-          for (const u of usersData) {
-            const encodedEmail = encodeURIComponent(u.email);
-            const newClass = document.getElementById(`class-${encodedEmail}`).value;
-            const newRole = document.getElementById(`role-${encodedEmail}` ).value;
-            const newStatus = document.getElementById(`status-${encodedEmail}`).value;
-
-            await fetch(`/api/admin/user/${encodedEmail}`, {
-              method: 'POST',
-              headers: { 'Content-Type': 'application/json' },
-              body: JSON.stringify({ userClass: newClass, role: newRole, status: newStatus })
-            });
-          }
-          alert('すべてのユーザー設定を保存しました。');
-          loadAdminData();
-        } catch (err) {
-          console.error(err);
-          alert('一括保存中にエラーが発生しました。');
+      try {
+        const res = await fetch('/api/classroom', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ title, priority, type, content, date: new Date().toISOString().split('T')[0] })
+        });
+        if (res.ok) {
+          alert('お知らせを配信しました！');
+          document.getElementById('notice-title').value = '';
+          document.getElementById('notice-content').value = '';
+          loadAdminNotices();
+        } else {
+          alert('配信失敗');
         }
+      } catch (err) {
+        alert('送信エラー');
       }
+    }
 
-      window.addEventListener('DOMContentLoaded', checkAdminAuthAndLoad);
-    </script>
-  </body>
+    async function loadAdminNotices() {
+      try {
+        const res = await fetch('/api/notices');
+        const data = await res.json();
+        const list = document.getElementById('admin-notices-list');
+        if (!data.length) {
+          list.innerHTML = '<div class="placeholder-text">配信済みのお知らせはありません</div>';
+          return;
+        }
+        list.innerHTML = data.map(n => `
+          <div class="notice-card" style="display:flex; justify-content:space-between; align-items:center;">
+            <div>
+              <div style="font-size:0.75rem; color:var(--color-text-muted);">${escapeHtml(n.date)} [${n.priority}]</div>
+              <div style="font-weight:600; color:var(--color-text-primary); font-size:0.95rem;">${escapeHtml(n.title)}</div>
+            </div>
+            <button onclick="deleteNotice('${n.id}')" style="color:var(--color-accent-red); background:none; border:none; cursor:pointer; font-size:0.875rem;">削除</button>
+          </div>
+        `).join('');
+      } catch (err) {
+        console.error(err);
+      }
+    }
+
+    async function deleteNotice(id) {
+      if(!confirm('このお知らせを削除しますか？')) return;
+      try {
+        await fetch(`/api/notices/${id}`, { method: 'DELETE' });
+        loadAdminNotices();
+      } catch (e) {
+        alert('削除エラー');
+      }
+    }
+
+    async function triggerAdminClassroomSync() {
+      const log = document.getElementById('admin-sync-log');
+      log.textContent = '同期リクエスト実行中...';
+      try {
+        const res = await fetch('/api/notices');
+        const data = await res.json();
+        log.textContent = JSON.stringify({ status: "200 OK", timestamp: new Date().toISOString(), fetchedItems: data.length }, null, 2);
+      } catch(e) {
+        log.textContent = 'エラーが発生しました: ' + e.message;
+      }
+    }
+
+    function escapeHtml(str) {
+      if (!str) return '';
+      return String(str).replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;").replace(/'/g, "&#039;");
+    }
+
+    window.addEventListener('DOMContentLoaded', () => {
+      checkAdminAuthAndLoad();
+      const savedTheme = localStorage.getItem('namiki-theme');
+      if (savedTheme === 'light') {
+        document.getElementById('theme-toggle-switch')?.classList.remove('on');
+      } else {
+        document.getElementById('theme-toggle-switch')?.classList.add('on');
+      }
+    });
+  </script>
+</body>
 </html>

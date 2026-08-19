@@ -90,10 +90,13 @@
         </a>
       </div>
 
-      <button onclick="switchTab('report')" id="sidebar-nav-report" class="sidebar-nav-button" title="報告" style="margin-top: auto; margin-bottom: 1rem;">
-        <svg class="icon-nav" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"/></svg>
-        <span class="sidebar-nav-text">報告</span>
-      </button>
+    <a href="/report" id="sidebar-nav-report" class="sidebar-nav-button" title="報告" style="margin-top: auto; margin-bottom: 1rem;">
+    <svg class="icon-nav" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+        d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"/>
+    </svg>
+    <span class="sidebar-nav-text">報告</span>
+    </a>
     </nav>
 
     <div class="sidebar-footer">
@@ -318,40 +321,6 @@
 
         <div id="classroom-data-list" class="space-y-4">
           <div class="placeholder-text">データを読み込んでいます...</div>
-        </div>
-      </div>
-
-      <div id="page-privacy" class="page-section hidden fade-in space-y-6">
-        <div class="app-card content-card">
-          <h2 class="content-card-title">プライバシーポリシー</h2>
-          <p class="content-card-subtitle">本ポータルサイトにおける個人情報の取扱いについて記載しています。</p>
-          <div class="space-y-4" style="font-size: 0.875rem; color: var(--color-text-body); line-height: 1.6;">
-            <p>当ポータルサイト（以下、「当サイト」）では、利用者（生徒・教職員）のプライバシーを尊重し、個人情報の保護に努めています。</p>
-            <h3 style="color: var(--color-text-primary); font-weight: 600; margin-top: 1rem;">1. ユーザー名簿データの保護について</h3>
-            <p>当サイトに登録されているユーザーの名簿データは、<strong>AES-256-GCM</strong>という堅牢な暗号化方式によって保護されており、外部からの不正な解読は不可能な仕組みとなっています。</p>
-            <h3 style="color: var(--color-text-primary); font-weight: 600; margin-top: 1rem;">2. 外部認証（OAuth2）による取得情報</h3>
-            <p>当サイトでは、GoogleおよびClaudeのOAuth2認証を利用してログインを行います。この際、ユーザーの<strong>「名前」「メールアドレス」「アイコン画像」</strong>を取得しますが、<strong>パスワードは一切取得・保存しません</strong>。</p>
-            <h3 style="color: var(--color-text-primary); font-weight: 600; margin-top: 1rem;">3. チャットデータの取り扱いと復元について</h3>
-            <p>送信されたチャットメッセージは暗号化されて保存されます。原則として安全に管理されますが、管理者が復号鍵を使用してメッセージを復元・閲覧する場合があります。その際は、対象のユーザーに対して事前に（または事後速やかに）通知を行います。</p>
-            <h3 style="color: var(--color-text-primary); font-weight: 600; margin-top: 1rem;">4. 安全管理措置</h3>
-            <p>通信および保存データ全般において、適切な暗号化技術を用いて不正アクセスや情報漏洩の防止に努めます。</p>
-          </div>
-        </div>
-      </div>
-
-      <div id="page-terms" class="page-section hidden fade-in space-y-6">
-        <div class="app-card content-card">
-          <h2 class="content-card-title">利用規約</h2>
-          <p class="content-card-subtitle">当ポータルサイトを利用する上でのルールを定めています。</p>
-          <div class="space-y-4" style="font-size: 0.875rem; color: var(--color-text-body); line-height: 1.6;">
-            <p>本利用規約は、当ポータルサイトを利用するすべてのユーザーに適用されます。</p>
-            <h3 style="color: var(--color-text-primary); font-weight: 600; margin-top: 1rem;">第1条（適用）</h3>
-            <p>ユーザーは、本規約に同意した上で、校内における学習および情報共有の目的に限り本サイトを利用するものとします。</p>
-            <h3 style="color: var(--color-text-primary); font-weight: 600; margin-top: 1rem;">第2条（禁止事項）</h3>
-            <p>他のユーザーになりすます行為、不正アクセス、その他不適切なメッセージ送信やシステムに負荷をかける行為を禁止します。</p>
-            <h3 style="color: var(--color-text-primary); font-weight: 600; margin-top: 1rem;">第3条（免責事項）</h3>
-            <p>当サイトの運営および提供情報の正確性については最善を尽くしますが、システム障害等による損害について運営者は責任を負いません。</p>
-          </div>
         </div>
       </div>
 

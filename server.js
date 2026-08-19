@@ -45,6 +45,7 @@ function safeWriteFileSync(filePath, data) {
 // --- [ファイル・ディレクトリパス設定] ---
 const USERS_FILE = path.join(__dirname, 'users.json');
 const NOTICES_FILE = path.join(__dirname, 'notices.json');
+const CLASSROOM_FILE = path.join(__dirname, 'classroom.json');
 const CHAT_DIR = path.join(__dirname, 'chat');
 const CHAT_LOG_FILE = path.join(__dirname, 'chat.log');
 
@@ -339,43 +340,137 @@ app.get('/logout', (req, res, next) => {
   });
 });
 
+// --- [時間割・行事用ディレクトリ設定] ---
+const DATA_DIR = path.join(__dirname);
+const SCHEDULE_FILE = path.join(DATA_DIR, 'schedule.json');
+const EVENTS_FILE = path.join(DATA_DIR, 'events.json');
+const SETTINGS_FILE = path.join(DATA_DIR, 'settings.json');
+
+// デフォルトデータ作成関数
+function initFiles() {
+  if (!fs.existsSync(SCHEDULE_FILE)) {
+    const defaultSchedule = {
+      "A組": { "月": ["国語","数学","英語","理科","社会","体育"], "火": ["数学","英語","国語","社会","理科","美術"] } // 省略
+    };
+    safeWriteFileSync(SCHEDULE_FILE, defaultSchedule);
+  }
+  if (!fs.existsSync(EVENTS_FILE)) safeWriteFileSync(EVENTS_FILE, []);
+  if (!fs.existsSync(SETTINGS_FILE)) safeWriteFileSync(SETTINGS_FILE, { maintenanceMode: false });
+}
+initFiles();
+
+// --- 時間割 API ---
+app.get('/api/admin/schedule', (req, res) => {
+  if (fs.existsSync(SCHEDULE_FILE)) {
+    res.json(JSON.parse(fs.readFileSync(SCHEDULE_FILE, 'utf8')));
+  } else {
+    res.json({});
+  }
+});
+
+app.post('/api/admin/schedule', (req, res) => {
+  if (!req.user || req.user.role !== 'admin') return res.status(403).json({ error: '権限がありません。' });
+  try {
+    safeWriteFileSync(SCHEDULE_FILE, req.body);
+    io.emit('scheduleUpdated', req.body); // クライアントへリアルタイム通知
+    res.json({ success: true, message: '時間割を更新しました。' });
+  } catch (err) {
+    res.status(500).json({ error: '更新失敗' });
+  }
+});
+
+// --- 行事予定 API ---
+app.get('/api/admin/events', (req, res) => {
+  if (fs.existsSync(EVENTS_FILE)) {
+    res.json(JSON.parse(fs.readFileSync(EVENTS_FILE, 'utf8')));
+  } else {
+    res.json([]);
+  }
+});
+
+app.post('/api/admin/events', (req, res) => {
+  if (!req.user || req.user.role !== 'admin') return res.status(403).json({ error: '権限がありません。' });
+  try {
+    const events = fs.existsSync(EVENTS_FILE) ? JSON.parse(fs.readFileSync(EVENTS_FILE, 'utf8')) : [];
+    const newEvent = { id: Date.now().toString(), ...req.body };
+    events.push(newEvent);
+    events.sort((a, b) => new Date(a.date) - new Date(b.date)); // 日付順にソート
+    safeWriteFileSync(EVENTS_FILE, events);
+    io.emit('eventsUpdated', events);
+    res.json({ success: true, event: newEvent });
+  } catch (err) {
+    res.status(500).json({ error: '追加失敗' });
+  }
+});
+
+app.delete('/api/admin/events/:id', (req, res) => {
+  if (!req.user || req.user.role !== 'admin') return res.status(403).json({ error: '権限がありません。' });
+  try {
+    let events = JSON.parse(fs.readFileSync(EVENTS_FILE, 'utf8'));
+    events = events.filter(e => e.id !== req.params.id);
+    safeWriteFileSync(EVENTS_FILE, events);
+    io.emit('eventsUpdated', events);
+    res.json({ success: true });
+  } catch (err) {
+    res.status(500).json({ error: '削除失敗' });
+  }
+});
+
+// --- システム設定 API ---
+app.post('/api/admin/settings/maintenance', (req, res) => {
+  if (!req.user || req.user.role !== 'admin') return res.status(403).json({ error: '権限がありません。' });
+  try {
+    const settings = JSON.parse(fs.readFileSync(SETTINGS_FILE, 'utf8'));
+    settings.maintenanceMode = req.body.enabled;
+    safeWriteFileSync(SETTINGS_FILE, settings);
+    io.emit('systemSettingsUpdated', settings);
+    res.json({ success: true, maintenanceMode: settings.maintenanceMode });
+  } catch (err) {
+    res.status(500).json({ error: '設定更新失敗' });
+  }
+});
+
 app.get('/index', ensurePageAuthenticated, (req, res) => res.sendFile(path.join(__dirname, 'public', 'index.html')));
 app.get('/terms', ensurePageAuthenticated, (req, res) => res.sendFile(path.join(__dirname, 'public', 'terms.html')));
 app.get('/privacy', ensurePageAuthenticated, (req, res) => res.sendFile(path.join(__dirname, 'public', 'privacy.html')));
 app.get('/dashboard', ensurePageAuthenticated, (req, res) => res.redirect('/index'));
 app.get('/admin', ensureAdminAuthenticated, (req, res) => res.sendFile(path.join(__dirname, 'public', 'admin.html')));
+app.get('/report', ensureAdminAuthenticated, (req, res) => res.sendFile(path.join(__dirname, 'public', 'report.html')));
 
 // --- [Classroom / GAS連携エンドポイント] ---
+// 1. GASからのデータを受け取って classroom.json に保存
 app.post('/api/classroom', (req, res) => {
   try {
-    const { title, content, description, dueDate, receivedAt } = req.body;
-    console.log(`[Classroom/GAS API] Received payload:`, req.body);
+    const { items } = req.body;
+    if (!Array.isArray(items)) {
+      return res.status(400).json({ error: '配列形式のデータが必要です。' });
+    }
 
-    const itemTitle = title || 'Google Classroom 更新';
-    const itemContent = content || description || '新しい投稿がありました。詳細はClassroomを確認してください。';
-    const dateStr = receivedAt ? new Date(receivedAt).toISOString().split('T')[0] : new Date().toISOString().split('T')[0];
+    // 取得データをそのまま classroom.json に上書き保存
+    safeWriteFileSync(CLASSROOM_FILE, items);
+    
+    // 保存完了をSocket.ioで全クライアントへ通知
+    io.emit('classroomUpdated', items);
 
-    const newNotice = {
-      id: Date.now(),
-      title: itemTitle,
-      date: dateStr,
-      priority: 'high',
-      content: itemContent,
-      icon: '🏫',
-      dueDate: dueDate || null
-    };
-
-    noticesDB = loadNoticesDB();
-    noticesDB.unshift(newNotice);
-    saveNoticesDB(noticesDB);
-
-    io.emit('newNotice', newNotice);
-    console.log(`[Classroom/GAS API] Successfully added notice & broadcasted: "${itemTitle}"`);
-
-    res.status(200).json({ status: 'success', message: 'Notice received and broadcasted', notice: newNotice });
+    console.log(`[Classroom Sync] ${items.length} 件のデータを保存しました。`);
+    res.json({ success: true, count: items.length });
   } catch (err) {
-    console.error('[Classroom/GAS API Error]:', err);
-    res.status(500).json({ error: 'Internal Server Error', message: err.message });
+    console.error('Classroomデータ保存エラー:', err);
+    res.status(500).json({ error: 'ファイルの書き込みに失敗しました。' });
+  }
+});
+
+// 2. 保存されている classroom.json をそのまま返す
+app.get('/api/classroom', (req, res) => {
+  try {
+    if (fs.existsSync(CLASSROOM_FILE)) {
+      const data = JSON.parse(fs.readFileSync(CLASSROOM_FILE, 'utf8'));
+      res.json(data);
+    } else {
+      res.json([]);
+    }
+  } catch (err) {
+    res.status(500).json({ error: 'データの読み込みに失敗しました。' });
   }
 });
 
