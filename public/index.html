@@ -343,24 +343,19 @@
 
       <!-- Classroom ページ -->
       <div id="page-classroom" class="page-section hidden fade-in space-y-6">
-        <div class="welcome-banner">
-          <div class="welcome-banner-glow"></div>
-          <div class="welcome-banner-row">
-            <div>
-              <p class="welcome-date-text">Google Classroom 連携</p>
-              <h2 class="welcome-heading-text">クラス投稿・課題一覧</h2>
-            </div>
-            <button onclick="fetchAndRenderClassroom()" class="button-primary">
-              🔄 データを再読み込み
-            </button>
-          </div>
-        </div>
-
         <div class="schedule-day-tabs" style="margin-bottom: 1rem;">
-          <button id="cr-filter-all" onclick="filterClassroomData('all')" class="schedule-day-button active">すべて</button>
-          <button id="cr-filter-work" onclick="filterClassroomData('courseWork')" class="schedule-day-button">📝 課題</button>
-          <button id="cr-filter-announce" onclick="filterClassroomData('announcement')" class="schedule-day-button">📢 お知らせ</button>
-          <button id="cr-filter-material" onclick="filterClassroomData('material')" class="schedule-day-button">📚 資料・添付</button>
+          <button id="cr-filter-work" onclick="filterClassroomData('courseWork')" class="schedule-day-button active flex items-center gap-1">
+            <svg class="icon-sm" style="width: 1.1em; height: 1.1em; display: inline-block;" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/></svg>
+            課題
+          </button>
+          <button id="cr-filter-announce" onclick="filterClassroomData('announcement')" class="schedule-day-button flex items-center gap-1">
+            <svg class="icon-sm" style="width: 1.1em; height: 1.1em; display: inline-block;" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5.882V19.24a1.76 1.76 0 01-3.417.592l-2.147-6.15M18 13a3 3 0 100-6M5.436 13.683A2.001 2.001 0 013 12c0-.89.584-1.65 1.4-1.916l4.288-1.373a1.998 1.998 0 011.085-.027m0 0a2.001 2.001 0 011.66 1.258m-.001.001A2.001 2.001 0 0111 11c.21 0 .412.032.602.093"/></svg>
+            お知らせ
+          </button>
+          <button id="cr-filter-material" onclick="filterClassroomData('material')" class="schedule-day-button flex items-center gap-1">
+            <svg class="icon-sm" style="width: 1.1em; height: 1.1em; display: inline-block;" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253"/></svg>
+            資料・添付
+          </button>
         </div>
 
         <div id="classroom-data-list" class="space-y-4">
@@ -895,7 +890,7 @@
 
     // Classroom 連携処理群
     let currentClassroomItems = [];
-    let currentFilterType = 'all';
+    let currentFilterType = 'courseWork'; // デフォルトを課題に変更
 
     async function fetchAndRenderClassroom() {
       const container = document.getElementById('classroom-data-list');
@@ -907,13 +902,9 @@
         const res = await fetch('/api/classroom').catch(() => ({ ok: false }));
         if (res.ok) {
           const data = await res.json();
-          // 配列形式と { items: [...] } 形式の両方に対応
           currentClassroomItems = Array.isArray(data) ? data : (data.items || []);
         } else {
-          // ダミーデータフォールバック
-          currentClassroomItems = [
-            /* 既存のダミーデータ */
-          ];
+          currentClassroomItems = [];
         }
         renderClassroomData();
       } catch (err) {
@@ -924,53 +915,49 @@
 
     function filterClassroomData(type) {
       currentFilterType = type;
-      ['all', 'work', 'announce', 'material'].forEach(t => {
+      ['work', 'announce', 'material'].forEach(t => {
         const btn = document.getElementById(`cr-filter-${t}`);
         if(btn) btn.classList.remove('active');
       });
-      const activeMap = { 'all':'all', 'courseWork':'work', 'announcement':'announce', 'material':'material' };
+      const activeMap = { 'courseWork':'work', 'announcement':'announce', 'material':'material' };
       const activeBtn = document.getElementById(`cr-filter-${activeMap[type]}`);
       if(activeBtn) activeBtn.classList.add('active');
 
       renderClassroomData();
     }
 
-function renderClassroomData() {
+    function renderClassroomData() {
       const container = document.getElementById('classroom-data-list');
       if (!container) return;
 
-      let items = currentClassroomItems;
-      if (currentFilterType !== 'all') {
-        items = items.filter(i => i.type === currentFilterType);
-      }
+      let items = currentClassroomItems.filter(i => i.type === currentFilterType);
 
       if (!items || items.length === 0) {
         container.innerHTML = '<div class="empty-state-text">該当する情報がありません。</div>';
         return;
       }
 
-      const typeBadgeMap = {
-        courseWork: { text: '📝 課題', style: 'background: rgba(239, 68, 68, 0.15); color: #f87171;' },
-        announcement: { text: '📢 お知らせ', style: 'background: rgba(59, 130, 246, 0.15); color: #60a5fa;' },
-        material: { text: '📚 資料', style: 'background: rgba(16, 185, 129, 0.15); color: #34d399;' }
-      };
-
-      // 添付画像・リンク種別の判定ヘルパー
+      // 添付画像の種別に応じたSVGアイコンを返すヘルパー
       const getMaterialIcon = (m) => {
         const type = (m.type || '').toLowerCase();
         const url = (m.url || '').toLowerCase();
-        if (type === 'youtube' || url.includes('youtube.com') || url.includes('youtu.be')) return '🎥';
-        if (type === 'drivefile' || type === 'file' || url.includes('drive.google.com')) return '📄';
-        if (type === 'form' || url.includes('docs.google.com/forms')) return '📋';
-        return '🔗';
+        
+        if (type === 'youtube' || url.includes('youtube.com') || url.includes('youtu.be')) {
+          return `<svg style="width: 1rem; height: 1rem; flex-shrink: 0;" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 10l4.553-2.276A1 1 0 0121 8.618v6.764a1 1 0 01-1.447.894L15 14M5 18h8a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v8a2 2 0 002 2z"/></svg>`;
+        }
+        if (type === 'drivefile' || type === 'file' || url.includes('drive.google.com')) {
+          return `<svg style="width: 1rem; height: 1rem; flex-shrink: 0;" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 21h10a2 2 0 002-2V9.414a1 1 0 00-.293-.707l-5.414-5.414A1 1 0 0012.586 3H7a2 2 0 00-2 2v14a2 2 0 002 2z"/></svg>`;
+        }
+        if (type === 'form' || url.includes('docs.google.com/forms')) {
+          return `<svg style="width: 1rem; height: 1rem; flex-shrink: 0;" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"/></svg>`;
+        }
+        return `<svg style="width: 1rem; height: 1rem; flex-shrink: 0;" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13.828 10.172a4 4 0 00-5.656 0l-4 4a4 4 0 105.656 5.656l1.102-1.101m-.758-4.899a4 4 0 005.656 0l4-4a4 4 0 00-5.656-5.656l-1.1 1.1"/></svg>`;
       };
 
       container.innerHTML = items.map(item => {
-        const badge = typeBadgeMap[item.type] || { text: '📌 その他', style: 'background: rgba(156, 163, 175, 0.15); color: #9ca3af;' };
         const createdDate = item.creationTime ? new Date(item.creationTime).toLocaleDateString('ja-JP', { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' }) : '';
         const dueDate = item.dueDate ? new Date(item.dueDate).toLocaleDateString('ja-JP', { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' }) : null;
 
-        // 投稿者アイコンと名前の描画
         const authorAvatar = item.authorPhotoUrl
           ? `<img src="${escapeHtml(item.authorPhotoUrl)}" alt="${escapeHtml(item.author || 'User')}" style="width: 22px; height: 22px; border-radius: 50%; object-fit: cover; flex-shrink: 0;" onerror="this.style.display='none'" />`
           : (item.author ? `<div style="width: 22px; height: 22px; border-radius: 50%; background: var(--color-border); display: inline-flex; align-items: center; justify-content: center; font-size: 0.6875rem; font-weight: 600; flex-shrink: 0; color: var(--color-text-secondary);">${escapeHtml(item.author.charAt(0))}</div>` : '');
@@ -982,20 +969,16 @@ function renderClassroomData() {
           </div>
         ` : '';
 
-        // 添付コンテンツ（動画・ファイル・リンク・フォーム）の個別レンダリング
         const materialsHtml = (item.materials && item.materials.length > 0) ? `
           <div style="margin-top: 0.75rem; border-top: 1px dashed var(--color-border); padding-top: 0.5rem;">
             <span style="font-size: 0.75rem; color: var(--color-text-muted); font-weight: 600;">添付資料:</span>
             <div style="display: flex; flex-wrap: wrap; gap: 0.5rem; margin-top: 0.25rem;">
-              ${item.materials.map(m => {
-                const icon = getMaterialIcon(m);
-                return `
-                  <a href="${escapeHtml(m.url)}" target="_blank" rel="noopener noreferrer" style="font-size: 0.8125rem; background: var(--color-bg); padding: 0.375rem 0.625rem; border-radius: 0.375rem; border: 1px solid var(--color-border); color: var(--color-text-primary); text-decoration: none; display: inline-flex; align-items: center; gap: 0.375rem; max-width: 100%;" class="truncate">
-                    <span>${icon}</span>
-                    <span class="truncate">${escapeHtml(m.title || 'リンクを開く')}</span>
-                  </a>
-                `;
-              }).join('')}
+              ${item.materials.map(m => `
+                <a href="${escapeHtml(m.url)}" target="_blank" rel="noopener noreferrer" style="font-size: 0.8125rem; background: var(--color-bg); padding: 0.375rem 0.625rem; border-radius: 0.375rem; border: 1px solid var(--color-border); color: var(--color-text-primary); text-decoration: none; display: inline-flex; align-items: center; gap: 0.375rem; max-width: 100%;" class="truncate">
+                  ${getMaterialIcon(m)}
+                  <span class="truncate">${escapeHtml(m.title || 'リンクを開く')}</span>
+                </a>
+              `).join('')}
             </div>
           </div>
         ` : '';
@@ -1003,12 +986,16 @@ function renderClassroomData() {
         return `
           <div class="notice-card" style="position: relative;">
             <div class="flex items-center justify-between" style="margin-bottom: 0.5rem;">
-              <span class="status-badge" style="${badge.style}">${badge.text}</span>
-              <span class="notice-card-date">${escapeHtml(item.courseName || '')} ・ ${createdDate}</span>
+              <span class="notice-card-date">${escapeHtml(item.courseName || '')}${item.courseName ? ' ・ ' : ''}${createdDate}</span>
             </div>
             ${authorInfoHtml}
             <h4 class="notice-card-title" style="margin-bottom: 0.5rem;">${escapeHtml(item.title || '無題')}</h4>
-            ${dueDate ? `<div style="font-size: 0.8125rem; color: #f87171; font-weight: 600; margin-bottom: 0.5rem;">⏰ 提出期限: ${dueDate}</div>` : ''}
+            ${dueDate ? `
+              <div style="display: flex; align-items: center; gap: 0.25rem; font-size: 0.8125rem; color: #f87171; font-weight: 600; margin-bottom: 0.5rem;">
+                <svg style="width: 1rem; height: 1rem;" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+                提出期限: ${dueDate}
+              </div>
+            ` : ''}
             <p class="notice-card-body" style="white-space: pre-wrap; word-break: break-word;">${linkify(item.description)}</p>
             ${materialsHtml}
             ${item.alternateLink ? `
