@@ -10,6 +10,40 @@
   <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" />
   <script src="/socket.io/socket.io.js"></script>
   
+  <style>
+    /* CSS崩れの補正・インライン調整 */
+    .user-info-header {
+      display: flex;
+      align-items: center;
+      gap: 0.75rem;
+    }
+    .popup-user-avatar {
+      width: 2.25rem;
+      height: 2.25rem;
+      border-radius: 9999px;
+      object-fit: cover;
+      border: 1px solid var(--color-border);
+      flex-shrink: 0;
+    }
+    .user-info-text {
+      flex: 1;
+      min-width: 0;
+    }
+    .sidebar-avatar-image,
+    .mobile-avatar-image {
+      object-fit: cover;
+      border-radius: 9999px;
+    }
+    /* チャット入力欄等の崩れ防止 */
+    .chat-input-wrapper {
+      display: flex;
+      align-items: center;
+    }
+    .chat-text-input {
+      box-sizing: border-box;
+    }
+  </style>
+
   <script>
     (function() {
       const savedTheme = localStorage.getItem('namiki-theme');
@@ -100,8 +134,11 @@
       
       <div id="account-popup-menu" class="account-popup-menu">
         <div class="user-info-header" style="padding: 0.5rem 0.75rem; border-bottom: 1px solid var(--color-border); margin-bottom: 0.5rem;">
-          <span id="popup-user-name" style="display: block; font-weight: 600; color: var(--color-text-primary); font-size: 0.875rem;">読み込み中...</span>
-          <span id="popup-user-email" style="display: block; font-size: 0.75rem; color: var(--color-text-muted); margin-top: 0.125rem;">読み込み中...</span>
+          <img id="popup-user-avatar" src="https://via.placeholder.com/40?text=U" alt="User Avatar" class="popup-user-avatar" onerror="this.src='https://via.placeholder.com/40?text=U'" />
+          <div class="user-info-text">
+            <span id="popup-user-name" style="display: block; font-weight: 600; color: var(--color-text-primary); font-size: 0.875rem;" class="truncate">読み込み中...</span>
+            <span id="popup-user-email" style="display: block; font-size: 0.75rem; color: var(--color-text-muted); margin-top: 0.125rem;" class="truncate">読み込み中...</span>
+          </div>
         </div>
 
         <button onclick="handleAdminSettings()" class="account-popup-item">
@@ -131,7 +168,7 @@
       </div>
 
       <div id="sidebar-user-toggle" class="sidebar-user-row" onclick="toggleAccountMenu(event)" title="ユーザーメニュー">
-        <img id="sidebar-user-avatar" src="https://placehold.co/40x40/333/fff?text=U" alt="Avatar" class="sidebar-avatar-image" onerror="this.src='https://placehold.co/40x40/333/fff?text=U'" />
+        <img id="sidebar-user-avatar" src="https://via.placeholder.com/40?text=U" alt="Avatar" class="sidebar-avatar-image" onerror="this.src='https://via.placeholder.com/40?text=U'" />
         <div class="flex-1 min-w-0 sidebar-user-info">
           <p id="sidebar-user-id" class="text-xs sidebar-user-id-text truncate">読み込み中...</p>
           <p id="sidebar-user-name" class="text-sm truncate sidebar-user-name-text">読み込み中...</p>
@@ -153,7 +190,7 @@
         <button onclick="toggleTheme()" style="background:none; border:none; cursor:pointer; color:var(--color-text-secondary);" title="モード切替">
           <svg class="icon-sm" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 3v1m0 16v1m9-9h-1M4 12H3m15.364 6.364l-.707-.707M6.343 6.343l-.707-.707m12.728 0l-.707.707M6.343 17.657l-.707.707M16 12a4 4 0 11-8 0 4 4 0 018 0z"/></svg>
         </button>
-        <img id="mobile-user-avatar" src="https://placehold.co/32x32/333/fff?text=U" class="mobile-avatar-image" />
+        <img id="mobile-user-avatar" src="https://via.placeholder.com/32?text=U" alt="Avatar" class="mobile-avatar-image" onerror="this.src='https://via.placeholder.com/32?text=U'" />
       </div>
     </header>
 
@@ -630,10 +667,17 @@
         const popupEmail = document.getElementById('popup-user-email');
         if (popupEmail) popupEmail.textContent = p.email || 'メールアドレス未設定';
 
-        if (p.picture && p.picture !== 'admin.png') {
-          document.getElementById('sidebar-user-avatar').src = p.picture;
-          document.getElementById('mobile-user-avatar').src = p.picture;
-        }
+        const userAvatar = (p.picture && p.picture !== 'admin.png') ? p.picture : `https://via.placeholder.com/40/3b82f6/ffffff?text=${encodeURIComponent(p.name ? p.name.charAt(0) : 'U')}`;
+        
+        const sidebarAvatar = document.getElementById('sidebar-user-avatar');
+        if (sidebarAvatar) sidebarAvatar.src = userAvatar;
+
+        const mobileAvatar = document.getElementById('mobile-user-avatar');
+        if (mobileAvatar) mobileAvatar.src = userAvatar;
+
+        const popupAvatar = document.getElementById('popup-user-avatar');
+        if (popupAvatar) popupAvatar.src = userAvatar;
+
         document.getElementById('dashboard-welcome-heading').textContent = `ようこそ、${p.name || 'ユーザー'} さん`;
         document.getElementById('dashboard-user-class').textContent = p.userClass || '未設定';
       }
@@ -687,13 +731,13 @@
 
     function renderDMUsers() {
       const dmList = [
-        { id: 'u1', name: '佐藤 先生', avatar: 'https://placehold.co/32x32/444/fff?text=S' },
-        { id: 'u2', name: '田中 太郎', avatar: 'https://placehold.co/32x32/555/fff?text=T' },
+        { id: 'u1', name: '佐藤 先生', avatar: 'https://via.placeholder.com/32/444/fff?text=S' },
+        { id: 'u2', name: '田中 太郎', avatar: 'https://via.placeholder.com/32/555/fff?text=T' },
       ];
       const container = document.getElementById('chat-dm-list');
       container.innerHTML = dmList.map(u => `
         <button onclick="switchChannel('dm_${u.id}', '${u.name}')" id="dm-button-${u.id}" class="channel-button dm-user-button">
-          <img src="${u.avatar}" class="dm-user-avatar" />
+          <img src="${u.avatar}" class="dm-user-avatar" alt="User Avatar" onerror="this.src='https://via.placeholder.com/32?text=U'" />
           <span class="truncate">${u.name}</span>
         </button>
       `).join('');
@@ -802,12 +846,12 @@
       const decryptedText = await decryptData(msg.encryptedText);
       const isSelf = msg.sender === (globalData.profile?.name || 'あなた');
       const timeStr = msg.timestamp ? new Date(msg.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : '12:00';
-      const avatarSrc = isSelf ? (globalData.profile?.picture || 'https://placehold.co/32x32/333/fff?text=Me') : (msg.avatar || 'https://placehold.co/32x32/555/fff?text=U');
+      const avatarSrc = isSelf ? (globalData.profile?.picture || 'https://via.placeholder.com/32/333/fff?text=Me') : (msg.avatar || 'https://via.placeholder.com/32/555/fff?text=U');
 
       const msgDiv = document.createElement('div');
       msgDiv.className = `chat-message ${isSelf ? 'chat-message--self' : 'chat-message--other'}`;
       msgDiv.innerHTML = `
-        <img src="${escapeHtml(avatarSrc)}" class="chat-message-avatar" />
+        <img src="${escapeHtml(avatarSrc)}" class="chat-message-avatar" alt="Avatar" onerror="this.src='https://via.placeholder.com/32?text=U'" />
         <div class="chat-message-content ${isSelf ? 'chat-message-content--self' : 'chat-message-content--other'}">
           ${!isSelf ? `<span class="chat-message-sender">${escapeHtml(msg.sender)}</span>` : ''}
           <div class="chat-bubble ${isSelf ? 'chat-bubble--self' : 'chat-bubble--other'}">
@@ -825,9 +869,7 @@
       return String(str).replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;").replace(/'/g, "&#039;");
     }
 
-    // ==========================================
-    // Classroom 連携処理群 (最新JSONフォーマット対応)
-    // ==========================================
+    // Classroom 連携処理群
     let currentClassroomItems = [];
     let currentFilterType = 'all';
 
@@ -867,7 +909,6 @@
       renderClassroomCards(currentClassroomItems, currentFilterType);
     }
 
-    // Classroom のカード描画関数
     function renderClassroomCards(items, filter) {
       const container = document.getElementById('classroom-data-list');
       if (!container) return;
@@ -905,7 +946,6 @@
           icon = '📚';
         }
 
-        // 提出期限（dueDate）のフォーマット
         let dueDateText = '';
         if (item.dueDate) {
           if (typeof item.dueDate === 'object' && item.dueDate.year) {
@@ -915,14 +955,12 @@
           }
         }
 
-        // 投稿日時（creationTime）の整形
         let formattedDate = '';
         if (item.creationTime) {
           const d = new Date(item.creationTime);
           formattedDate = `${d.getFullYear()}/${d.getMonth() + 1}/${d.getDate()} ${String(d.getHours()).padStart(2, '0')}:${String(d.getMinutes()).padStart(2, '0')}`;
         }
 
-        // 添付ファイル（attachments）の表示生成
         let attachmentsHtml = '';
         if (Array.isArray(item.attachments) && item.attachments.length > 0) {
           const links = item.attachments.map(att => {
