@@ -22,9 +22,6 @@
       }
     })();
   </script>
-
-  <style>
-  </style>
 </head>
 <body>
 
@@ -298,6 +295,7 @@
         </div>
       </div>
 
+      <!-- Classroom ページを全面刷新 -->
       <div id="page-classroom" class="page-section hidden fade-in space-y-6">
         <div class="welcome-banner">
           <div class="welcome-banner-glow"></div>
@@ -429,12 +427,14 @@
   </div>
 
   <script>
+    // Classroom データをグローバルに分離
     let globalData = {
       profile: null,
       schedule: [],
       notices: [],
       links: [],
-      calendar: []
+      calendar: [],
+      classroom: [] 
     };
 
     let currentChannel = 'grade';
@@ -451,7 +451,6 @@
       }
     }
 
-    // メニュー外をクリックでポップアップを閉じる
     document.addEventListener('click', (event) => {
       const menu = document.getElementById('account-popup-menu');
       const toggleBtn = document.getElementById('sidebar-user-toggle');
@@ -462,7 +461,6 @@
       }
     });
 
-    // テーマの初期化とトグルスイッチUIの同期
     function initThemeToggle() {
       const toggleSwitch = document.getElementById('theme-toggle-switch');
       if(toggleSwitch) {
@@ -494,15 +492,6 @@
     function handleAdminSettings() { window.location.href = '/admin'; }
     function handlePersonalSettings() { alert('個人用設定は開発中です。'); }
     function handleAttachment() { alert('ファイルの添付機能は現在準備中です。'); }
-
-    async function triggerClassroomSync() {
-      const logOutput = document.getElementById('classroom-log-output');
-      logOutput.textContent = 'Classroomデータ同期中...';
-      setTimeout(() => {
-        const mockJson = { status: "success", message: "Classroomデータの同期が正常に完了しました。", lastSync: new Date().toISOString() };
-        logOutput.textContent = JSON.stringify(mockJson, null, 2);
-      }, 800);
-    }
 
     // ==========================================
     // 暗号化処理 (AES-GCM)
@@ -565,6 +554,8 @@
     // ==========================================
     // UI制御とデータ処理
     // ==========================================
+    
+    // タブ切り替え処理の統合（Classroomデータ取得連動）
     function switchTab(tabId) {
       document.querySelectorAll('.page-section').forEach(el => el.classList.add('hidden'));
       document.querySelectorAll('.sidebar-nav-button').forEach(btn => btn.classList.remove('active'));
@@ -582,8 +573,14 @@
         targetBtnM.scrollIntoView({ behavior: 'smooth', block: 'nearest', inline: 'center' });
       }
 
+      // チャット用
       if (tabId === 'chat') {
         socket.emit('joinRoom', currentChannel);
+      }
+      
+      // Classroom タブが開かれたら最新データをフェッチ
+      if (tabId === 'classroom') {
+        fetchAndRenderClassroom();
       }
     }
 
@@ -607,36 +604,28 @@
           return;
         }
 
-        // プロフィールの取得 (email等の情報がAPIから返ってくると想定)
         if (profileRes.ok) globalData.profile = await profileRes.json();
         else globalData.profile = { name: '並木 太郎', email: 'namiki.taro@example.com', id: '180001', role: 'student', userClass: '3-A', picture: '' };
 
         if (scheduleRes.ok) globalData.schedule = await scheduleRes.json();
         else globalData.schedule = [
           { id: 1, day: '月', time: '9:00-9:50', subject: '数学特講', room: 'A-102', teacher: '田中先生' },
-          { id: 2, day: '月', time: '10:00-10:50', subject: '英語表現', room: 'A-103', teacher: 'Smith先生' },
-          { id: 3, day: '月', time: '11:00-11:50', subject: '物理', room: '理科室1', teacher: '鈴木先生' },
-          { id: 4, day: '月', time: '13:00-13:50', subject: '現代文', room: 'A-102', teacher: '佐藤先生' }
+          { id: 2, day: '月', time: '10:00-10:50', subject: '英語表現', room: 'A-103', teacher: 'Smith先生' }
         ];
 
         if (noticesRes.ok) globalData.notices = await noticesRes.json();
         else globalData.notices = [
-          { id: 1, title: 'システムメンテナンスのお知らせ', date: '2026-08-20', content: '8月20日22:00より、サーバーの定期メンテナンスを実施します。', priority: 'high' },
-          { id: 2, title: '第2回定期考査の時間割発表', date: '2026-08-18', content: '来月実施される定期考査の時間割が公開されました。', priority: 'normal' }
+          { id: 1, title: 'システムメンテナンスのお知らせ', date: '2026-08-20', content: '8月20日22:00より、サーバーの定期メンテナンスを実施します。', priority: 'high' }
         ];
 
         if (linksRes.ok) globalData.links = await linksRes.json();
         else globalData.links = [
-          { id: 1, name: '学校LMSポータル', url: 'https://lms.school.edu', description: '授業資料やレポート提出用システム' },
-          { id: 2, name: 'Google Classroom', url: 'https://classroom.google.com', description: '課題の管理と連絡事項の確認' },
-          { id: 3, name: 'デジタル図書館', url: 'https://library.school.edu', description: '電子書籍・論文検索システム' }
+          { id: 1, name: 'Google Classroom', url: 'https://classroom.google.com', description: '課題の管理と連絡事項の確認' }
         ];
 
         globalData.calendar = [
           { date: '2026-09-01', title: '第2学期始業式' },
-          { date: '2026-09-15', title: '並木祭（文化祭）' },
-          { date: '2026-09-16', title: '並木祭（体育祭）' },
-          { date: '2026-10-05', title: '第2回定期考査開始' }
+          { date: '2026-09-15', title: '並木祭（文化祭）' }
         ];
 
         renderAll();
@@ -649,12 +638,10 @@
       if (globalData.profile) {
         const p = globalData.profile;
         
-        // 学籍番号の取得エラー対策 (空やUnknownの場合のフォールバック)
         const studentIdText = (p.id && p.id !== 'Unknown') ? p.id : '学籍番号未設定';
         document.getElementById('sidebar-user-id').textContent = `${studentIdText}`;
         document.getElementById('sidebar-user-name').textContent = p.name || 'ユーザー';
         
-        // ポップアップメニュー内のユーザー情報反映
         const popupName = document.getElementById('popup-user-name');
         if (popupName) popupName.textContent = p.name || 'ユーザー';
         const popupEmail = document.getElementById('popup-user-email');
@@ -854,10 +841,14 @@
       if (!str) return '';
       return String(str).replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;").replace(/'/g, "&#039;");
     }
+
+    // ==========================================
+    // Classroom 連携処理群 (全面刷新)
+    // ==========================================
     let currentClassroomItems = [];
     let currentFilterType = 'all';
 
-    // JSON（/api/notices または /api/classroom）から Classroom データを取得して描画
+    // 実際の /api/classroom からデータを取得して描画する
     async function fetchAndRenderClassroom() {
       const container = document.getElementById('classroom-data-list');
       if (!container) return;
@@ -865,13 +856,13 @@
       container.innerHTML = '<div class="placeholder-text">最新データを取得中...</div>';
 
       try {
-        // notices API からデータを取得
-        const res = await fetch('/api/notices');
+        // server_2.jsで定義したエンドポイントを叩く
+        const res = await fetch('/api/classroom');
         if (!res.ok) throw new Error('データの取得に失敗しました');
         const data = await res.json();
 
-        // グローバルデータも更新
-        globalData.notices = data;
+        // データをグローバルに保持
+        globalData.classroom = data;
         currentClassroomItems = data;
 
         renderClassroomCards(currentClassroomItems, currentFilterType);
@@ -887,7 +878,8 @@
 
       // ボタンの active 状態更新
       ['all', 'courseWork', 'announcement', 'material'].forEach(t => {
-        const btn = document.getElementById(`cr-filter-${t === 'courseWork' ? 'work' : t === 'announcement' ? 'announce' : t}`);
+        const btnId = `cr-filter-${t === 'courseWork' ? 'work' : t === 'announcement' ? 'announce' : t === 'material' ? 'material' : 'all'}`;
+        const btn = document.getElementById(btnId);
         if (btn) {
           if (t === type) btn.classList.add('active');
           else btn.classList.remove('active');
@@ -897,10 +889,15 @@
       renderClassroomCards(currentClassroomItems, currentFilterType);
     }
 
-    // カードの描画関数
+    // Classroom のカード描画関数
     function renderClassroomCards(items, filter) {
       const container = document.getElementById('classroom-data-list');
       if (!container) return;
+
+      if (!Array.isArray(items)) {
+        container.innerHTML = `<div class="empty-state-text">データが正しい配列形式ではありません。</div>`;
+        return;
+      }
 
       // タイプ別にフィルタリング
       const filtered = items.filter(item => {
@@ -914,7 +911,6 @@
       }
 
       container.innerHTML = filtered.map(item => {
-        // アイコン & バッジの色分け
         let badgeClass = 'rgba(59, 130, 246, 0.1)';
         let badgeColor = 'var(--color-accent-blue-light)';
         let typeLabel = 'お知らせ';
@@ -956,7 +952,7 @@
             </div>
 
             <h3 class="notice-card-title" style="font-size: 1.05rem; margin-bottom: 0.5rem; color: var(--color-text-primary);">
-              ${escapeHtml(item.title)}
+              ${escapeHtml(item.title || '無題')}
             </h3>
 
             <div class="notice-card-body" style="white-space: pre-wrap; line-height: 1.5; margin-bottom: 0.75rem;">
@@ -975,28 +971,22 @@
       }).join('');
     }
 
-    // 画面切り替え（switchTab）に連携
-    // 既存の switchTab 関数内の switch 文へ追加・調整してください
-    const originalSwitchTab = window.switchTab;
-    window.switchTab = function(tabName) {
-      if (typeof originalSwitchTab === 'function') originalSwitchTab(tabName);
-      
-      if (tabName === 'classroom') {
-        fetchAndRenderClassroom();
-      }
-    };
-
-    // Socket.io リアルタイム更新時も自動描画
+    // Socket.io リアルタイム更新時（GASからのPOSTが完了した時）に画面も更新する
     if (typeof socket !== 'undefined') {
-      socket.on('allNoticesUpdated', (updatedData) => {
+      socket.on('classroomUpdated', (updatedData) => {
+        globalData.classroom = updatedData;
         currentClassroomItems = updatedData;
-        renderClassroomCards(currentClassroomItems, currentFilterType);
+        // 開いているときだけ自動再描画
+        if (!document.getElementById('page-classroom').classList.contains('hidden')) {
+          renderClassroomCards(currentClassroomItems, currentFilterType);
+        }
       });
     }
+
     window.addEventListener('DOMContentLoaded', () => {
       initDateStr();
       loadDashboardData();
-      initThemeToggle(); // トグルボタンの初期化
+      initThemeToggle();
     });
   </script>
 </body>
