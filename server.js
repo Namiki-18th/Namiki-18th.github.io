@@ -647,9 +647,90 @@ app.post('/api/admin/user/:email', ensureAdminAuthenticated, (req, res) => {
   }
 });
 
-app.use((req, res) => {
-  res.status(404).send('404 Not Found');
+// メンテナンスモードの判定ミドルウェア
+function checkMaintenanceMode(req, res, next) {
+  try {
+    if (fs.existsSync(SETTINGS_FILE)) {
+      const settings = JSON.parse(fs.readFileSync(SETTINGS_FILE, 'utf8'));
+      if (settings.maintenanceMode) {
+        // 管理者、API通信、offlineページ自体へのアクセスは除外
+        const isAdmin = req.user && req.user.role === 'admin';
+        const isApiOrAuth = req.path === '/offline' || req.path.startsWith('/api/') || req.path.startsWith('/auth/');
+        
+        if (!isAdmin && !isApiOrAuth) {
+          return res.redirect('/offline');
+        }
+      }
+    }
+  } catch (err) {
+    console.error('[System] メンテナンス状態の確認エラー', err);
+  }
+  next();
+}
+
+// app.use(checkAccountStatus); などのアクセス制御ミドルウェアの後に配置
+app.use(checkMaintenanceMode);
+
+// オフラインページのルートを追加
+app.get('/offline', (req, res) => res.sendFile(path.join(__dirname, 'public', 'offline.html')));
+
+// server.js に追加
+app.get('/teapot', (req, res) => {
+  res.status(418).sendFile(path.join(__dirname, 'public', 'error/418.html'));
 });
+
+// --- [1. すべての未定義ルートをキャッチ (404)] ---
+// 存在しないURLにアクセスされた場合、404エラーを作って次の処理に投げます
+app.use((req, res, next) => {
+  const err = new Error('指定されたページが見つかりません。');
+  err.status = 404;
+  next(err); 
+});
+
+// --- [2. すべてのエラーをまとめて処理 (Catch-all)] ---
+// 404だけでなく、プログラム内部で発生した400, 401, 403, 500などの全てのエラーがここに来ます
+app.use((err, req, res, next) => {
+  // エラーにステータスコードがない場合は、500(サーバー内部エラー)として扱う
+  const status = err.status || err.statusCode || 500;
+  console.error(`[System Error - ${status}]`, err.stack || err.message);
+
+  // APIへのリクエストだった場合はJSONでエラーを返す
+  if (req.xhr || req.path.startsWith('/api/')) {
+    return res.status(status).json({ 
+      error: status === 404 ? 'Not Found' : 'System Error', 
+      message: err.message || 'エラーが発生しました。' 
+    });
+  }
+
+  // ステータスコードと同名のHTMLファイル（例: 403.html, 404.html, 500.html）を探す
+  const specificErrorPage = path.join(__dirname, 'public', `error/${status}.html`);
+
+  if (fs.existsSync(specificErrorPage)) {
+    // もし 403.html などの専用ページが存在すれば、それを表示
+    res.status(status).sendFile(specificErrorPage);
+  } else {
+    // 専用ページがないエラー（例: 418など）は、汎用の error.html を表示
+    res.status(status).sendFile(path.join(__dirname, 'public', 'error/error.html'));
+  }
+});
+
+
+// --- [3. サーバークラッシュを防ぐ (Node.jsレベルの保護)] ---
+// try-catchで拾いきれなかった予期せぬエラーでサーバーが完全停止するのを防ぎます
+process.on('uncaughtException', (err) => {
+  console.error('[Fatal Error] 捕捉されなかった例外:', err);
+});
+
+process.on('unhandledRejection', (reason, promise) => {
+  console.error('[Fatal Error] 処理されなかったPromise拒否:', reason);
+});
+
+// サーバー起動
+server.listen(port, () => {
+  console.log(`[Server] Server is running at http://localhost:${port}`);
+});
+
+module.exports = { app, server };
 
 // サーバー起動
 server.listen(port, () => {

@@ -214,6 +214,16 @@
           </button>
           <pre id="admin-sync-log" style="margin-top:1rem; padding:1rem; background:var(--color-bg); border:1px solid var(--color-border); border-radius:0.5rem; font-size:0.75rem; color:var(--color-text-secondary); overflow-x:auto;">ログ待ち...</pre>
         </div>
+        <div class="app-card status-card">
+          <h3 class="status-card-title">🛠 メンテナンスモード</h3>
+          <p class="content-card-subtitle">有効にすると、管理者以外の一般ユーザーはすべて /offline に転送されます。</p>
+          <div style="margin-top:1rem;">
+            <label style="display:flex; align-items:center; gap:0.5rem; cursor:pointer;">
+              <input type="checkbox" id="maintenance-toggle" onchange="toggleMaintenanceMode(this.checked)" style="transform: scale(1.2);">
+              <span style="font-size:0.875rem; font-weight:600;">メンテナンスモードを有効にする</span>
+            </label>
+          </div>
+        </div>
       </div>
 
       <footer class="site-footer">
@@ -344,6 +354,27 @@
           </tr>
         `;
       }).join('');
+    }
+    async function toggleMaintenanceMode(enabled) {
+      if(!confirm(`メンテナンスモードを${enabled ? '有効' : '無効'}にしますか？`)) {
+        document.getElementById('maintenance-toggle').checked = !enabled;
+        return;
+      }
+      try {
+        const res = await fetch('/api/admin/settings/maintenance', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ enabled })
+        });
+        if (res.ok) {
+          alert('設定を更新しました。');
+        } else {
+          throw new Error('更新失敗');
+        }
+      } catch (err) {
+        alert('通信エラーが発生しました。');
+        document.getElementById('maintenance-toggle').checked = !enabled;
+      }
     }
 
     async function saveUser(encodedEmail) {
