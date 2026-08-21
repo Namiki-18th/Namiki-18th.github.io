@@ -12,7 +12,14 @@ require('dotenv').config();
 
 const app = express();
 const server = http.createServer(app);
-const io = new Server(server, { cors: { origin: process.env.CORS_ORIGIN || "*", methods: ["GET", "POST"] } });
+const corsOrigin = process.env.CORS_ORIGIN || process.env.RENDER_EXTERNAL_URL || true;
+const io = new Server(server, {
+  cors: {
+    origin: corsOrigin,
+    methods: ["GET", "POST"],
+    credentials: true
+  }
+});
 const PORT = process.env.PORT || 3000;
 
 // --- [基本設定] ---
@@ -22,7 +29,7 @@ app.use(express.urlencoded({ limit: '10mb', extended: true }));
 
 // ✅ 修正: CORS設定を追加
 app.use(cors({
-  origin: process.env.CORS_ORIGIN || "*",
+  origin: corsOrigin,
   credentials: true,
   methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
   allowedHeaders: ['Content-Type', 'x-api-key']
@@ -95,10 +102,16 @@ function decrypt({ iv, content, tag }) {
 }
 
 // --- [認証設定] ---
+const googleCallbackURL =
+  process.env.GOOGLE_CALLBACK_URL ||
+  (process.env.RENDER_EXTERNAL_URL
+    ? `${process.env.RENDER_EXTERNAL_URL}/auth/google/callback`
+    : 'http://localhost:3000/auth/google/callback');
+
 passport.use(new GoogleStrategy({
-  clientID: process.env.GOOGLE_CLIENT_ID || 'demo-id',
-  clientSecret: process.env.GOOGLE_CLIENT_SECRET || 'demo-secret',
-  callbackURL: process.env.GOOGLE_CALLBACK_URL || 'http://localhost:3000/auth/google/callback'
+  clientID: process.env.GOOGLE_CLIENT_ID,
+  clientSecret: process.env.GOOGLE_CLIENT_SECRET,
+  callbackURL: googleCallbackURL
 }, (accessToken, refreshToken, profile, done) => {
   try {
     const email = profile.emails?.[0]?.value || '';
@@ -133,14 +146,30 @@ passport.use(new GoogleStrategy({
 }));
 
 passport.serializeUser((user, done) => done(null, user.email));
-passport.deserializeUser((email, done) => done(null, usersDB[email] || { email, role: 'student', status: 'active' }));
+passport.deserializeUser((email, done) => {
+  const user = usersDB[email];
+  if (!user) {
+    console.warn(`[Auth] User not found during deserialization: ${email}`);
+    return done(null, false);
+  }
+  done(null, user);
+});
+
+const isProduction = process.env.NODE_ENV === 'production' || !!process.env.RENDER;
+// ✅ 修正: HTTPS使用時のみ secure: true を設定
+const useSecureCookie = isProduction && process.env.GOOGLE_CALLBACK_URL?.startsWith('https://');
 
 const sessionMiddleware = session({
-  secret: process.env.SESSION_SECRET || 'secret-key',
+  secret: process.env.SESSION_SECRET || 'secret-key-change-this',
   resave: false,
   saveUninitialized: false,
-  proxy: true,
-  cookie: { secure: process.env.NODE_ENV === 'production', httpOnly: true, sameSite: 'lax', maxAge: 86400000 }
+  proxy: isProduction,
+  cookie: {
+    secure: useSecureCookie,
+    httpOnly: true,
+    sameSite: 'lax',
+    maxAge: 86400000
+  }
 });
 
 app.use(sessionMiddleware);
@@ -168,7 +197,8 @@ function checkMaintenanceMode(req, res, next) {
     const isExempt = 
       req.path === '/' || 
       req.path === '/login' || 
-      req.path === '/login.html' ||
+      req.path === '/login.html' || 
+      req.path === '/login-deny' ||
       req.path === '/offline' || 
       req.path === '/offline.html' ||
       req.path.startsWith('/api/') || 
@@ -182,7 +212,7 @@ function checkMaintenanceMode(req, res, next) {
 }
 
 // ✅ 修正: 認証ミドルウェアの適用を制限するパスをホワイトリスト化
-const publicPaths = ['/', '/login', '/login.html', '/offline', '/offline.html', '/auth/google', '/auth/google/callback', '/logout'];
+const publicPaths = ['/', '/login', '/login.html', '/login-deny', '/offline', '/offline.html', '/auth/google', '/auth/google/callback', '/logout'];
 const publicApiPaths = ['/api/auth']; // 認証不要なAPI
 
 function shouldRequireAuth(req) {
@@ -250,11 +280,53 @@ const ensureApiKeyOrAdmin = (req, res, next) => {
 // --- [ルーティング: 認証 & 画面] ---
 app.get('/', (req, res) => res.redirect(req.isAuthenticated() ? '/index' : '/login'));
 app.get('/login', (req, res) => req.isAuthenticated() ? res.redirect('/index') : res.sendFile(path.join(__dirname, 'public', 'login.html')));
-app.get('/auth/google', passport.authenticate('google', { scope: ['profile', 'email'] }));
-app.get('/auth/google/callback', passport.authenticate('google', { failureRedirect: '/login-deny' }), (req, res) => res.redirect('/index'));
-app.get('/logout', (req, res, next) => req.logout(() => res.redirect('/login')));
+app.get('/auth/google', (req, res, next) => {
+  if (!process.env.GOOGLE_CLIENT_ID || !process.env.GOOGLE_CLIENT_SECRET) {
+    return res.status(500).send('Google OAuth is not configured on the server.');
+  }
+  passport.authenticate('google', {
+    scope: ['profile', 'email'],
+    prompt: 'select_account'
+  })(req, res, next);
+});
 
-['index', 'terms', 'privacy', 'report', 'link', 'calendar', 'classroom'].forEach(p => app.get(`/${p}`, ensureAuth, (req, res) => res.sendFile(path.join(__dirname, 'public', `${p}.html`))));
+app.get('/auth/google/callback', (req, res, next) => {
+  passport.authenticate('google', { failureRedirect: '/login-deny' }, (err, user) => {
+    if (err) return next(err);
+    if (!user) return res.redirect('/login-deny');
+
+    req.logIn(user, (loginErr) => {
+      if (loginErr) return next(loginErr);
+      req.session.save((saveErr) => {
+        if (saveErr) return next(saveErr);
+        return res.redirect('/index');
+      });
+    });
+  })(req, res, next);
+});
+
+app.get('/login-deny', (req, res) => {
+  res.status(403).send(`
+    <!doctype html>
+    <html lang="ja">
+    <head><meta charset="utf-8"><title>ログインできません</title></head>
+    <body>
+      <h1>ログインできません</h1>
+      <p>Googleアカウントが許可されていないか、Google OAuthの設定に問題があります。</p>
+      <p><a href="/login">ログイン画面へ戻る</a></p>
+    </body>
+    </html>
+  `);
+});
+
+app.get('/logout', (req, res, next) => {
+  req.logout((err) => {
+    if (err) return next(err);
+    req.session.destroy(() => res.redirect('/login'));
+  });
+});
+
+['index', 'terms', 'privacy', 'report', 'link', 'calendar'].forEach(p => app.get(`/${p}`, ensureAuth, (req, res) => res.sendFile(path.join(__dirname, 'public', `${p}.html`))));
 ['admin'].forEach(p => app.get(`/${p}`, ensureAdmin, (req, res) => res.sendFile(path.join(__dirname, 'public', `${p}.html`))));
 app.get('/offline', (req, res) => res.sendFile(path.join(__dirname, 'public', 'offline.html')));
 
