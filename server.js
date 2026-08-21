@@ -7,6 +7,7 @@ const passport = require('passport');
 const GoogleStrategy = require('passport-google-oauth20').Strategy;
 const session = require('express-session');
 const crypto = require('crypto');
+const cors = require('cors');
 require('dotenv').config();
 
 const app = express();
@@ -18,6 +19,16 @@ const PORT = process.env.PORT || 3000;
 app.set('trust proxy', 1);
 app.use(express.json({ limit: '10mb' }));
 app.use(express.urlencoded({ limit: '10mb', extended: true }));
+
+// ✅ 修正: CORS設定を追加
+app.use(cors({
+  origin: process.env.CORS_ORIGIN || "*",
+  credentials: true,
+  methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
+  allowedHeaders: ['Content-Type', 'x-api-key']
+}));
+
+// ✅ 修正: 静的ファイル提供を先に配置
 app.use(express.static(path.join(__dirname, 'public')));
 
 // --- [パス定義 & ストレージ管理] ---
@@ -148,33 +159,65 @@ function checkAccountStatus(req, res, next) {
   next();
 }
 
+// ✅ 修正: メンテナンスモードの exempt パスを拡張
 function checkMaintenanceMode(req, res, next) {
   if (systemSettings.maintenanceMode) {
     const isAdmin = req.user?.role === 'admin';
-    const isExempt = req.path === '/offline' || req.path.startsWith('/api/') || req.path.startsWith('/auth/');
-    if (!isAdmin && !isExempt) return res.redirect('/offline');
+    
+    // ✅ ログイン関連と静的ファイルを常時アクセス可能に
+    const isExempt = 
+      req.path === '/' || 
+      req.path === '/login' || 
+      req.path === '/login.html' ||
+      req.path === '/offline' || 
+      req.path === '/offline.html' ||
+      req.path.startsWith('/api/') || 
+      req.path.startsWith('/auth/') ||
+      req.path.startsWith('/public/') ||
+      req.path.match(/\.(css|js|png|jpg|jpeg|gif|webp|ico|svg|woff|woff2|ttf|eot)$/i); // 静的ファイル拡張子
+    
+    if (!isAdmin && !isExempt) return res.redirect('/offline.html');
   }
   next();
 }
 
-app.use(checkAccountStatus);
-app.use(checkMaintenanceMode);
+// ✅ 修正: 認証ミドルウェアの適用を制限するパスをホワイトリスト化
+const publicPaths = ['/', '/login', '/login.html', '/offline', '/offline.html', '/auth/google', '/auth/google/callback', '/logout'];
+const publicApiPaths = ['/api/auth']; // 認証不要なAPI
+
+function shouldRequireAuth(req) {
+  // 絶対認証が不要なパス
+  if (publicPaths.includes(req.path)) return false;
+  if (publicApiPaths.some(p => req.path.startsWith(p))) return false;
+  
+  // 静的ファイルは認証不要
+  if (req.path.match(/\.(css|js|png|jpg|jpeg|gif|webp|ico|svg|woff|woff2|ttf|eot)$/i)) return false;
+  if (req.path.startsWith('/public/')) return false;
+  
+  return true;
+}
+
+// ✅ 修正: 選択的認証チェック
+app.use((req, res, next) => {
+  if (shouldRequireAuth(req)) {
+    checkAccountStatus(req, res, () => checkMaintenanceMode(req, res, next));
+  } else {
+    checkMaintenanceMode(req, res, next);
+  }
+});
 
 const ensureAuth = (req, res, next) => req.isAuthenticated() ? next() : res.status(401).json({ error: 'Unauthorized' });
 const ensureAdmin = (req, res, next) => (req.isAuthenticated() && req.user?.role === 'admin') ? next() : res.status(403).json({ error: 'Forbidden' });
 
 // APIキー認証 または 管理者セッション認証を許可するミドルウェア
-// ★ 修正: 完全な環境変数管理へ変更
 const ensureApiKeyOrAdmin = (req, res, next) => {
   const apiKey = req.headers['x-api-key'];
-  const validKey = process.env.API_SECRET_KEY; // .env からのみ取得
+  const validKey = process.env.API_SECRET_KEY;
   
-  // サーバー側にキーが設定されており、かつ送信されたキーと一致する場合のみ許可
   if (validKey && apiKey === validKey) {
     return next();
   }
   
-  // それ以外は管理者セッション認証へ移行
   return ensureAdmin(req, res, next);
 };
 
@@ -185,7 +228,7 @@ app.get('/auth/google', passport.authenticate('google', { scope: ['profile', 'em
 app.get('/auth/google/callback', passport.authenticate('google', { failureRedirect: '/login-deny' }), (req, res) => res.redirect('/index'));
 app.get('/logout', (req, res, next) => req.logout(() => res.redirect('/login')));
 
-['index', 'terms', 'privacy'].forEach(p => app.get(`/${p}`, (req, res) => req.isAuthenticated() ? res.sendFile(path.join(__dirname, 'public', `${p}.html`)) : res.redirect('/login')));
+['index', 'terms', 'privacy'].forEach(p => app.get(`/${p}`, ensureAuth, (req, res) => res.sendFile(path.join(__dirname, 'public', `${p}.html`))));
 ['admin', 'report'].forEach(p => app.get(`/${p}`, ensureAdmin, (req, res) => res.sendFile(path.join(__dirname, 'public', `${p}.html`))));
 app.get('/offline', (req, res) => res.sendFile(path.join(__dirname, 'public', 'offline.html')));
 
@@ -194,7 +237,6 @@ app.get('/api/profile', ensureAuth, (req, res) => res.json(usersDB[req.user.emai
 app.get('/api/notices', ensureAuth, (req, res) => res.json(safeReadJSON(PATHS.NOTICES, [])));
 app.get('/api/classroom', ensureAuth, (req, res) => res.json(safeReadJSON(PATHS.CLASSROOM, [])));
 
-// APIキーまたは管理者権限を要求するように変更
 app.post('/api/classroom', ensureApiKeyOrAdmin, (req, res) => {
   const { items } = req.body;
   if (!Array.isArray(items)) return res.status(400).json({ error: 'Array required' });
@@ -254,13 +296,20 @@ app.use((req, res, next) => {
 
 app.use((err, req, res, next) => {
   const status = err.status || 500;
-  if (status >= 400 && status < 500) console.warn(`[HTTP ${status}] ${req.method} ${req.url} - ${err.message}`);
-  else console.error(`[System Error - ${status}] ${req.method} ${req.url}`, err.stack);
+  
+  // ✅ 修正: より詳細なログ出力
+  if (status >= 400 && status < 500) {
+    console.warn(`[HTTP ${status}] ${req.method} ${req.url} - ${err.message} | User: ${req.user?.email || 'anonymous'}`);
+  } else {
+    console.error(`[System Error - ${status}] ${req.method} ${req.url} | User: ${req.user?.email || 'anonymous'}`, err.stack);
+  }
 
   if (req.xhr || req.path.startsWith('/api/')) return res.status(status).json({ error: err.message });
 
   const customPage = path.join(__dirname, 'public', 'error', `${status}.html`);
-  res.status(status).sendFile(fs.existsSync(customPage) ? customPage : path.join(__dirname, 'public', 'error', 'error.html'));
+  res.status(status).sendFile(fs.existsSync(customPage) ? customPage : path.join(__dirname, 'public', 'error', 'error.html'), (err) => {
+    if (err) res.status(status).send(`<h1>${status} Error</h1><p>${err.message}</p>`);
+  });
 });
 
 server.listen(PORT, () => console.log(`[Server] Running on port ${PORT}`));
