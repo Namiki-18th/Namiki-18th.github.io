@@ -206,8 +206,34 @@ app.use((req, res, next) => {
   }
 });
 
-const ensureAuth = (req, res, next) => req.isAuthenticated() ? next() : res.status(401).json({ error: 'Unauthorized' });
-const ensureAdmin = (req, res, next) => (req.isAuthenticated() && req.user?.role === 'admin') ? next() : res.status(403).json({ error: 'Forbidden' });
+// ✅ 修正: 未認証時は /login にリダイレクト
+const ensureAuth = (req, res, next) => {
+  if (req.isAuthenticated()) {
+    return next();
+  }
+  
+  // APIリクエストの場合は401 JSON
+  if (req.xhr || req.path.startsWith('/api/')) {
+    return res.status(401).json({ error: 'Unauthorized' });
+  }
+  
+  // ページリクエストの場合は /login にリダイレクト
+  res.redirect('/login');
+};
+
+const ensureAdmin = (req, res, next) => {
+  if (req.isAuthenticated() && req.user?.role === 'admin') {
+    return next();
+  }
+  
+  // APIリクエストの場合は403 JSON
+  if (req.xhr || req.path.startsWith('/api/')) {
+    return res.status(403).json({ error: 'Forbidden' });
+  }
+  
+  // ページリクエストの場合は /login にリダイレクト
+  res.redirect('/login');
+};
 
 // APIキー認証 または 管理者セッション認証を許可するミドルウェア
 const ensureApiKeyOrAdmin = (req, res, next) => {
