@@ -67,7 +67,6 @@
   </script>
 </head>
 <body>
-
   <aside class="sidebar">
     <div class="sidebar-header" onclick="location.href='/index'">
       <div class="flex items-center gap-3">
@@ -83,60 +82,53 @@
     </div>
 
     <nav class="sidebar-nav">
-      <button onclick="switchTab('home')" id="sidebar-nav-home" class="sidebar-nav-button active" title="ホーム">
+      <button onclick="location.href='/index'" class="sidebar-nav-button" title="ホーム">
         <svg class="icon-nav" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6"/></svg>
         <span class="sidebar-nav-text">ホーム</span>
       </button>
-      <button onclick="switchTab('schedule')" id="sidebar-nav-schedule" class="sidebar-nav-button" title="時間割">
+      <button onclick="location.href='/schedule'" class="sidebar-nav-button" title="時間割">
         <svg class="icon-nav" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
         <span class="sidebar-nav-text">時間割</span>
       </button>
-      <button onclick="switchTab('notices')" id="sidebar-nav-notices" class="sidebar-nav-button" title="お知らせ">
+      <button onclick="location.href='/notice'" class="sidebar-nav-button" title="お知らせ">
         <svg class="icon-nav" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9"/></svg>
         <span class="sidebar-nav-text">お知らせ</span>
       </button>
-      <button onclick="switchTab('links')" id="sidebar-nav-links" class="sidebar-nav-button" title="リンク">
+      
+      <!-- リンク集のページなので、ここをactiveにする -->
+      <button onclick="location.href='/link'" class="sidebar-nav-button active" title="リンク">
         <svg class="icon-nav" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13.828 10.172a4 4 0 00-5.656 0l-4 4a4 4 0 105.656 5.656l1.102-1.101m-.758-4.899a4 4 0 005.656 0l4-4a4 4 0 00-5.656-5.656l-1.1 1.1"/></svg>
         <span class="sidebar-nav-text">リンク</span>
       </button>
-      <button onclick="switchTab('calendar')" id="sidebar-nav-calendar" class="sidebar-nav-button" title="カレンダー">
+      
+      <button onclick="location.href='/calendar'" class="sidebar-nav-button" title="カレンダー">
         <svg class="icon-nav" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"/></svg>
         <span class="sidebar-nav-text">カレンダー</span>
       </button>
-      <button onclick="switchTab('classroom')" id="sidebar-nav-classroom" class="sidebar-nav-button" title="Classroom">
+      <button onclick="location.href='/classroom'" class="sidebar-nav-button" title="Classroom">
         <svg class="icon-nav" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10"/></svg>
         <span class="sidebar-nav-text">Classroom</span>
       </button>
-
-      <button onclick="switchTab('chat')" id="sidebar-nav-chat" class="sidebar-nav-button" title="チャット" style="margin-top: 0.25rem;">
+      <button onclick="location.href='/chat'" class="sidebar-nav-button" title="チャット" style="margin-top: 0.25rem;">
         <svg class="icon-nav" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z"/></svg>
         <span class="sidebar-nav-text">チャット</span>
       </button>
 
       <div class="sidebar-nav-divider">
-        <a href="/privacy" id="sidebar-nav-privacy" class="sidebar-nav-button" title="プライバシーポリシー">
-          <svg class="icon-nav" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-              d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z"/>
-          </svg>
+        <a href="/privacy" class="sidebar-nav-button" title="プライバシーポリシー">
+          <svg class="icon-nav" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z"/></svg>
           <span class="sidebar-nav-text">プライバシーポリシー</span>
         </a>
-        <a href="/terms" id="sidebar-nav-terms" class="sidebar-nav-button" title="利用規約">
-          <svg class="icon-nav" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-              d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/>
-          </svg>
+        <a href="/terms" class="sidebar-nav-button" title="利用規約">
+          <svg class="icon-nav" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/></svg>
           <span class="sidebar-nav-text">利用規約</span>
         </a>
       </div>
 
-    <a href="/report" id="sidebar-nav-report" class="sidebar-nav-button" title="報告" style="margin-top: auto; margin-bottom: 1rem;">
-    <svg class="icon-nav" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-        d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"/>
-    </svg>
-    <span class="sidebar-nav-text">報告</span>
-    </a>
+      <a href="/report" class="sidebar-nav-button" title="報告" style="margin-top: auto; margin-bottom: 1rem;">
+        <svg class="icon-nav" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"/></svg>
+        <span class="sidebar-nav-text">報告</span>
+      </a>
     </nav>
 
     <div class="sidebar-footer">
@@ -335,8 +327,46 @@
         <div class="app-card content-card">
           <h2 class="content-card-title">年間行事カレンダー</h2>
           <p class="content-card-subtitle">今年度の学校行事やテスト日程の予定です。</p>
-          <div id="calendar-events-list" class="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <div class="empty-state-text grid-full-width">データを読み込んでいます...</div>
+          
+          <!-- カレンダーナビゲーション -->
+          <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 1.5rem; padding: 1rem; background: var(--color-bg-secondary); border-radius: 0.5rem;">
+            <button onclick="previousMonth()" id="calendar-prev-btn" class="schedule-day-button" style="padding: 0.5rem 1rem; font-size: 0.9rem;">
+              ← 前月
+            </button>
+            <h3 id="calendar-month-title" class="content-card-title" style="margin: 0; font-size: 1.25rem; text-align: center; flex: 1;">
+              2024年 1月
+            </h3>
+            <button onclick="nextMonth()" id="calendar-next-btn" class="schedule-day-button" style="padding: 0.5rem 1rem; font-size: 0.9rem;">
+              次月 →
+            </button>
+          </div>
+
+          <!-- 7列カレンダー -->
+          <div style="overflow-x: auto;">
+            <table id="calendar-table" style="width: 100%; border-collapse: collapse; margin-bottom: 1.5rem;">
+              <thead>
+                <tr style="background: var(--color-bg-secondary); border-bottom: 2px solid var(--color-border);">
+                  <th style="padding: 0.75rem; text-align: center; font-weight: 600; color: #f87171; width: 14.28%;">日</th>
+                  <th style="padding: 0.75rem; text-align: center; font-weight: 600; color: var(--color-text-primary); width: 14.28%;">月</th>
+                  <th style="padding: 0.75rem; text-align: center; font-weight: 600; color: var(--color-text-primary); width: 14.28%;">火</th>
+                  <th style="padding: 0.75rem; text-align: center; font-weight: 600; color: var(--color-text-primary); width: 14.28%;">水</th>
+                  <th style="padding: 0.75rem; text-align: center; font-weight: 600; color: var(--color-text-primary); width: 14.28%;">木</th>
+                  <th style="padding: 0.75rem; text-align: center; font-weight: 600; color: var(--color-text-primary); width: 14.28%;">金</th>
+                  <th style="padding: 0.75rem; text-align: center; font-weight: 600; color: #3b82f6; width: 14.28%;">土</th>
+                </tr>
+              </thead>
+              <tbody id="calendar-body">
+                <tr><td colspan="7" style="text-align: center; padding: 2rem; color: var(--color-text-muted);">カレンダーを読み込んでいます...</td></tr>
+              </tbody>
+            </table>
+          </div>
+
+          <!-- イベント一覧 -->
+          <div style="margin-top: 2rem; padding-top: 1.5rem; border-top: 1px solid var(--color-border);">
+            <h3 id="calendar-events-title" class="content-card-title" style="margin-bottom: 1rem;">該当月のイベント</h3>
+            <div id="calendar-events-list" class="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div class="empty-state-text grid-full-width">イベントがありません</div>
+            </div>
           </div>
         </div>
       </div>
@@ -766,12 +796,8 @@
         </a>
       `).join('');
 
-      document.getElementById('calendar-events-list').innerHTML = globalData.calendar.map(c => `
-        <div class="calendar-item">
-          <span class="calendar-item-title">${escapeHtml(c.title)}</span>
-          <span class="calendar-item-date">${escapeHtml(c.date)}</span>
-        </div>
-      `).join('');
+      // ✅ 修正: カレンダーレンダリング
+      initializeCalendar(globalData.calendar);
 
       filterSchedule('月');
       renderDMUsers();
@@ -1083,6 +1109,147 @@ function resetClassroomFilters() {
           window.scrollTo({ top: 0, behavior: 'smooth' });
         }, 100);
       }
+    }
+
+    // ✅ 新規: カレンダー管理用の変数
+    let calendarCurrentDate = new Date();
+    let calendarEvents = [];
+
+    // ✅ 新規: カレンダーの初期化
+    function initializeCalendar(events) {
+      calendarEvents = events || [];
+      calendarCurrentDate = new Date();
+      renderCalendar();
+    }
+
+    // ✅ 新規: カレンダーの描画
+    function renderCalendar() {
+      const year = calendarCurrentDate.getFullYear();
+      const month = calendarCurrentDate.getMonth();
+
+      // 月のタイトルを更新
+      document.getElementById('calendar-month-title').textContent = `${year}年 ${month + 1}月`;
+
+      // 月の最初の日と最後の日を取得
+      const firstDay = new Date(year, month, 1);
+      const lastDay = new Date(year, month + 1, 0);
+      const startDate = new Date(firstDay);
+      startDate.setDate(startDate.getDate() - firstDay.getDay()); // 最初の日曜日へ
+
+      // カレンダーの日付を生成
+      const calendarDays = [];
+      const currentDate = new Date(startDate);
+      while (calendarDays.length < 42) { // 6週間分（42日）
+        calendarDays.push(new Date(currentDate));
+        currentDate.setDate(currentDate.getDate() + 1);
+      }
+
+      // テーブルボディを生成
+      const tbody = document.getElementById('calendar-body');
+      let html = '';
+      for (let i = 0; i < calendarDays.length; i += 7) {
+        html += '<tr style="border-bottom: 1px solid var(--color-border);">';
+        for (let j = 0; j < 7; j++) {
+          const day = calendarDays[i + j];
+          const dayNum = day.getDate();
+          const isCurrentMonth = day.getMonth() === month;
+          const isToday = day.toDateString() === new Date().toDateString();
+
+          // その日のイベントを取得
+          const dayEvents = calendarEvents.filter(e => {
+            const eventDate = new Date(e.date);
+            return eventDate.getFullYear() === day.getFullYear() &&
+                   eventDate.getMonth() === day.getMonth() &&
+                   eventDate.getDate() === day.getDate();
+          });
+
+          const bgColor = isCurrentMonth ? 'var(--color-bg-secondary)' : 'var(--color-bg-tertiary)';
+          const textColor = isCurrentMonth ? 'var(--color-text-primary)' : 'var(--color-text-muted)';
+          const todayBorder = isToday ? '2px solid var(--color-accent-blue-light)' : 'none';
+
+          html += `
+            <td style="
+              height: 100px;
+              padding: 0.5rem;
+              background: ${bgColor};
+              border: ${todayBorder};
+              vertical-align: top;
+              color: ${textColor};
+              font-weight: ${isToday ? '700' : '500'};
+              ${j === 0 ? 'color: #f87171;' : ''}
+              ${j === 6 ? 'color: #3b82f6;' : ''}
+            ">
+              <div style="font-size: 0.95rem; font-weight: 600; margin-bottom: 0.25rem;">${dayNum}</div>
+              <div style="font-size: 0.75rem;">
+                ${dayEvents.slice(0, 2).map(e => `
+                  <div style="
+                    padding: 0.25rem 0.375rem;
+                    margin-bottom: 0.25rem;
+                    background: var(--color-accent-blue-light);
+                    color: white;
+                    border-radius: 0.25rem;
+                    overflow: hidden;
+                    text-overflow: ellipsis;
+                    white-space: nowrap;
+                    cursor: pointer;
+                  " title="${escapeHtml(e.title)}">
+                    ${escapeHtml(e.title.substring(0, 12))}
+                  </div>
+                `).join('')}
+                ${dayEvents.length > 2 ? `<div style="color: var(--color-text-muted); font-size: 0.7rem;">+${dayEvents.length - 2}件</div>` : ''}
+              </div>
+            </td>
+          `;
+        }
+        html += '</tr>';
+      }
+      tbody.innerHTML = html;
+
+      // 該当月のイベント一覧を表示
+      renderCalendarEventsList(month, year);
+    }
+
+    // ✅ 新規: 該当月のイベント一覧を描画
+    function renderCalendarEventsList(month, year) {
+      const monthEvents = calendarEvents.filter(e => {
+        const eventDate = new Date(e.date);
+        return eventDate.getFullYear() === year && eventDate.getMonth() === month;
+      }).sort((a, b) => new Date(a.date) - new Date(b.date));
+
+      const container = document.getElementById('calendar-events-list');
+      if (monthEvents.length === 0) {
+        container.innerHTML = '<div class="empty-state-text grid-full-width">イベントがありません</div>';
+        return;
+      }
+
+      container.innerHTML = monthEvents.map(e => `
+        <div class="calendar-item" style="
+          padding: 1rem;
+          background: var(--color-bg-secondary);
+          border: 1px solid var(--color-border);
+          border-radius: 0.5rem;
+          display: flex;
+          flex-direction: column;
+          gap: 0.5rem;
+        ">
+          <div style="font-weight: 600; color: var(--color-text-primary);">${escapeHtml(e.title)}</div>
+          <div style="font-size: 0.875rem; color: var(--color-text-muted);">
+            📅 ${new Date(e.date).toLocaleDateString('ja-JP', { year: 'numeric', month: '2-digit', day: '2-digit' })}
+          </div>
+        </div>
+      `).join('');
+    }
+
+    // ✅ 新規: 前月に移動
+    function previousMonth() {
+      calendarCurrentDate.setMonth(calendarCurrentDate.getMonth() - 1);
+      renderCalendar();
+    }
+
+    // ✅ 新規: 次月に移動
+    function nextMonth() {
+      calendarCurrentDate.setMonth(calendarCurrentDate.getMonth() + 1);
+      renderCalendar();
     }
 
     document.addEventListener('DOMContentLoaded', () => {

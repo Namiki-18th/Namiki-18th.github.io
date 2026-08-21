@@ -254,8 +254,8 @@ app.get('/auth/google', passport.authenticate('google', { scope: ['profile', 'em
 app.get('/auth/google/callback', passport.authenticate('google', { failureRedirect: '/login-deny' }), (req, res) => res.redirect('/index'));
 app.get('/logout', (req, res, next) => req.logout(() => res.redirect('/login')));
 
-['index', 'terms', 'privacy'].forEach(p => app.get(`/${p}`, ensureAuth, (req, res) => res.sendFile(path.join(__dirname, 'public', `${p}.html`))));
-['admin', 'report'].forEach(p => app.get(`/${p}`, ensureAdmin, (req, res) => res.sendFile(path.join(__dirname, 'public', `${p}.html`))));
+['index', 'terms', 'privacy', 'report', 'link', 'calendar', 'classroom'].forEach(p => app.get(`/${p}`, ensureAuth, (req, res) => res.sendFile(path.join(__dirname, 'public', `${p}.html`))));
+['admin'].forEach(p => app.get(`/${p}`, ensureAdmin, (req, res) => res.sendFile(path.join(__dirname, 'public', `${p}.html`))));
 app.get('/offline', (req, res) => res.sendFile(path.join(__dirname, 'public', 'offline.html')));
 
 // --- [API: 一般機能] ---
