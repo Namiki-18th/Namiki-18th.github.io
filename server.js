@@ -163,6 +163,21 @@ app.use(checkMaintenanceMode);
 const ensureAuth = (req, res, next) => req.isAuthenticated() ? next() : res.status(401).json({ error: 'Unauthorized' });
 const ensureAdmin = (req, res, next) => (req.isAuthenticated() && req.user?.role === 'admin') ? next() : res.status(403).json({ error: 'Forbidden' });
 
+// APIキー認証 または 管理者セッション認証を許可するミドルウェア
+// ★ 修正: 完全な環境変数管理へ変更
+const ensureApiKeyOrAdmin = (req, res, next) => {
+  const apiKey = req.headers['x-api-key'];
+  const validKey = process.env.API_SECRET_KEY; // .env からのみ取得
+  
+  // サーバー側にキーが設定されており、かつ送信されたキーと一致する場合のみ許可
+  if (validKey && apiKey === validKey) {
+    return next();
+  }
+  
+  // それ以外は管理者セッション認証へ移行
+  return ensureAdmin(req, res, next);
+};
+
 // --- [ルーティング: 認証 & 画面] ---
 app.get('/', (req, res) => res.redirect(req.isAuthenticated() ? '/index' : '/login'));
 app.get('/login', (req, res) => req.isAuthenticated() ? res.redirect('/index') : res.sendFile(path.join(__dirname, 'public', 'login.html')));
@@ -179,8 +194,8 @@ app.get('/api/profile', ensureAuth, (req, res) => res.json(usersDB[req.user.emai
 app.get('/api/notices', ensureAuth, (req, res) => res.json(safeReadJSON(PATHS.NOTICES, [])));
 app.get('/api/classroom', ensureAuth, (req, res) => res.json(safeReadJSON(PATHS.CLASSROOM, [])));
 
-// ※ 認証を必須へ修正
-app.post('/api/classroom', ensureAdmin, (req, res) => {
+// APIキーまたは管理者権限を要求するように変更
+app.post('/api/classroom', ensureApiKeyOrAdmin, (req, res) => {
   const { items } = req.body;
   if (!Array.isArray(items)) return res.status(400).json({ error: 'Array required' });
   safeWriteJSON(PATHS.CLASSROOM, items);
