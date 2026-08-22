@@ -8,6 +8,8 @@ const GoogleStrategy = require('passport-google-oauth20').Strategy;
 const session = require('express-session');
 const crypto = require('crypto');
 const cors = require('cors');
+const helmet = require('helmet');
+const rateLimit = require('express-rate-limit');
 const RssParser = require('rss-parser');
 const axios = require('axios');
 require('dotenv').config();
@@ -16,7 +18,16 @@ const app = express();
 const server = http.createServer(app);
 const rssParser = new RssParser();
 
-const corsOrigin = process.env.CORS_ORIGIN || process.env.RENDER_EXTERNAL_URL || true;
+// 💡セキュリティ修正: CORS_ORIGIN が未設定の場合、`true`（オールオリジン許可）に
+// フォールバックするのは危険なため、明示的な許可リストが無い限りは同一オリジンのみを
+// 許可する安全側のデフォルトに変更。フロントエンドは常に同一オリジンの相対パスで
+// API を呼び出しているため、通常運用では挙動は変わらない。
+// 複数オリジンを許可したい場合は CORS_ORIGIN にカンマ区切りで指定する。
+const rawCorsOrigin = process.env.CORS_ORIGIN || process.env.RENDER_EXTERNAL_URL || '';
+const corsOrigin = rawCorsOrigin
+  ? (rawCorsOrigin.includes(',') ? rawCorsOrigin.split(',').map(s => s.trim()) : rawCorsOrigin)
+  : false; // 未設定時はクロスオリジンを許可しない（同一オリジンのリクエストには影響なし）
+
 const io = new Server(server, {
   cors: {
     origin: corsOrigin,
@@ -28,8 +39,53 @@ const PORT = process.env.PORT || 3000;
 
 // --- [基本設定] ---
 app.set('trust proxy', 1);
-app.use(express.json({ limit: '10mb' }));
-app.use(express.urlencoded({ limit: '10mb', extended: true }));
+
+// 💡追加: Helmet によるセキュリティヘッダーの付与（CSP, X-Frame-Options, HSTS 等）
+app.use(helmet({
+  contentSecurityPolicy: {
+    directives: {
+      defaultSrc: ["'self'"],
+      // 既存のインラインスクリプト/スタイル及び外部CDN(Socket.IO, marked, DOMPurify等)を壊さないよう
+      // 必要最小限で許可。将来的にはインラインscriptをnonce化してさらに強化することを推奨。
+      scriptSrc: ["'self'", "'unsafe-inline'", 'https://cdn.jsdelivr.net', 'https://cdnjs.cloudflare.com'],
+      styleSrc: ["'self'", "'unsafe-inline'", 'https://fonts.googleapis.com'],
+      fontSrc: ["'self'", 'https://fonts.gstatic.com'],
+      imgSrc: ["'self'", 'data:', 'https:'],
+      connectSrc: ["'self'"],
+      objectSrc: ["'none'"],
+      frameAncestors: ["'self'"]
+    }
+  },
+  crossOriginEmbedderPolicy: false
+}));
+
+// 💡追加: 全体的なレートリミット（ブルートフォース・DoS対策の基礎）
+const globalLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000,
+  max: 600, // IPごとに15分あたり600リクエストまで
+  standardHeaders: true,
+  legacyHeaders: false
+});
+app.use(globalLimiter);
+
+// 💡追加: 認証・API書き込み系エンドポイント向けの厳しめレートリミット
+const authLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000,
+  max: 20,
+  standardHeaders: true,
+  legacyHeaders: false,
+  message: { error: 'Too many requests, please try again later.' }
+});
+const writeLimiter = rateLimit({
+  windowMs: 60 * 1000,
+  max: 30, // 1分あたり30回まで（チャット投稿等の連投・DoSを抑止）
+  standardHeaders: true,
+  legacyHeaders: false,
+  message: { error: 'Too many requests, please slow down.' }
+});
+
+app.use(express.json({ limit: '1mb' }));
+app.use(express.urlencoded({ limit: '1mb', extended: true }));
 
 app.use(cors({
   origin: corsOrigin,
@@ -122,7 +178,17 @@ function saveUsersDB() {
 }
 
 // --- [暗号化ユーティリティ] ---
-const ENCRYPTION_KEY = Buffer.from(process.env.CHAT_ENCRYPTION_KEY || '0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef', 'hex');
+// 💡セキュリティ修正: このリポジトリは公開GitHubリポジトリのため、ソースコード内に
+// 固定の鍵をハードコードすると、.envの設定漏れ時に「誰でも知っている鍵」で全チャットが
+// 復号可能になってしまう。CHAT_ENCRYPTION_KEY が未設定の場合は、固定値ではなく起動時に
+// ランダムな鍵を生成して警告を出す（.envに正しく設定されている限り、現状の動作・復号結果は変わらない）。
+let ENCRYPTION_KEY;
+if (process.env.CHAT_ENCRYPTION_KEY) {
+  ENCRYPTION_KEY = Buffer.from(process.env.CHAT_ENCRYPTION_KEY, 'hex');
+} else {
+  console.error('[SECURITY WARNING] CHAT_ENCRYPTION_KEY が設定されていません。ランダムな一時鍵を生成しました。再起動すると過去のチャットが復号できなくなります。必ず.envに設定してください。');
+  ENCRYPTION_KEY = crypto.randomBytes(32);
+}
 
 function encrypt(text) {
   const iv = crypto.randomBytes(12);
@@ -197,8 +263,14 @@ passport.deserializeUser((email, done) => {
 const isProduction = process.env.NODE_ENV === 'production' || !!process.env.RENDER;
 const useSecureCookie = isProduction && process.env.GOOGLE_CALLBACK_URL?.startsWith('https://');
 
+// 💡セキュリティ修正: SESSION_SECRET 未設定時に固定文字列へフォールバックすると、
+// 公開リポジトリのソースコードからセッションが偽造できてしまう。未設定時は
+// ランダムな値を都度生成し警告を出す（.envに設定されている現状の運用には影響なし）。
+if (!process.env.SESSION_SECRET) {
+  console.error('[SECURITY WARNING] SESSION_SECRET が設定されていません。ランダムな一時値を使用します。必ず.envに設定してください。');
+}
 const sessionMiddleware = session({
-  secret: process.env.SESSION_SECRET || 'secret-key-change-this',
+  secret: process.env.SESSION_SECRET || crypto.randomBytes(32).toString('hex'),
   resave: false,
   saveUninitialized: false,
   proxy: isProduction,
@@ -277,24 +349,33 @@ const ensureAdmin = (req, res, next) => {
   res.redirect('/login');
 };
 
+// 💡セキュリティ修正: 文字列の単純な `===` 比較はタイミング攻撃で鍵を推測される
+// リスクがあるため、crypto.timingSafeEqual を用いた定数時間比較に変更。
+function safeCompare(a, b) {
+  const bufA = Buffer.from(String(a));
+  const bufB = Buffer.from(String(b));
+  if (bufA.length !== bufB.length) return false;
+  return crypto.timingSafeEqual(bufA, bufB);
+}
+
 const ensureApiKeyOrAdmin = (req, res, next) => {
   const apiKey = req.headers['x-api-key'];
   const validKey = process.env.API_SECRET_KEY;
-  if (validKey && apiKey === validKey) return next();
+  if (validKey && apiKey && safeCompare(apiKey, validKey)) return next();
   return ensureAdmin(req, res, next);
 };
 
 // --- [ルーティング: 認証 & 画面] ---
 app.get('/', (req, res) => res.redirect(req.isAuthenticated() ? '/index' : '/login'));
 app.get('/login', (req, res) => req.isAuthenticated() ? res.redirect('/index') : res.sendFile(path.join(__dirname, 'public', 'login.html')));
-app.get('/auth/google', (req, res, next) => {
+app.get('/auth/google', authLimiter, (req, res, next) => {
   if (!process.env.GOOGLE_CLIENT_ID || !process.env.GOOGLE_CLIENT_SECRET) {
     return res.status(500).send('Google OAuth is not configured on the server.');
   }
   passport.authenticate('google', { scope: ['profile', 'email'], prompt: 'select_account' })(req, res, next);
 });
 
-app.get('/auth/google/callback', (req, res, next) => {
+app.get('/auth/google/callback', authLimiter, (req, res, next) => {
   passport.authenticate('google', { failureRedirect: '/login-deny' }, (err, user) => {
     if (err) return next(err);
     if (!user) return res.redirect('/login-deny');
@@ -341,9 +422,14 @@ app.get('/api/profile', ensureAuth, (req, res) => res.json(usersDB[req.user.emai
 app.get('/api/notices', ensureAuth, (req, res) => res.json(safeReadJSON(PATHS.NOTICES, [])));
 app.get('/api/classroom', ensureAuth, (req, res) => res.json(safeReadJSON(PATHS.CLASSROOM, [])));
 
-app.post('/api/classroom', ensureApiKeyOrAdmin, (req, res) => {
+app.post('/api/classroom', ensureApiKeyOrAdmin, writeLimiter, (req, res) => {
   const { items } = req.body;
+  // 💡入力バリデーション追加: 配列であることに加え、要素数の上限とオブジェクト形式を検証
   if (!Array.isArray(items)) return res.status(400).json({ error: 'Array required' });
+  if (items.length > 1000) return res.status(400).json({ error: 'Too many items' });
+  if (!items.every(it => it && typeof it === 'object' && !Array.isArray(it))) {
+    return res.status(400).json({ error: 'Each item must be an object' });
+  }
   safeWriteJSON(PATHS.CLASSROOM, items);
   io.emit('classroomUpdated', items);
   // 💡追加: お知らせ投稿のログを記録
@@ -394,26 +480,81 @@ app.get('/api/transit', ensureAuth, async (req, res) => {
 });
 
 // --- [API: チャット機能] ---
-function getSafeChannelName(channel) { return (channel || 'general').replace(/[^a-zA-Z0-9_-]/g, '_'); }
+function getSafeChannelName(channel) { return (channel || 'grade').replace(/[^a-zA-Z0-9_-]/g, '_'); }
 function getChannelFilePath(channel) { return path.join(PATHS.CHAT_DIR, `${getSafeChannelName(channel)}.json`); }
 function readChannelData(channel) { return safeReadJSON(getChannelFilePath(channel), { channel: getSafeChannelName(channel), messages: [] }); }
 
+// 💡セキュリティ修正 (重大): これまで `channel` はクライアントが指定した文字列を
+// そのままファイル名・Socket.IOルーム名として使用しており、
+//  1) `class` チャンネルが全クラス共通の単一ファイルになっており、他クラスの生徒にも
+//     チャット内容が筒抜けになっていた（本来は自クラスのみに閉じるべき機能）
+//  2) DM(`dm_<相手ID>`)チャンネルは「宛先ユーザーID」だけで特定されており、
+//     ログイン済みであれば誰でも `?channel=dm_2A13` のように他人宛のDMを
+//     閲覧・投稿できてしまうIDOR（アクセス制御不備）が存在した
+// という2つの重大な認可不備があったため、サーバー側で「誰が・どのチャンネルに
+// アクセスできるか」を必ず検証してから実チャンネルキーを算出するようにした。
+//
+// - 'grade'      : ログイン済みの全ユーザーが閲覧可（学年全体チャット）
+// - 'class'      : リクエストしたユーザー自身の userClass に紐づく専用チャンネルへ
+//                  内部的にマッピングする（クライアントが 'class' と指定しても、
+//                  実際に読み書きされるファイルはユーザーごとに異なるため、
+//                  他クラスの内容が混ざることはない）
+// - 'dm_<id>'    : 自分自身のIDと相手IDのペアを正規化(ソート)したチャンネルキーへ
+//                  マッピングする。これにより、必ず「本人が参加している会話」だけに
+//                  アクセスが限定される
+// 既存の chat/class.json ・ chat/dm_2A13.json は上記の設計不備の結果生成されたデータのため、
+// このマッピング適用後は新しいチャンネルファイルが使われるようになる（要データ移行判断）。
+function resolveChannelKey(currentUser, rawChannel) {
+  const ch = (rawChannel || 'grade').toString();
+  if (ch === 'grade') return 'grade';
+  if (ch === 'class') {
+    if (!currentUser.userClass || currentUser.userClass === '未設定') return null;
+    return getSafeChannelName(`class_${currentUser.userClass}`);
+  }
+  if (ch.startsWith('dm_')) {
+    const targetId = ch.slice(3);
+    const selfId = String(currentUser.id || '');
+    if (!targetId || !selfId || targetId === selfId) return null;
+    const pair = [selfId, targetId].sort();
+    return getSafeChannelName(`dm_${pair[0]}_${pair[1]}`);
+  }
+  // 未知のパターンは既定で拒否（管理者のみ例外的に許可）
+  return currentUser.role === 'admin' ? getSafeChannelName(ch) : null;
+}
+
+// そのユーザーが一覧に表示してよいチャンネルファイルかどうかを判定
+function isChannelVisibleToUser(currentUser, channelId) {
+  if (channelId === 'grade') return true;
+  if (currentUser.role === 'admin') return true;
+  if (channelId === getSafeChannelName(`class_${currentUser.userClass}`)) return true;
+  if (channelId.startsWith('dm_')) {
+    const parts = channelId.slice(3).split('_');
+    return parts.includes(String(currentUser.id || ''));
+  }
+  return false;
+}
+
 app.get('/api/chat/channels', ensureAuth, (req, res) => {
   try {
+    const currentUser = usersDB[req.user.email] || req.user;
     const files = fs.readdirSync(PATHS.CHAT_DIR).filter(f => f.endsWith('.json'));
-    const channels = files.map(f => {
+    // 💡修正: 他人のDM・他クラスのチャンネルファイル名を一覧に含めない（情報漏えい対策）
+    const visibleFiles = files.filter(f => isChannelVisibleToUser(currentUser, f.replace('.json', '')));
+    const channels = visibleFiles.map(f => {
       const data = safeReadJSON(path.join(PATHS.CHAT_DIR, f), { messages: [] });
       return { id: f.replace('.json', ''), name: f.replace('.json', ''), messageCount: data.messages.length };
     });
-    if (!channels.some(c => c.id === 'general')) channels.push({ id: 'general', name: 'general', messageCount: 0 });
+    if (!channels.some(c => c.id === 'grade')) channels.push({ id: 'grade', name: 'grade', messageCount: 0 });
     res.json(channels);
   } catch (err) {
     res.status(500).json({ error: 'Failed to read channels' });
   }
 });
 app.get('/api/chat/messages', ensureAuth, (req, res) => {
-  const channel = req.query.channel || 'general';
-  const data = readChannelData(channel);
+  const currentUser = usersDB[req.user.email] || req.user;
+  const key = resolveChannelKey(currentUser, req.query.channel);
+  if (!key) return res.status(403).json({ error: 'Forbidden' });
+  const data = readChannelData(key);
   const decrypted = data.messages.map(m => ({
     ...m,
     content: m.content ? decrypt(m.content) : m.content,
@@ -421,23 +562,33 @@ app.get('/api/chat/messages', ensureAuth, (req, res) => {
   }));
   res.json(decrypted);
 });
-app.post('/api/chat/messages', ensureAuth, (req, res) => {
-  const channel = req.query.channel || 'general';
+app.post('/api/chat/messages', ensureAuth, writeLimiter, (req, res) => {
+  const currentUser = usersDB[req.user.email] || req.user;
+  const key = resolveChannelKey(currentUser, req.query.channel);
+  if (!key) return res.status(403).json({ error: 'Forbidden' });
+
   const { content } = req.body;
-  if (!content || !content.trim()) return res.status(400).json({ error: 'Message content is required' });
-  const data = readChannelData(channel);
-  const user = usersDB[req.user.email] || req.user;
+  // 💡入力バリデーション追加: 型チェックと最大文字数制限（無制限投稿によるDoS/容量枯渇対策）
+  if (typeof content !== 'string' || !content.trim()) {
+    return res.status(400).json({ error: 'Message content is required' });
+  }
+  const trimmedContent = content.trim();
+  if (trimmedContent.length > 4000) {
+    return res.status(400).json({ error: 'Message content is too long (max 4000 chars)' });
+  }
+
+  const data = readChannelData(key);
   const newMessage = {
     id: Date.now().toString(),
-    userId: user.email,
-    userName: user.name,
-    userPicture: user.picture,
-    content: encrypt(content.trim()),
+    userId: currentUser.email,
+    userName: currentUser.name,
+    userPicture: currentUser.picture,
+    content: encrypt(trimmedContent),
     timestamp: new Date().toISOString()
   };
   data.messages.push(newMessage);
-  safeWriteJSON(getChannelFilePath(channel), data);
-  io.to(getSafeChannelName(channel)).emit('newMessage', { ...newMessage, content: content.trim() });
+  safeWriteJSON(getChannelFilePath(key), data);
+  io.to(key).emit('newMessage', { ...newMessage, content: trimmedContent });
   res.json({ success: true, message: newMessage });
 });
 
@@ -475,13 +626,37 @@ app.post('/api/admin/settings/offline', ensureAdmin, (req, res) => {
   res.json({ success: true, offlineConfig: systemSettings.offlineConfig });
 });
 
+// 💡入力バリデーション追加: role/status は許可された値以外を受け付けない
+// （任意文字列を許すと、権限判定ロジック(checkAccountStatus等)が想定しない値で
+//  意図しない挙動になったり、typoで権限バグを生む可能性があるため）
+const ALLOWED_ROLES = ['admin', 'student'];
+const ALLOWED_STATUSES = ['active', 'suspended'];
+
 app.post('/api/admin/user/:email', ensureAdmin, (req, res) => {
   const email = decodeURIComponent(req.params.email);
   if (!usersDB[email]) return res.status(404).json({ error: 'User not found' });
+
+  // 💡最上位管理者(bme280.gac@gmail.com)の役割・ステータスは保護し、誤操作/悪用で
+  // 降格・停止されないようにする（saveUsersDB側でも強制復元されるが二重に防止）
+  if (email === 'bme280.gac@gmail.com') {
+    return res.status(400).json({ error: 'Cannot modify the privileged admin account' });
+  }
+
   const { userClass, role, status } = req.body;
-  if (userClass) usersDB[email].userClass = userClass;
-  if (role) usersDB[email].role = role;
-  if (status) usersDB[email].status = status;
+  if (userClass !== undefined) {
+    if (typeof userClass !== 'string' || userClass.length > 50) {
+      return res.status(400).json({ error: 'Invalid userClass' });
+    }
+    usersDB[email].userClass = userClass;
+  }
+  if (role !== undefined) {
+    if (!ALLOWED_ROLES.includes(role)) return res.status(400).json({ error: 'Invalid role' });
+    usersDB[email].role = role;
+  }
+  if (status !== undefined) {
+    if (!ALLOWED_STATUSES.includes(status)) return res.status(400).json({ error: 'Invalid status' });
+    usersDB[email].status = status;
+  }
   saveUsersDB();
   // 💡追加: ユーザー情報変更のログを記録
   addLog(req, 'user_update', req.user.email, `Updated target: ${email}`);
@@ -490,10 +665,23 @@ app.post('/api/admin/user/:email', ensureAdmin, (req, res) => {
 
 // --- [Socket.io] ---
 io.on('connection', (socket) => {
+  // 💡セキュリティ修正: これまで Socket.IO 接続には認証チェックが一切なく、
+  // 未ログインの相手でも `joinChannel` を送るだけで任意のチャンネル（他人のDM等）の
+  // リアルタイムメッセージを受信できてしまっていた。express-session を共有しているため、
+  // ここでセッションからログインユーザーを解決し、resolveChannelKey で認可されたチャンネルにしか
+  // join させないようにする。
   socket.on('joinChannel', (ch) => {
-    const safeCh = getSafeChannelName(ch);
+    const session = socket.request.session;
+    const email = session?.passport?.user;
+    const currentUser = email ? usersDB[email] : null;
+    if (!currentUser) return; // 未認証の接続はどのチャンネルにも参加できない
+    if (currentUser.status === 'suspended' && currentUser.email !== 'bme280.gac@gmail.com') return;
+
+    const key = resolveChannelKey(currentUser, ch);
+    if (!key) return; // 認可されないチャンネルへのjoin要求は無視
+
     socket.rooms.forEach(r => r !== socket.id && socket.leave(r));
-    socket.join(safeCh);
+    socket.join(key);
   });
 });
 
