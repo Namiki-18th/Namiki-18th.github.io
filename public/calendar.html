@@ -304,13 +304,6 @@
               </tbody>
             </table>
           </div>
-
-          <div style="margin-top: 2rem; padding-top: 1.5rem; border-top: 1px solid var(--color-border);">
-            <h3 id="calendar-events-title" class="content-card-title" style="margin-bottom: 1rem;">該当月のイベント</h3>
-            <div id="calendar-events-list" class="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <div class="empty-state-text grid-full-width">イベントがありません</div>
-            </div>
-          </div>
         </div>
       </div>
 
@@ -912,39 +905,6 @@
       tbody.innerHTML = html;
 
       renderCalendarEventsList(month, year);
-    }
-
-    function renderCalendarEventsList(month, year) {
-      const monthEvents = calendarEvents.filter(e => {
-        const eventDate = new Date(e.date);
-        return eventDate.getFullYear() === year && eventDate.getMonth() === month;
-      }).sort((a, b) => new Date(a.date) - new Date(b.date));
-
-      const container = document.getElementById('calendar-events-list');
-      if (!container) return;
-
-      if (monthEvents.length === 0) {
-        container.innerHTML = '<div class="empty-state-text grid-full-width">イベントがありません</div>';
-        return;
-      }
-
-      container.innerHTML = monthEvents.map(e => `
-        <div class="calendar-item" style="
-          padding: 1rem;
-          background: var(--color-bg-secondary);
-          border: 1px solid var(--color-border);
-          border-left: 4px solid ${e.type === 'no-vacation' ? '#f97316' : 'var(--color-accent-blue-light)'};
-          border-radius: 0.5rem;
-          display: flex;
-          flex-direction: column;
-          gap: 0.5rem;
-        ">
-          <div style="font-weight: 600; color: var(--color-text-primary);">${escapeHtml(e.title)}</div>
-          <div style="font-size: 0.875rem; color: var(--color-text-muted);">
-            📅 ${new Date(e.date).toLocaleDateString('ja-JP', { year: 'numeric', month: '2-digit', day: '2-digit' })}
-          </div>
-        </div>
-      `).join('');
     }
 
     // イベント詳細をモーダルで表示する機能
