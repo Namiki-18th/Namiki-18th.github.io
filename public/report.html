@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>プライバシーポリシー - 並木中等教育学校18回生</title>
+  <title>報告・お問い合わせ - 並木中等教育学校18回生</title>
   <link rel="stylesheet" href="style.css">
   <link rel="icon" href="favicon.ico" type="image/x-icon">
   <link rel="icon" href="favicon.png" type="image/png" sizes="256x256">
@@ -23,27 +23,81 @@
   </script>
 
   <style>
-    .policy-section {
+    .report-form {
+      display: flex;
+      flex-direction: column;
+      gap: 1.25rem;
       margin-top: 1.5rem;
     }
-    .policy-section h3 {
-      color: var(--color-text-primary);
-      font-weight: 600;
-      font-size: 1rem;
-      margin-bottom: 0.5rem;
+
+    .form-group {
       display: flex;
-      align-items: center; /* 修正: CSSプロパティ名を修復 */
+      flex-direction: column;
+      gap: 0.5rem;
     }
-    .policy-section p, .policy-section ul {
-      color: var(--color-text-body);
+
+    .form-group label {
       font-size: 0.875rem;
-      line-height: 1.7;
+      font-weight: 600;
+      color: var(--color-text-primary);
     }
-    .policy-section ul {
-      list-style-type: disc;
-      padding-left: 1.25rem;
-      margin-top: 0.25rem;
-      margin-bottom: 0.5rem;
+
+    .form-group label .required {
+      color: #ef4444;
+      margin-left: 0.25rem;
+    }
+
+    .form-control {
+      width: 100%;
+      padding: 0.625rem 0.875rem;
+      font-size: 0.875rem;
+      border-radius: 0.375rem;
+      border: 1px solid var(--color-border);
+      background-color: var(--color-bg-input, rgba(255, 255, 255, 0.05));
+      color: var(--color-text-primary);
+      box-sizing: border-box;
+      transition: border-color 0.15s ease, box-shadow 0.15s ease;
+    }
+
+    .form-control:focus {
+      outline: none;
+      border-color: #3b82f6;
+      box-shadow: 0 0 0 2px rgba(59, 130, 246, 0.25);
+    }
+
+    .form-control[readonly] {
+      opacity: 0.7;
+      cursor: not-allowed;
+      background-color: rgba(0, 0, 0, 0.1);
+    }
+
+    textarea.form-control {
+      resize: vertical;
+      min-height: 120px;
+    }
+
+    .submit-btn {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      padding: 0.625rem 1.25rem;
+      font-size: 0.875rem;
+      font-weight: 600;
+      color: #ffffff;
+      background-color: #2563eb;
+      border: none;
+      border-radius: 0.375rem;
+      cursor: pointer;
+      transition: background-color 0.15s ease;
+      align-self: flex-start;
+    }
+
+    .submit-btn:hover {
+      background-color: #1d4ed8;
+    }
+
+    .gotcha-field {
+      display: none !important;
     }
   </style>
 </head>
@@ -64,7 +118,6 @@
     </div>
 
     <nav class="sidebar-nav">
-      <!-- 修正: 重複していた active クラスを削除 -->
       <button onclick="switchTab('home')" id="sidebar-nav-home" class="sidebar-nav-button" title="ホーム">
         <svg class="icon-nav" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6"/></svg>
         <span class="sidebar-nav-text">ホーム</span>
@@ -96,7 +149,7 @@
       </button>
 
       <div class="sidebar-nav-divider">
-        <a href="/privacy" id="sidebar-nav-privacy" class="sidebar-nav-button active" title="プライバシーポリシー">
+        <a href="/privacy" id="sidebar-nav-privacy" class="sidebar-nav-button" title="プライバシーポリシー">
           <svg class="icon-nav" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
               d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z"/>
@@ -113,13 +166,13 @@
         </a>
       </div>
 
-    <a href="/report" id="sidebar-nav-report" class="sidebar-nav-button" title="報告" style="margin-top: auto; margin-bottom: 1rem;">
-    <svg class="icon-nav" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-        d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"/>
-    </svg>
-    <span class="sidebar-nav-text">報告</span>
-    </a>
+      <a href="/report" id="sidebar-nav-report" class="sidebar-nav-button active" title="報告" style="margin-top: auto; margin-bottom: 1rem;">
+        <svg class="icon-nav" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+            d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"/>
+        </svg>
+        <span class="sidebar-nav-text">報告</span>
+      </a>
     </nav>
 
     <div class="sidebar-footer">
@@ -176,83 +229,63 @@
       </div>
       <div class="flex items-center gap-3">
         <button onclick="toggleTheme()" style="background:none; border:none; cursor:pointer; color:var(--color-text-secondary);" title="モード切替">
-          <svg class="icon-sm" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 3v1m0 16v1m9-9h-1M4 12H3m15.364 6.364l-.707-.707M6.343 6.343l-.707-.707m12.728 0l-.707.707M6.343 17.657l-.707.707M16 12a4 4 0 11-8 0 4 4 0 018 0z"/></svg>
+          <svg class="icon-sm" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 3v1m0 16v1m9-9h-1M4 12H3m15.364 6.364l-.707-.707M6.343 6.343l-.707-.707m12.728 0l-.707.707M16 12a4 4 0 11-8 0 4 4 0 018 0z"/></svg>
         </button>
         <img id="mobile-user-avatar" src="https://placehold.co/32x32/333/fff?text=U" class="mobile-avatar-image" />
       </div>
     </header>
 
     <div class="mobile-tab-bar">
-      <!-- 修正: 重複していた active クラスを削除 -->
       <button onclick="switchTab('home')" id="mobile-nav-home" class="mobile-nav-button">ホーム</button>
       <button onclick="switchTab('schedule')" id="mobile-nav-schedule" class="mobile-nav-button">時間割</button>
       <button onclick="switchTab('notices')" id="mobile-nav-notices" class="mobile-nav-button">お知らせ</button>
       <button onclick="switchTab('links')" id="mobile-nav-links" class="mobile-nav-button">リンク</button>
       <button onclick="switchTab('calendar')" id="mobile-nav-calendar" class="mobile-nav-button">カレンダー</button>
       <button onclick="switchTab('chat')" id="mobile-nav-chat" class="mobile-nav-button">チャット</button>
-      <button onclick="switchTab('report')" id="mobile-nav-report" class="mobile-nav-button">報告</button>
+      <button onclick="switchTab('report')" id="mobile-nav-report" class="mobile-nav-button active">報告</button>
     </div>
 
     <main class="content-area">
       <div class="app-card content-card">
-        <h2 class="content-card-title">プライバシーポリシー</h2>
-        <p class="content-card-subtitle">本ポータルサイトにおける個人情報の取扱いおよびセキュリティ方針について規定しています。</p>
+        <h2 class="content-card-title">問題報告・お問い合わせ</h2>
+        <p class="content-card-subtitle">不具合の報告や改善要望、その他のお問い合わせはこちらから送信してください。</p>
         
-        <div style="font-size: 0.875rem; color: var(--color-text-body); line-height: 1.7; margin-top: 1rem;">
-          <p>「並木中等教育学校18回生ポータルサイト」（以下、「当サイト」といいます。）は、利用者のプライバシーを尊重し、個人情報の保護と適切な管理に努めます。</p>
+        <form action="https://formspree.io/f/xzepwvye" method="POST" class="report-form">
+          <input type="text" name="_gotcha" class="gotcha-field" tabIndex="-1" autocomplete="off" />
 
-          <div class="policy-section">
-            <h3>1. 収集する情報</h3>
-            <p>当サイトでは、Google OAuth2 等の認証連携を利用してログインを行う際、以下の情報を自動的に取得します。</p>
-            <ul>
-              <li>氏名（表示名）</li>
-              <li>メールアドレス</li>
-              <li>プロフィール画像（アイコン）</li>
-              <li>学籍番号・クラス情報（アカウント照合に使用）</li>
-            </ul>
-            <p>※当サイトが利用者のGoogleアカウント等のパスワードを取得・保存することは一切ありません。</p>
+          <div class="form-group">
+            <label for="report-type">報告種別 <span class="required">*</span></label>
+            <select id="report-type" name="type" class="form-control" required>
+              <option value="" disabled selected>選択してください</option>
+              <option value="不具合報告">システムの不具合報告</option>
+              <option value="機能要望">機能追加・改善の要望</option>
+              <option value="不適切コンテンツ報告">不適切なメッセージ・コンテンツの報告</option>
+              <option value="その他">その他のお問い合わせ</option>
+            </select>
           </div>
 
-          <div class="policy-section">
-            <h3>2. 個人情報の利用目的</h3>
-            <p>取得した個人情報は、以下の目的でのみ利用します。</p>
-            <ul>
-              <li>利用者認証および本人確認</li>
-              <li>当サイトにおけるクラス・学年機能（お知らせ、時間割、チャット等）の提供</li>
-              <li>不正アクセスや違反行為の防止および安全な運用管理</li>
-            </ul>
+          <div class="form-group">
+            <label for="form-name">お名前</label>
+            <input type="text" id="form-name" name="name" class="form-control" readonly placeholder="読み込み中..." required />
           </div>
 
-          <div class="policy-section">
-            <h3>3. データの安全管理と暗号化</h3>
-            <p>当サイトは、利用者の個人情報およびメッセージデータを保護するため、以下の安全対策を導入しています。</p>
-            <ul>
-              <li><strong>データ暗号化：</strong> 登録されている名簿データおよびチャットメッセージは、暗号化規格（AES-256-GCM等）を用いて厳重に保護されています。</li>
-              <li><strong>通信の保護：</strong> 全ての通信は暗号化（HTTPS/TLS）を通じて行われます。</li>
-            </ul>
+          <div class="form-group">
+            <label for="form-email">メールアドレス</label>
+            <input type="email" id="form-email" name="email" class="form-control" readonly placeholder="読み込み中..." required />
           </div>
 
-          <div class="policy-section">
-            <h3>4. チャットデータの管理とアクセス制限</h3>
-            <p>チャット機能で送信されたデータは暗号化して保存されます。原則として第三者に公開されることはありませんが、システムセキュリティの保持や不正行為調査等の正当な理由がある場合、管理者が適切かつ必要最小限の範囲で確認を行うことがあります。</p>
+          <div class="form-group">
+            <label for="form-message">報告内容・メッセージ <span class="required">*</span></label>
+            <textarea id="form-message" name="message" class="form-control" placeholder="発生した問題の詳細や要望を具体的にご記入ください。" required></textarea>
           </div>
 
-          <div class="policy-section">
-            <h3>5. 第三者への提供の禁止</h3>
-            <p>当サイトは、法令に基づく場合を除き、利用者の同意を得ることなく個人情報を第三者に提供・開示することはありません。</p>
-          </div>
-
-          <div class="policy-section">
-            <h3>6. プライバシーポリシーの改定</h3>
-            <p>当サイトは、法令の改正や運用の変更に応じて、本プライバシーポリシーを適宜見直し、改定することがあります。改定後の内容は、当サイト上に掲載した時点より効力を生じるものとします。</p>
-          </div>
-
-          <div class="policy-section" style="margin-top: 2rem; border-top: 1px solid var(--color-border); padding-top: 1rem;">
-            <p><strong>【お問い合わせ窓口】</strong></p>
-            <p>本ポリシーに関するご質問やご報告は、サイドバーの「報告」フォームまたはサイト管理者までご連絡ください。</p>
-            <p style="font-size: 0.75rem; color: var(--color-text-muted); margin-top: 0.5rem;">制定日: 2026年4月1日<br>最終改定日: 2026年8月19日</p>
-          </div>
-        </div>
+          <button type="submit" class="submit-btn">
+            <svg class="icon-sm" style="margin-right: 0.5rem;" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 19l9 2-9-18-9 18 9-2zm0 0v-8"/>
+            </svg>
+            送信する
+          </button>
+        </form>
       </div>
 
       <footer class="site-footer">
@@ -270,7 +303,6 @@
   </div>
 
   <script>
-    // ユーザープロフィールの取得と表示
     async function fetchUserProfile() {
       try {
         const res = await fetch('/api/profile');
@@ -305,12 +337,20 @@
           if (sidebarAvatar) sidebarAvatar.src = p.picture;
           if (mobileAvatar) mobileAvatar.src = p.picture;
         }
+
+        if (p.name) {
+          const inputName = document.getElementById('form-name');
+          if (inputName) inputName.value = p.name;
+        }
+        if (p.email) {
+          const inputEmail = document.getElementById('form-email');
+          if (inputEmail) inputEmail.value = p.email;
+        }
       } catch (err) {
         console.error('プロフィール取得エラー:', err);
       }
     }
 
-    // アカウントポップアップの制御
     function toggleAccountMenu(event) {
       if (event) event.stopPropagation();
       const menu = document.getElementById('account-popup-menu');
@@ -327,7 +367,6 @@
       }
     });
 
-    // テーマ制御
     function initThemeToggle() {
       const toggleSwitch = document.getElementById('theme-toggle-switch');
       if (toggleSwitch) {
@@ -352,14 +391,13 @@
         htmlEl.classList.remove('light');
         htmlEl.classList.add('dark');
         localStorage.setItem('namiki-theme', 'dark');
-        if (toggleSwitch) toggleSwitch.classList.add('on');
+        if (toggleSwitch) toggleSwitch.add('on');
       }
     }
 
     function handleAdminSettings() { window.location.href = '/admin'; }
     function handlePersonalSettings() { alert('個人用設定は開発中です。'); }
 
-    // タブ切り替え処理（修正: ページ内に対象セクションがない場合、/index へリダイレクト）
     function switchTab(tabId) {
       const targetContent = document.getElementById(`page-${tabId}`);
       if (!targetContent) {
