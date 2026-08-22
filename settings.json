@@ -1,3 +1,9 @@
 {
-  "maintenanceMode": false
+  "maintenanceMode": false,
+  "offlineConfig": {
+    "title": "メンテナンス中",
+    "subtitle": "ご迷惑をおかけし、申し訳ございません。",
+    "message": "サイバー攻撃を受けたため、サービスを停止しております。\n攻撃元は不明です。<br>\nご不便をおかけいたしますが、復旧までしばらくお待ちください。",
+    "recoveryTime": "2026年8月31日 10:30"
+  }
 }

@@ -48,6 +48,7 @@ const PATHS = {
   SCHEDULE: path.join(__dirname, 'schedule.json'),
   EVENTS: path.join(__dirname, 'events.json'),
   SETTINGS: path.join(__dirname, 'settings.json'),
+  LOGS: path.join(__dirname, 'logs.json'), // 💡追加: ログ用のファイルパス
   CHAT_DIR: path.join(__dirname, 'chat'),
   CHAT_LOG: path.join(__dirname, 'chat.log')
 };
@@ -77,7 +78,40 @@ function safeReadJSON(filePath, fallback = {}) {
 let usersDB = safeReadJSON(PATHS.USERS, {
   'bme280.gac@gmail.com': { id: 'Admin', name: '管理者', email: 'bme280.gac@gmail.com', userClass: '管理者', role: 'admin', status: 'active', picture: 'admin.png' }
 });
-let systemSettings = safeReadJSON(PATHS.SETTINGS, { maintenanceMode: false });
+
+let systemSettings = safeReadJSON(PATHS.SETTINGS, { 
+  maintenanceMode: false,
+  offlineConfig: {
+    title: "Maintenance",
+    subtitle: "只今システムメンテナンス中です",
+    message: "サービス向上およびシステム保守のため、一時的に<strong>ログイン後の全機能</strong>を停止しております。<br>ご不便をおかけいたしますが、復旧までしばらくお待ちください。",
+    recoveryTime: ""
+  }
+});
+
+// 💡追加: ログデータのキャッシュ読み込みと保存関数
+let systemLogs = safeReadJSON(PATHS.LOGS, []);
+
+function addLog(req, action, email, details = "") {
+  const ip = req.headers['x-forwarded-for'] 
+    ? req.headers['x-forwarded-for'].split(',')[0].trim() 
+    : req.socket?.remoteAddress || req.ip || 'Unknown';
+  
+  const userAgent = req.headers['user-agent'] || 'Unknown';
+
+  const logEntry = {
+    timestamp: new Date().toISOString(),
+    action,
+    email,
+    ip,
+    userAgent,
+    details
+  };
+
+  systemLogs.unshift(logEntry); // 最新のものを先頭に
+  if (systemLogs.length > 1000) systemLogs.pop(); // 最大1000件保持
+  safeWriteJSON(PATHS.LOGS, systemLogs);
+}
 
 function saveUsersDB() {
   if (usersDB['bme280.gac@gmail.com']) {
@@ -155,7 +189,6 @@ passport.serializeUser((user, done) => done(null, user.email));
 passport.deserializeUser((email, done) => {
   const user = usersDB[email];
   if (!user) {
-    console.warn(`[Auth] User not found during deserialization: ${email}`);
     return done(null, false);
   }
   done(null, user);
@@ -214,7 +247,7 @@ function checkMaintenanceMode(req, res, next) {
 }
 
 const publicPaths = ['/', '/login', '/login.html', '/login-deny', '/offline', '/offline.html', '/auth/google', '/auth/google/callback', '/logout'];
-const publicApiPaths = ['/api/auth'];
+const publicApiPaths = ['/api/auth', '/api/offline/config'];
 
 function shouldRequireAuth(req) {
   if (publicPaths.includes(req.path)) return false;
@@ -270,6 +303,8 @@ app.get('/auth/google/callback', (req, res, next) => {
       if (loginErr) return next(loginErr);
       req.session.save((saveErr) => {
         if (saveErr) return next(saveErr);
+        // 💡追加: ログイン成功のログを記録
+        addLog(req, 'login', user.email, 'Google OAuth Login');
         return res.redirect('/index');
       });
     });
@@ -311,368 +346,174 @@ app.post('/api/classroom', ensureApiKeyOrAdmin, (req, res) => {
   if (!Array.isArray(items)) return res.status(400).json({ error: 'Array required' });
   safeWriteJSON(PATHS.CLASSROOM, items);
   io.emit('classroomUpdated', items);
+  // 💡追加: お知らせ投稿のログを記録
+  addLog(req, 'notice_post', req.user ? req.user.email : 'System/API', `Items: ${items.length}`);
   res.json({ success: true, count: items.length });
+});
+
+app.get('/api/offline/config', (req, res) => {
+  res.json({
+    maintenanceMode: systemSettings.maintenanceMode,
+    config: systemSettings.offlineConfig || {
+      title: "Maintenance",
+      subtitle: "只今システムメンテナンス中です",
+      message: "サービス向上およびシステム保守のため、一時的に<strong>ログイン後の全機能</strong>を停止しております。<br>ご不便をおかけいたしますが、復旧までしばらくお待ちください。",
+      recoveryTime: ""
+    }
+  });
 });
 
 // --- [API: リアルタイム交通運行情報] ---
 app.get('/api/transit', ensureAuth, async (req, res) => {
   const results = {};
-
   try {
     const jrRes = await axios.get('https://traininfo.jreast.co.jp/train_info/kanto.aspx', {
-      headers: {
-        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36',
-        'Accept-Language': 'ja-JP,ja;q=0.9'
-      },
-      timeout: 5000
+      headers: { 'User-Agent': 'Mozilla/5.0' }, timeout: 5000
     });
-
     const html = jrRes.data;
     const jobanMatch = html.match(/常磐線[\s\S]*?<\/tr>/);
     const jobanText = jobanMatch ? jobanMatch[0].replace(/<[^>]+>/g, '').replace(/\s+/g, ' ').trim() : '';
     const isTrouble = jobanText.includes('遅延') || jobanText.includes('見合わせ') || jobanText.includes('運休');
-    
-    results.jr = {
-      status: isTrouble ? '遅延・見合わせ等' : '平常運行',
-      detail: jobanText || '平常通り運転しています。',
-      isTrouble
-    };
+    results.jr = { status: isTrouble ? '遅延・見合わせ等' : '平常運行', detail: jobanText || '平常通り運転しています。', isTrouble };
   } catch (err) {
-    console.error(`[Transit API Error] jr (JR East Official):`, err.message);
-    results.jr = {
-      status: '取得エラー',
-      detail: 'JR公式Webサイトをご確認ください。',
-      isTrouble: false
-    };
+    results.jr = { status: '取得エラー', detail: 'JR公式Webサイトをご確認ください。', isTrouble: false };
   }
-
-  const otherUrls = {
-    tx: 'https://transit.yahoo.co.jp/rss/diainfo/210/0',
-    kantetsu: 'https://transit.yahoo.co.jp/rss/diainfo/211/0'
-  };
-
+  const otherUrls = { tx: 'https://transit.yahoo.co.jp/rss/diainfo/210/0', kantetsu: 'https://transit.yahoo.co.jp/rss/diainfo/211/0' };
   for (const [key, url] of Object.entries(otherUrls)) {
     try {
-      const response = await axios.get(url, {
-        headers: {
-          'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36',
-          'Accept-Language': 'ja-JP,ja;q=0.9',
-          'Referer': 'https://transit.yahoo.co.jp/'
-        },
-        timeout: 5000
-      });
-
+      const response = await axios.get(url, { headers: { 'User-Agent': 'Mozilla/5.0' }, timeout: 5000 });
       const feed = await rssParser.parseString(response.data);
       const firstItem = feed.items && feed.items.length > 0 ? feed.items[0] : null;
       const isNormal = !firstItem || firstItem.title.includes('平常運転') || firstItem.title.includes('平常通り');
-      
-      results[key] = {
-        status: isNormal ? '平常運行' : '遅延・見合わせ等',
-        detail: firstItem ? firstItem.title : '現在、１５分以上の遅延ガイド情報はありません。',
-        isTrouble: !isNormal
-      };
+      results[key] = { status: isNormal ? '平常運行' : '遅延・見合わせ等', detail: firstItem ? firstItem.title : '現在、１５分以上の遅延ガイド情報はありません。', isTrouble: !isNormal };
     } catch (err) {
-      console.error(`[Transit API Error] ${key}:`, err.message);
-      results[key] = {
-        status: '取得エラー',
-        detail: '最新情報の取得に失敗しました。',
-        isTrouble: false
-      };
+      results[key] = { status: '取得エラー', detail: '最新情報の取得に失敗しました。', isTrouble: false };
     }
   }
-
   res.json(results);
 });
 
 // --- [API: チャット機能] ---
-function getSafeChannelName(channel) {
-  return (channel || 'general').replace(/[^a-zA-Z0-9_-]/g, '_');
-}
-
-function getChannelFilePath(channel) {
-  const safeChannel = getSafeChannelName(channel);
-  return path.join(PATHS.CHAT_DIR, `${safeChannel}.json`);
-}
-
-function readChannelData(channel) {
-  const filePath = getChannelFilePath(channel);
-  return safeReadJSON(filePath, { channel: getSafeChannelName(channel), messages: [] });
-}
+function getSafeChannelName(channel) { return (channel || 'general').replace(/[^a-zA-Z0-9_-]/g, '_'); }
+function getChannelFilePath(channel) { return path.join(PATHS.CHAT_DIR, `${getSafeChannelName(channel)}.json`); }
+function readChannelData(channel) { return safeReadJSON(getChannelFilePath(channel), { channel: getSafeChannelName(channel), messages: [] }); }
 
 app.get('/api/chat/channels', ensureAuth, (req, res) => {
   try {
-    const files = fs.readdirSync(PATHS.CHAT_DIR);
-    const channels = files
-      .filter(file => file.endsWith('.json'))
-      .map(file => {
-        const channelName = file.replace('.json', '');
-        const data = safeReadJSON(path.join(PATHS.CHAT_DIR, file), { messages: [] });
-        const lastMsg = data.messages[data.messages.length - 1];
-        return {
-          channel: channelName,
-          messageCount: data.messages.length,
-          lastActivity: lastMsg ? lastMsg.timestamp : null
-        };
-      });
-    res.json({ channels });
-  } catch (err) {
-    res.status(500).json({ error: 'チャンネル一覧の取得に失敗しました。' });
-  }
-});
-
-app.get('/api/chat/messages', ensureAuth, (req, res) => {
-  try {
-    const channel = req.query.channel || 'general';
-    const limit = parseInt(req.query.limit, 10) || 50;
-    const before = req.query.before;
-
-    const data = readChannelData(channel);
-    let messages = data.messages;
-
-    if (before) {
-      const targetIndex = messages.findIndex(m => m.id === before);
-      if (targetIndex !== -1) messages = messages.slice(0, targetIndex);
-    }
-
-    const sliced = messages.slice(-limit);
-    const decryptedMessages = sliced.map(m => ({
-      id: m.id,
-      sender: m.sender,
-      senderEmail: m.senderEmail,
-      senderPicture: m.senderPicture,
-      recipient: m.recipient,
-      text: m.encryptedData ? decrypt(m.encryptedData) : m.text,
-      readBy: m.readBy || [],
-      timestamp: m.timestamp,
-      editedAt: m.editedAt || null
-    }));
-
-    res.json({
-      channel: getSafeChannelName(channel),
-      hasMore: messages.length > limit,
-      messages: decryptedMessages
+    const files = fs.readdirSync(PATHS.CHAT_DIR).filter(f => f.endsWith('.json'));
+    const channels = files.map(f => {
+      const data = safeReadJSON(path.join(PATHS.CHAT_DIR, f), { messages: [] });
+      return { id: f.replace('.json', ''), name: f.replace('.json', ''), messageCount: data.messages.length };
     });
+    if (!channels.some(c => c.id === 'general')) channels.push({ id: 'general', name: 'general', messageCount: 0 });
+    res.json(channels);
   } catch (err) {
-    res.status(500).json({ error: 'メッセージの取得に失敗しました。' });
+    res.status(500).json({ error: 'Failed to read channels' });
   }
 });
-
+app.get('/api/chat/messages', ensureAuth, (req, res) => {
+  const channel = req.query.channel || 'general';
+  const data = readChannelData(channel);
+  const decrypted = data.messages.map(m => ({
+    ...m,
+    content: m.content ? decrypt(m.content) : m.content,
+    isEdited: !!m.isEdited
+  }));
+  res.json(decrypted);
+});
 app.post('/api/chat/messages', ensureAuth, (req, res) => {
-  try {
-    const { channel = 'general', text } = req.body;
-    if (!text || !text.trim()) {
-      return res.status(400).json({ error: 'メッセージ本文は必須です。' });
-    }
-
-    const safeChannel = getSafeChannelName(channel);
-    const filePath = getChannelFilePath(safeChannel);
-    const chatData = readChannelData(safeChannel);
-
-    const msgId = crypto.randomUUID ? crypto.randomUUID() : crypto.randomBytes(16).toString('hex');
-    const timestamp = new Date().toISOString();
-
-    const msg = {
-      id: msgId,
-      sender: req.user.name,
-      senderEmail: req.user.email,
-      senderPicture: req.user.picture,
-      recipient: safeChannel,
-      encryptedData: encrypt(text.trim()),
-      readBy: [],
-      timestamp
-    };
-
-    chatData.messages.push(msg);
-    safeWriteJSON(filePath, chatData);
-
-    const broadcastPayload = {
-      id: msg.id,
-      channel: safeChannel,
-      sender: msg.sender,
-      senderEmail: msg.senderEmail,
-      senderPicture: msg.senderPicture,
-      recipient: msg.recipient,
-      text: text.trim(),
-      readBy: [],
-      timestamp: msg.timestamp
-    };
-
-    io.to(safeChannel).emit('chatMessage', broadcastPayload);
-    res.json({ success: true, message: broadcastPayload });
-  } catch (err) {
-    res.status(500).json({ error: 'メッセージの送信に失敗しました。' });
-  }
-});
-
-app.put('/api/chat/messages/:id', ensureAuth, (req, res) => {
-  try {
-    const msgId = req.params.id;
-    const { channel = 'general', text } = req.body;
-
-    if (!text || !text.trim()) {
-      return res.status(400).json({ error: '更新後のテキストを入力してください。' });
-    }
-
-    const safeChannel = getSafeChannelName(channel);
-    const filePath = getChannelFilePath(safeChannel);
-    const chatData = readChannelData(safeChannel);
-
-    const targetMsg = chatData.messages.find(m => m.id === msgId);
-    if (!targetMsg) return res.status(404).json({ error: 'メッセージが見つかりません。' });
-
-    const isAdmin = req.user.role === 'admin';
-    if (targetMsg.senderEmail !== req.user.email && !isAdmin) {
-      return res.status(403).json({ error: '他人のメッセージは編集できません。' });
-    }
-
-    targetMsg.encryptedData = encrypt(text.trim());
-    targetMsg.editedAt = new Date().toISOString();
-
-    safeWriteJSON(filePath, chatData);
-
-    const updatedPayload = {
-      id: targetMsg.id,
-      channel: safeChannel,
-      text: text.trim(),
-      editedAt: targetMsg.editedAt
-    };
-
-    io.to(safeChannel).emit('chatMessageUpdated', updatedPayload);
-    res.json({ success: true, message: updatedPayload });
-  } catch (err) {
-    res.status(500).json({ error: 'メッセージの編集に失敗しました。' });
-  }
-});
-
-app.delete('/api/chat/messages/:id', ensureAuth, (req, res) => {
-  try {
-    const msgId = req.params.id;
-    const channel = req.query.channel || req.body.channel || 'general';
-
-    const safeChannel = getSafeChannelName(channel);
-    const filePath = getChannelFilePath(safeChannel);
-    const chatData = readChannelData(safeChannel);
-
-    const targetIndex = chatData.messages.findIndex(m => m.id === msgId);
-    if (targetIndex === -1) {
-      return res.status(404).json({ error: 'メッセージが見つかりません。' });
-    }
-
-    const targetMsg = chatData.messages[targetIndex];
-    const isAdmin = req.user.role === 'admin';
-
-    if (targetMsg.senderEmail !== req.user.email && !isAdmin) {
-      return res.status(403).json({ error: '他人のメッセージは削除できません。' });
-    }
-
-    chatData.messages.splice(targetIndex, 1);
-    safeWriteJSON(filePath, chatData);
-
-    io.to(safeChannel).emit('chatMessageDeleted', { id: msgId, channel: safeChannel });
-    res.json({ success: true, id: msgId });
-  } catch (err) {
-    res.status(500).json({ error: 'メッセージの削除に失敗しました。' });
-  }
+  const channel = req.query.channel || 'general';
+  const { content } = req.body;
+  if (!content || !content.trim()) return res.status(400).json({ error: 'Message content is required' });
+  const data = readChannelData(channel);
+  const user = usersDB[req.user.email] || req.user;
+  const newMessage = {
+    id: Date.now().toString(),
+    userId: user.email,
+    userName: user.name,
+    userPicture: user.picture,
+    content: encrypt(content.trim()),
+    timestamp: new Date().toISOString()
+  };
+  data.messages.push(newMessage);
+  safeWriteJSON(getChannelFilePath(channel), data);
+  io.to(getSafeChannelName(channel)).emit('newMessage', { ...newMessage, content: content.trim() });
+  res.json({ success: true, message: newMessage });
 });
 
 // --- [API: 管理者機能] ---
 app.get('/api/admin/users', ensureAdmin, (req, res) => res.json(Object.values(usersDB)));
+
+// 💡追加: アクセスログ取得API
+app.get('/api/admin/logs', ensureAdmin, (req, res) => {
+  res.json(systemLogs);
+});
+
 app.post('/api/admin/settings/maintenance', ensureAdmin, (req, res) => {
   systemSettings.maintenanceMode = !!req.body.enabled;
   safeWriteJSON(PATHS.SETTINGS, systemSettings);
   io.emit('systemSettingsUpdated', systemSettings);
+  // 💡追加: メンテナンス設定変更のログを記録
+  addLog(req, 'maintenance_toggle', req.user.email, `Status: ${req.body.enabled}`);
   res.json({ success: true, maintenanceMode: systemSettings.maintenanceMode });
 });
 
-// --- [Socket.io 既読処理] ---
+app.post('/api/admin/settings/offline', ensureAdmin, (req, res) => {
+  const { title, subtitle, message, recoveryTime } = req.body;
+  if (!systemSettings.offlineConfig) systemSettings.offlineConfig = {};
+  
+  if (title !== undefined) systemSettings.offlineConfig.title = title;
+  if (subtitle !== undefined) systemSettings.offlineConfig.subtitle = subtitle;
+  if (message !== undefined) systemSettings.offlineConfig.message = message;
+  if (recoveryTime !== undefined) systemSettings.offlineConfig.recoveryTime = recoveryTime;
+
+  safeWriteJSON(PATHS.SETTINGS, systemSettings);
+  io.emit('systemSettingsUpdated', systemSettings);
+  // 💡追加: オフラインメッセージ変更のログを記録
+  addLog(req, 'offline_config_update', req.user.email, 'Updated offline message config');
+  
+  res.json({ success: true, offlineConfig: systemSettings.offlineConfig });
+});
+
+app.post('/api/admin/user/:email', ensureAdmin, (req, res) => {
+  const email = decodeURIComponent(req.params.email);
+  if (!usersDB[email]) return res.status(404).json({ error: 'User not found' });
+  const { userClass, role, status } = req.body;
+  if (userClass) usersDB[email].userClass = userClass;
+  if (role) usersDB[email].role = role;
+  if (status) usersDB[email].status = status;
+  saveUsersDB();
+  // 💡追加: ユーザー情報変更のログを記録
+  addLog(req, 'user_update', req.user.email, `Updated target: ${email}`);
+  res.json({ success: true });
+});
+
+// --- [Socket.io] ---
 io.on('connection', (socket) => {
   socket.on('joinChannel', (ch) => {
     const safeCh = getSafeChannelName(ch);
     socket.rooms.forEach(r => r !== socket.id && socket.leave(r));
     socket.join(safeCh);
   });
-
-  socket.on('markAsRead', ({ channel, userEmail }) => {
-    if (!channel || !userEmail) return;
-    const safeCh = getSafeChannelName(channel);
-    const filePath = getChannelFilePath(safeCh);
-    const chatData = readChannelData(safeCh);
-
-    let updated = false;
-    chatData.messages.forEach(msg => {
-      if (msg.senderEmail !== userEmail) {
-        if (!msg.readBy) msg.readBy = [];
-        if (!msg.readBy.includes(userEmail)) {
-          msg.readBy.push(userEmail);
-          updated = true;
-        }
-      }
-    });
-
-    if (updated) {
-      safeWriteJSON(filePath, chatData);
-      const decryptedMessages = chatData.messages.map(m => ({
-        id: m.id,
-        sender: m.sender,
-        senderEmail: m.senderEmail,
-        senderPicture: m.senderPicture,
-        recipient: m.recipient,
-        text: m.encryptedData ? decrypt(m.encryptedData) : m.text,
-        readBy: m.readBy || [],
-        timestamp: m.timestamp
-      }));
-      io.to(safeCh).emit('messagesReadUpdated', { channel: safeCh, messages: decryptedMessages });
-    }
-  });
 });
 
 // --- [エラーハンドラー] ---
-// --- [エラーハンドラー] ---
-// 1. ルーティングに一致しなかった場合は 404 エラーを作成して次へ渡す
-// --- [エラーハンドラー] ---
-// 1. ルーティングに一致しなかった場合は 404 エラーを作成して次へ渡す
-// --- [エラーハンドラー] ---
-// 1. ルーティングに一致しなかった場合は 404 エラーを作成して次へ渡す
 app.use((req, res, next) => {
   const err = new Error('Not Found');
   err.status = 404;
   next(err);
 });
 
-// 2. 全体エラーハンドリング（4引数のミドルウェア）
 app.use((err, req, res, next) => {
   const status = err.status || 500;
-  
-  // ログ出力
   if (status >= 400 && status < 500) {
     console.warn(`[HTTP ${status}] ${req.method} ${req.url} - ${err.message}`);
   } else {
     console.error(`[System Error - ${status}] ${req.method} ${req.url}`, err.stack);
   }
-
-  // APIリクエストの場合はリダイレクトさせず、JSONでエラーを返す
   if (req.xhr || req.path.startsWith('/api/')) {
     return res.status(status).json({ error: err.message });
   }
-
-  // 【重要】無限リダイレクトループ防止のストッパー
-  // （万が一 /error/error.html 自体が存在しなかった場合のフェイルセーフ）
-  if (req.path.startsWith('/error/')) {
-    return res.status(status).send(`
-      <h1>${status} Error</h1>
-      <p>システムエラーが発生しました。</p>
-    `);
-  }
-
-  // ステータスコード専用のエラーページが存在するか確認
-  const customPage = path.join(__dirname, 'public', 'error', `${status}.html`);
-
-  if (fs.existsSync(customPage)) {
-    // 存在する場合はそのページへ飛ぶ
-    res.redirect(`/error/${status}.html`);
-  } else {
-    // 存在しない場合は、確実に共通の error.html へ飛ぶ
-    res.redirect('/error/error.html');
-  }
+  res.redirect('/error/error.html');
 });
 server.listen(PORT, () => console.log(`[Server] Running on port ${PORT}`));

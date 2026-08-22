@@ -1,6 +1,7 @@
 node_modules/
 .env
 users.json
+settings.json
 chat/
 encript/
 .DS_Store

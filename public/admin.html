@@ -25,7 +25,7 @@
 </head>
 <body>
 
-  <!-- サイドバー (index.htmlと同構造) -->
+  <!-- サイドバー -->
   <aside class="sidebar">
     <div class="sidebar-header" onclick="location.href='/index'">
       <div class="flex items-center gap-3">
@@ -56,6 +56,11 @@
       <button onclick="switchAdminTab('system')" id="sidebar-nav-system" class="sidebar-nav-button" title="システム状態">
         <svg class="icon-nav" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z"/></svg>
         <span class="sidebar-nav-text">システム連携</span>
+      </button>
+      <!-- 💡追加: アクセスログ用ナビゲーション -->
+      <button onclick="switchAdminTab('logs')" id="sidebar-nav-logs" class="sidebar-nav-button" title="アクセスログ">
+        <svg class="icon-nav" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/></svg>
+        <span class="sidebar-nav-text">アクセスログ</span>
       </button>
 
       <div class="sidebar-nav-divider">
@@ -116,6 +121,8 @@
       <button onclick="switchAdminTab('notices')" id="mobile-nav-notices" class="mobile-nav-button">お知らせ</button>
       <button onclick="switchAdminTab('schedule')" id="mobile-nav-schedule" class="mobile-nav-button">時間割</button>
       <button onclick="switchAdminTab('system')" id="mobile-nav-system" class="mobile-nav-button">システム</button>
+      <!-- 💡追加: モバイル用アクセスログタブ -->
+      <button onclick="switchAdminTab('logs')" id="mobile-nav-logs" class="mobile-nav-button">ログ</button>
     </div>
 
     <main class="content-area">
@@ -135,24 +142,24 @@
         </div>
 
         <div class="app-card overflow-x-auto">
-          <table>
+          <table style="width: 100%; border-collapse: collapse;">
             <thead>
-              <tr>
-                <th>ユーザー名 / Email</th>
-                <th>所属クラス</th>
-                <th>権限</th>
-                <th>アカウント状態</th>
-                <th style="text-align: right;">操作</th>
+              <tr style="border-bottom: 1px solid var(--color-border);">
+                <th style="padding: 0.75rem; text-align: left;">ユーザー名 / Email</th>
+                <th style="padding: 0.75rem; text-align: left;">所属クラス</th>
+                <th style="padding: 0.75rem; text-align: left;">権限</th>
+                <th style="padding: 0.75rem; text-align: left;">アカウント状態</th>
+                <th style="padding: 0.75rem; text-align: right;">操作</th>
               </tr>
             </thead>
             <tbody id="admin-user-table">
-              <tr><td colspan="5" class="placeholder-text">ユーザーデータを読み込んでいます...</td></tr>
+              <tr><td colspan="5" class="placeholder-text" style="padding: 1rem; text-align: center;">ユーザーデータを読み込んでいます...</td></tr>
             </tbody>
           </table>
         </div>
       </div>
 
-      <!-- 2. お知らせ作成・管理セクション (追加機能) -->
+      <!-- 2. お知らせ作成・管理セクション -->
       <div id="page-notices" class="page-section hidden fade-in space-y-6">
         <div class="app-card content-card">
           <h2 class="content-card-title">📢 お知らせの新規配信</h2>
@@ -195,7 +202,7 @@
         </div>
       </div>
 
-      <!-- 3. 時間割・スケジュール設定 (追加機能) -->
+      <!-- 3. 時間割・スケジュール設定 -->
       <div id="page-schedule" class="page-section hidden fade-in space-y-6">
         <div class="app-card content-card">
           <h2 class="content-card-title">📅 時間割データ管理</h2>
@@ -204,7 +211,7 @@
         </div>
       </div>
 
-      <!-- 4. システム状態・Classroom GAS連携テスト (追加機能) -->
+      <!-- 4. システム状態・メンテナンスモード -->
       <div id="page-system" class="page-section hidden fade-in space-y-6">
         <div class="app-card status-card">
           <h3 class="status-card-title">Google Classroom / GAS 同期連携設定</h3>
@@ -214,14 +221,76 @@
           </button>
           <pre id="admin-sync-log" style="margin-top:1rem; padding:1rem; background:var(--color-bg); border:1px solid var(--color-border); border-radius:0.5rem; font-size:0.75rem; color:var(--color-text-secondary); overflow-x:auto;">ログ待ち...</pre>
         </div>
+        
+        <!-- メンテナンスモード & 文言設定 フォーム -->
         <div class="app-card status-card">
-          <h3 class="status-card-title">🛠 メンテナンスモード</h3>
+          <h3 class="status-card-title">🛠 メンテナンスモード & 表示設定</h3>
           <p class="content-card-subtitle">有効にすると、管理者以外の一般ユーザーはすべて /offline に転送されます。</p>
-          <div style="margin-top:1rem;">
+          
+          <div style="margin-top:1rem; padding-bottom: 1rem; border-bottom: 1px solid var(--color-border);">
             <label style="display:flex; align-items:center; gap:0.5rem; cursor:pointer;">
               <input type="checkbox" id="maintenance-toggle" onchange="toggleMaintenanceMode(this.checked)" style="transform: scale(1.2);">
               <span style="font-size:0.875rem; font-weight:600;">メンテナンスモードを有効にする</span>
             </label>
+          </div>
+
+          <form onsubmit="saveOfflineConfig(event)" style="margin-top: 1rem;" class="space-y-4">
+            <h4 style="font-size:0.95rem; font-weight:600; color:var(--color-text-primary);">offline.html 表示内容の設定</h4>
+            
+            <div>
+              <label style="display:block; font-size:0.875rem; color:var(--color-text-secondary); margin-bottom:0.25rem;">メインタイトル (H1)</label>
+              <input type="text" id="offline-title-input" placeholder="例: Maintenance" style="width:100%; padding:0.6rem; background:var(--color-bg); border:1px solid var(--color-border); border-radius:0.375rem; color:var(--color-text-primary);" />
+            </div>
+
+            <div>
+              <label style="display:block; font-size:0.875rem; color:var(--color-text-secondary); margin-bottom:0.25rem;">サブタイトル (H2)</label>
+              <input type="text" id="offline-subtitle-input" placeholder="例: 只今システムメンテナンス中です" style="width:100%; padding:0.6rem; background:var(--color-bg); border:1px solid var(--color-border); border-radius:0.375rem; color:var(--color-text-primary);" />
+            </div>
+
+            <div>
+              <label style="display:block; font-size:0.875rem; color:var(--color-text-secondary); margin-bottom:0.25rem;">案内メッセージ (HTMLタグ可)</label>
+              <textarea id="offline-message-input" rows="4" placeholder="説明文を入力してください..." style="width:100%; padding:0.6rem; background:var(--color-bg); border:1px solid var(--color-border); border-radius:0.375rem; color:var(--color-text-primary);"></textarea>
+            </div>
+
+            <div>
+              <label style="display:block; font-size:0.875rem; color:var(--color-text-secondary); margin-bottom:0.25rem;">復旧予定日時 (未定の場合は空欄)</label>
+              <input type="text" id="offline-recovery-input" placeholder="例: 2026年8月22日 18:00頃" style="width:100%; padding:0.6rem; background:var(--color-bg); border:1px solid var(--color-border); border-radius:0.375rem; color:var(--color-text-primary);" />
+            </div>
+
+            <button type="submit" class="button-primary" style="padding: 0.5rem 1rem; font-size: 0.85rem;">
+              💾 表示内容を更新する
+            </button>
+          </form>
+        </div>
+      </div>
+
+      <!-- 💡追加: 5. アクセスログセクション -->
+      <div id="page-logs" class="page-section hidden fade-in space-y-6">
+        <div class="app-card content-card">
+          <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:1rem;">
+            <div>
+              <h2 class="content-card-title">🔍 システムアクセスログ</h2>
+              <p class="content-card-subtitle">直近の操作・アクセス履歴を表示します（最大1000件）。</p>
+            </div>
+            <button onclick="loadAdminLogs()" class="button-primary" style="padding:0.4rem 0.8rem; font-size:0.8rem;">
+              🔄 更新
+            </button>
+          </div>
+          <div class="overflow-x-auto">
+            <table style="width:100%; text-align:left; border-collapse:collapse;">
+              <thead>
+                <tr style="border-bottom:1px solid var(--color-border); font-size:0.85rem; color:var(--color-text-secondary);">
+                  <th style="padding:0.75rem;">日時</th>
+                  <th style="padding:0.75rem;">アクション</th>
+                  <th style="padding:0.75rem;">ユーザー(Email)</th>
+                  <th style="padding:0.75rem;">IPアドレス</th>
+                  <th style="padding:0.75rem;">詳細</th>
+                </tr>
+              </thead>
+              <tbody id="admin-logs-table" style="font-size:0.85rem;">
+                <tr><td colspan="5" class="placeholder-text" style="padding:1rem; text-align:center;">ログを読み込んでいます...</td></tr>
+              </tbody>
+            </table>
           </div>
         </div>
       </div>
@@ -245,6 +314,8 @@
       document.getElementById(`mobile-nav-${tabId}`)?.classList.add('active');
 
       if (tabId === 'notices') loadAdminNotices();
+      // 💡追加: ログタブが開かれた際にデータをロード
+      if (tabId === 'logs') loadAdminLogs();
     }
 
     function toggleAccountMenu(event) {
@@ -301,7 +372,7 @@
         renderAdminTable();
       } catch (err) {
         document.getElementById('admin-user-table').innerHTML = `
-          <tr><td colspan="5" class="placeholder-text" style="color:var(--color-accent-red);">データの読み込みに失敗しました。</td></tr>
+          <tr><td colspan="5" class="placeholder-text" style="color:var(--color-accent-red); padding:1rem; text-align:center;">データの読み込みに失敗しました。</td></tr>
         `;
       }
     }
@@ -309,7 +380,7 @@
     function renderAdminTable() {
       const tbody = document.getElementById('admin-user-table');
       if (!usersData.length) {
-        tbody.innerHTML = `<tr><td colspan="5" class="placeholder-text">登録ユーザーが存在しません。</td></tr>`;
+        tbody.innerHTML = `<tr><td colspan="5" class="placeholder-text" style="padding:1rem; text-align:center;">登録ユーザーが存在しません。</td></tr>`;
         return;
       }
 
@@ -319,15 +390,15 @@
         const currentStatus = u.status || 'active';
         
         return `
-          <tr>
-            <td style="display:flex; align-items:center; gap:0.75rem;">
+          <tr style="border-bottom: 1px solid var(--color-border);">
+            <td style="display:flex; align-items:center; gap:0.75rem; padding: 0.75rem;">
               <img src="${u.picture || 'https://placehold.co/32x32/333/fff?text=U'}" style="width:2rem; height:2rem; border-radius:50%; object-fit:cover;">
               <div>
                 <div style="font-weight:600; color:var(--color-text-primary); font-size:0.875rem;">${escapeHtml(u.name)}</div>
                 <div style="font-size:0.75rem; color:var(--color-text-muted); font-family:monospace;">${escapeHtml(u.email)}</div>
               </div>
             </td>
-            <td>
+            <td style="padding: 0.75rem;">
               <select id="class-${encodedEmail}" style="padding:0.35rem 0.5rem; background:var(--color-bg); border:1px solid var(--color-border); border-radius:0.375rem; color:var(--color-text-primary); font-size:0.85rem;">
                 <option value="管理者" ${currentClass === '管理者' ? 'selected' : ''}>管理者</option>
                 <option value="A組" ${currentClass === 'A組' ? 'selected' : ''}>A組</option>
@@ -336,25 +407,80 @@
                 <option value="D組" ${currentClass === 'D組' ? 'selected' : ''}>D組</option>
               </select>
             </td>
-            <td>
+            <td style="padding: 0.75rem;">
               <select id="role-${encodedEmail}" style="padding:0.35rem 0.5rem; background:var(--color-bg); border:1px solid var(--color-border); border-radius:0.375rem; color:var(--color-text-primary); font-size:0.85rem;">
                 <option value="student" ${u.role === 'student' ? 'selected' : ''}>生徒</option>
                 <option value="admin" ${u.role === 'admin' ? 'selected' : ''}>管理者</option>
               </select>
             </td>
-            <td>
+            <td style="padding: 0.75rem;">
               <select id="status-${encodedEmail}" style="padding:0.35rem 0.5rem; background:var(--color-bg); border:1px solid var(--color-border); border-radius:0.375rem; color:var(--color-text-primary); font-size:0.85rem;">
-                <option value="active" ${currentStatus === 'active' ? 'selected' : ''}>🟢 有効 (Active)</option>
-                <option value="suspended" ${currentStatus === 'suspended' ? 'selected' : ''}>🔴 停止 (Suspended)</option>
+                <option value="active" ${currentStatus === 'active' ? 'selected' : ''}>🟢 有効</option>
+                <option value="suspended" ${currentStatus === 'suspended' ? 'selected' : ''}>🔴 停止</option>
               </select>
             </td>
-            <td style="text-align:right;">
-              <button onclick="saveUser('${encodedEmail}')" class="button-primary" style="padding:0.25rem 0.75rem; font-size:0.75rem;">更新</button>
+            <td style="text-align:right; padding: 0.75rem;">
+              <button onclick="saveUser('${encodedEmail}')" class="button-primary" style="padding:0.35rem 0.75rem; font-size:0.75rem;">更新</button>
             </td>
           </tr>
         `;
       }).join('');
     }
+
+    // 💡追加: アクセスログ取得・描画関数
+    async function loadAdminLogs() {
+      const tbody = document.getElementById('admin-logs-table');
+      try {
+        tbody.innerHTML = '<tr><td colspan="5" class="placeholder-text" style="padding:1rem; text-align:center;">読み込み中...</td></tr>';
+        const res = await fetch('/api/admin/logs');
+        if (!res.ok) throw new Error('ログの取得に失敗しました');
+        const logs = await res.json();
+        
+        if (!logs.length) {
+          tbody.innerHTML = '<tr><td colspan="5" class="placeholder-text" style="padding:1rem; text-align:center;">ログデータがありません。</td></tr>';
+          return;
+        }
+
+        tbody.innerHTML = logs.map(l => {
+          const date = new Date(l.timestamp).toLocaleString('ja-JP');
+          return `
+            <tr style="border-bottom:1px solid var(--color-border);">
+              <td style="padding:0.75rem; white-space:nowrap; color:var(--color-text-secondary);">${date}</td>
+              <td style="padding:0.75rem;">
+                <span style="background:var(--color-bg); border:1px solid var(--color-border); padding:0.2rem 0.5rem; border-radius:4px; font-size:0.75rem;">
+                  ${escapeHtml(l.action)}
+                </span>
+              </td>
+              <td style="padding:0.75rem; color:var(--color-text-primary);">${escapeHtml(l.email)}</td>
+              <td style="padding:0.75rem; font-family:monospace; color:var(--color-text-muted);">${escapeHtml(l.ip)}</td>
+              <td style="padding:0.75rem; color:var(--color-text-secondary);">${escapeHtml(l.details || '-')}</td>
+            </tr>
+          `;
+        }).join('');
+      } catch (err) {
+        tbody.innerHTML = `<tr><td colspan="5" class="placeholder-text" style="color:var(--color-accent-red); padding:1rem; text-align:center;">ログの読み込みに失敗しました。</td></tr>`;
+      }
+    }
+
+    async function loadSystemSettings() {
+      try {
+        const res = await fetch('/api/offline/config');
+        if (res.ok) {
+          const data = await res.json();
+          document.getElementById('maintenance-toggle').checked = !!data.maintenanceMode;
+          
+          if (data.config) {
+            document.getElementById('offline-title-input').value = data.config.title || '';
+            document.getElementById('offline-subtitle-input').value = data.config.subtitle || '';
+            document.getElementById('offline-message-input').value = data.config.message || '';
+            document.getElementById('offline-recovery-input').value = data.config.recoveryTime || '';
+          }
+        }
+      } catch (err) {
+        console.error('設定の読み込みに失敗しました', err);
+      }
+    }
+
     async function toggleMaintenanceMode(enabled) {
       if(!confirm(`メンテナンスモードを${enabled ? '有効' : '無効'}にしますか？`)) {
         document.getElementById('maintenance-toggle').checked = !enabled;
@@ -374,6 +500,30 @@
       } catch (err) {
         alert('通信エラーが発生しました。');
         document.getElementById('maintenance-toggle').checked = !enabled;
+      }
+    }
+
+    async function saveOfflineConfig(e) {
+      e.preventDefault();
+      const title = document.getElementById('offline-title-input').value;
+      const subtitle = document.getElementById('offline-subtitle-input').value;
+      const message = document.getElementById('offline-message-input').value;
+      const recoveryTime = document.getElementById('offline-recovery-input').value;
+
+      try {
+        const res = await fetch('/api/admin/settings/offline', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ title, subtitle, message, recoveryTime })
+        });
+        
+        if (res.ok) {
+          alert('offline.html の表示文言を更新しました！');
+        } else {
+          alert('更新に失敗しました。');
+        }
+      } catch (err) {
+        alert('通信エラーが発生しました。');
       }
     }
 
@@ -422,7 +572,6 @@
       }
     }
 
-    // --- お知らせ追加 API 連動 ---
     async function handleNoticeSubmit(e) {
       e.preventDefault();
       const title = document.getElementById('notice-title').value;
@@ -455,11 +604,11 @@
         const data = await res.json();
         const list = document.getElementById('admin-notices-list');
         if (!data.length) {
-          list.innerHTML = '<div class="placeholder-text">配信済みのお知らせはありません</div>';
+          list.innerHTML = '<div class="placeholder-text" style="padding:1rem; text-align:center;">配信済みのお知らせはありません</div>';
           return;
         }
         list.innerHTML = data.map(n => `
-          <div class="notice-card" style="display:flex; justify-content:space-between; align-items:center;">
+          <div class="notice-card" style="display:flex; justify-content:space-between; align-items:center; padding: 0.75rem; border-bottom: 1px solid var(--color-border);">
             <div>
               <div style="font-size:0.75rem; color:var(--color-text-muted);">${escapeHtml(n.date)} [${n.priority}]</div>
               <div style="font-weight:600; color:var(--color-text-primary); font-size:0.95rem;">${escapeHtml(n.title)}</div>
@@ -501,6 +650,8 @@
 
     window.addEventListener('DOMContentLoaded', () => {
       checkAdminAuthAndLoad();
+      loadSystemSettings(); 
+      
       const savedTheme = localStorage.getItem('namiki-theme');
       if (savedTheme === 'light') {
         document.getElementById('theme-toggle-switch')?.classList.remove('on');

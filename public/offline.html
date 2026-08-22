@@ -1,0 +1,157 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>システムメンテナンス中</title>
+    <link rel="icon" href="favicon.ico" type="image/x-icon">
+    <link rel="icon" href="favicon.png" type="image/png" sizes="256x256">
+    <style>
+        :root {
+            --bg-color: #f8f9fa;
+            --container-bg: #ffffff;
+            --text-main: #333333;
+            --text-sub: #666666;
+            --shadow-color: rgba(0, 0, 0, 0.05);
+            --btn-sec-bg: #f1f3f5;
+            --btn-sec-text: #495057;
+            --btn-sec-border: #ced4da;
+            --btn-sec-hover: #e9ecef;
+        }
+
+        @media (prefers-color-scheme: dark) {
+            :root {
+                --bg-color: #121212;
+                --container-bg: #2d2d2d;
+                --text-main: #e0e0e0;
+                --text-sub: #aaaaaa;
+                --shadow-color: rgba(0, 0, 0, 0.3);
+                --btn-sec-bg: #3c3c3c;
+                --btn-sec-text: #e0e0e0;
+                --btn-sec-border: #555555;
+                --btn-sec-hover: #4a4a4a;
+            }
+        }
+
+        body {
+            font-family: 'Helvetica Neue', Arial, sans-serif;
+            background-color: var(--bg-color);
+            color: var(--text-main);
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            height: 100vh;
+            margin: 0;
+            padding: 0 20px;
+            box-sizing: border-box;
+            text-align: center;
+            transition: background-color 0.3s ease, color 0.3s ease;
+        }
+
+        h1 {
+            font-size: 56px;
+            margin: 0;
+            color: var(--text-main);
+            line-height: 1.1;
+        }
+
+        h2 {
+            font-size: 28px;
+            margin: 15px 0;
+        }
+
+        p {
+            margin-bottom: 30px;
+            color: var(--text-sub);
+            line-height: 1.6;
+        }
+
+        .button-group {
+            display: flex;
+            gap: 15px;
+            justify-content: center;
+            flex-wrap: wrap;
+        }
+
+        .btn {
+            display: inline-block;
+            padding: 12px 24px;
+            background-color: #0641b0;
+            color: white;
+            text-decoration: none;
+            border-radius: 6px;
+            font-weight: bold;
+            transition: all 0.3s ease;
+            border: 1px solid transparent;
+        }
+
+        .btn:hover {
+            background-color: #073894;
+        }
+
+        .btn-secondary {
+            background-color: var(--btn-sec-bg);
+            color: var(--btn-sec-text);
+            border: 1px solid var(--btn-sec-border);
+            display: inline-block;
+            padding: 12px 24px;
+            text-decoration: none;
+            border-radius: 6px;
+            font-weight: bold;
+            transition: all 0.3s ease;
+        }
+
+        .btn-secondary:hover {
+            background-color: var(--btn-sec-hover);
+        }
+    </style>
+</head>
+<body>
+    <img src="logo.webp" alt="システムメンテナンス中" style="width: 120px; margin-bottom: 20px;">
+    
+    <h1 id="maintenance-title">Maintenance</h1>
+    <h2 id="maintenance-subtitle">只今システムメンテナンス中です</h2>
+    
+    <p id="maintenance-message">
+        サービス向上およびシステム保守のため、一時的に<strong>ログイン後の全機能</strong>を停止しております。<br>
+        ご不便をおかけいたしますが、復旧までしばらくお待ちください。
+    </p>
+
+    <!-- 復旧予定日時の表示領域（初期状態は非表示） -->
+    <div id="maintenance-recovery-container" style="display: none; margin-bottom: 30px; padding: 15px; background-color: rgba(220, 53, 69, 0.1); border: 1px solid rgba(220, 53, 69, 0.3); border-radius: 8px; color: #d9534f; font-weight: bold; font-size: 1.1em;">
+        復旧予定: <span id="maintenance-recovery"></span>
+    </div>
+
+    <div class="button-group">
+        <a href="/login" class="btn-secondary">ログイン画面へ戻る</a>
+    </div>
+
+    <script>
+      async function fetchOfflineConfig() {
+        try {
+          const res = await fetch('/api/offline/config');
+          if (res.ok) {
+            const data = await res.json();
+            if (data.config) {
+              if (data.config.title) document.getElementById('maintenance-title').textContent = data.config.title;
+              if (data.config.subtitle) document.getElementById('maintenance-subtitle').textContent = data.config.subtitle;
+              if (data.config.message) document.getElementById('maintenance-message').innerHTML = data.config.message;
+              
+              if (data.config.recoveryTime && data.config.recoveryTime.trim() !== "") {
+                document.getElementById('maintenance-recovery').textContent = data.config.recoveryTime;
+                document.getElementById('maintenance-recovery-container').style.display = 'inline-block';
+              } else {
+                document.getElementById('maintenance-recovery-container').style.display = 'none';
+              }
+            }
+          }
+        } catch (e) {
+          console.error('設定の動的取得に失敗しました:', e);
+        }
+      }
+
+      window.addEventListener('DOMContentLoaded', fetchOfflineConfig);
+    </script>
+</body>
+</html>
