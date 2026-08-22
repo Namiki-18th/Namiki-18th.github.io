@@ -1,0 +1,1080 @@
+<!DOCTYPE html>
+<html lang="ja" class="dark">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>チャット - 並木中等教育学校18回生</title>
+  <link rel="stylesheet" href="style.css">
+  <link rel="icon" href="favicon.ico" type="image/x-icon">
+  <link rel="icon" href="favicon.png" type="image/png" sizes="256x256">
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" />
+  <script src="/socket.io/socket.io.js"></script>
+  <!-- Markdownパーサーとサニタイズ用のライブラリを追加 -->
+  <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/dompurify/dist/purify.min.js"></script>
+  
+  <style>
+    .user-info-header {
+      display: flex;
+      align-items: center;
+      gap: 0.75rem;
+    }
+    .popup-user-avatar {
+      width: 2.25rem;
+      height: 2.25rem;
+      border-radius: 9999px;
+      object-fit: cover;
+      border: 1px solid var(--color-border);
+      flex-shrink: 0;
+    }
+    .user-info-text {
+      flex: 1;
+      min-width: 0;
+    }
+    .sidebar-avatar-image,
+    .mobile-avatar-image {
+      object-fit: cover;
+      border-radius: 9999px;
+    }
+    .chat-layout {
+      display: flex;
+      height: calc(100vh - 4rem);
+      background-color: var(--color-bg);
+      border-radius: 0.75rem;
+      border: 1px solid var(--color-border);
+      overflow: hidden;
+    }
+    @media (min-width: 1024px) {
+      .chat-layout {
+        height: calc(100vh - 5rem);
+      }
+    }
+    .chat-channels-sidebar {
+      width: 260px;
+      background-color: var(--color-bg-secondary);
+      border-right: 1px solid var(--color-border);
+      display: flex;
+      flex-direction: column;
+      flex-shrink: 0;
+    }
+    .chat-channels-header {
+      padding: 1rem;
+      border-bottom: 1px solid var(--color-border);
+      font-weight: 600;
+      color: var(--color-text-primary);
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+    .chat-channels-list {
+      flex: 1;
+      overflow-y: auto;
+      padding: 0.75rem;
+      display: flex;
+      flex-direction: column;
+      gap: 0.25rem;
+    }
+    .channel-section-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 0.5rem 0.5rem 0.25rem 0.5rem;
+      margin-top: 0.5rem;
+    }
+    .channel-section-title {
+      font-size: 0.75rem;
+      font-weight: 600;
+      color: var(--color-text-muted);
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+    }
+    .add-dm-button {
+      background: none;
+      border: none;
+      color: var(--color-text-muted);
+      cursor: pointer;
+      padding: 0.125rem;
+      border-radius: 0.25rem;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      transition: color 0.15s ease, background-color 0.15s ease;
+    }
+    .add-dm-button:hover {
+      color: var(--color-text-primary);
+      background-color: var(--color-bg-tertiary);
+    }
+    .channel-button {
+      display: flex;
+      align-items: center;
+      gap: 0.625rem;
+      width: 100%;
+      padding: 0.5rem 0.75rem;
+      border-radius: 0.375rem;
+      border: none;
+      background: transparent;
+      color: var(--color-text-secondary);
+      font-size: 0.875rem;
+      font-weight: 500;
+      cursor: pointer;
+      text-align: left;
+      transition: all 0.15s ease;
+    }
+    .channel-button:hover {
+      background-color: var(--color-bg-tertiary);
+      color: var(--color-text-primary);
+    }
+    .channel-button.active {
+      background-color: var(--color-accent-blue-light, #3b82f6);
+      color: #ffffff;
+    }
+    .channel-hash {
+      font-weight: 700;
+      opacity: 0.7;
+    }
+    .dm-user-avatar {
+      width: 1.5rem;
+      height: 1.5rem;
+      border-radius: 9999px;
+      object-fit: cover;
+    }
+    .chat-main-area {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      min-width: 0;
+      background-color: var(--color-bg);
+    }
+    .chat-main-header {
+      padding: 0.875rem 1.25rem;
+      border-bottom: 1px solid var(--color-border);
+      background-color: var(--color-bg-secondary);
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+    .chat-channel-title {
+      font-size: 1rem;
+      font-weight: 700;
+      color: var(--color-text-primary);
+      display: flex;
+      align-items: center;
+      gap: 0.375rem;
+    }
+    .chat-channel-description {
+      font-size: 0.75rem;
+      color: var(--color-text-muted);
+      margin-top: 0.125rem;
+    }
+    .chat-messages-container {
+      flex: 1;
+      overflow-y: auto;
+      padding: 1.25rem;
+      display: flex;
+      flex-direction: column;
+      gap: 1rem;
+    }
+    .chat-center-message {
+      text-align: center;
+      margin: 1rem 0;
+    }
+    .chat-center-message-text {
+      display: inline-block;
+      font-size: 0.75rem;
+      color: var(--color-text-muted);
+      background-color: var(--color-bg-secondary);
+      padding: 0.25rem 0.75rem;
+      border-radius: 9999px;
+      border: 1px solid var(--color-border);
+    }
+    .chat-message {
+      display: flex;
+      gap: 0.75rem;
+      max-width: 80%;
+    }
+    .chat-message--other {
+      align-self: flex-start;
+    }
+    .chat-message--self {
+      align-self: flex-end;
+      flex-direction: row-reverse;
+    }
+    .chat-message-avatar {
+      width: 2.25rem;
+      height: 2.25rem;
+      border-radius: 9999px;
+      object-fit: cover;
+      flex-shrink: 0;
+      margin-top: 0.125rem;
+    }
+    .chat-message-content {
+      display: flex;
+      flex-direction: column;
+    }
+    .chat-message-content--self {
+      align-items: flex-end;
+    }
+    .chat-message-content--other {
+      align-items: flex-start;
+    }
+    .chat-message-sender {
+      font-size: 0.75rem;
+      font-weight: 600;
+      color: var(--color-text-muted);
+      margin-bottom: 0.25rem;
+      padding: 0 0.25rem;
+    }
+    .chat-bubble {
+      padding: 0.625rem 0.875rem;
+      border-radius: 1rem;
+      font-size: 0.875rem;
+      line-height: 1.4;
+      word-break: break-word;
+    }
+    .chat-bubble--other {
+      background-color: var(--color-bg-secondary);
+      color: var(--color-text-primary);
+      border: 1px solid var(--color-border);
+      border-top-left-radius: 0.25rem;
+    }
+    .chat-bubble--self {
+      background-color: var(--color-accent-blue-light, #3b82f6);
+      color: #ffffff;
+      border-top-right-radius: 0.25rem;
+    }
+    .chat-message-time {
+      font-size: 0.6875rem;
+      color: var(--color-text-muted);
+      margin-top: 0.25rem;
+      padding: 0 0.25rem;
+    }
+    .chat-input-wrapper {
+      padding: 0.875rem 1.25rem;
+      border-top: 1px solid var(--color-border);
+      background-color: var(--color-bg-secondary);
+    }
+    .chat-input-form {
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+      background-color: var(--color-bg);
+      border: 1px solid var(--color-border);
+      border-radius: 0.5rem;
+      padding: 0.375rem 0.5rem 0.375rem 0.75rem;
+    }
+    .chat-input-form:focus-within {
+      border-color: var(--color-accent-blue-light, #3b82f6);
+    }
+    .chat-text-input {
+      flex: 1;
+      border: none;
+      background: transparent;
+      color: var(--color-text-primary);
+      font-size: 0.875rem;
+      outline: none;
+    }
+    .chat-action-button {
+      background: transparent;
+      border: none;
+      color: var(--color-text-muted);
+      cursor: pointer;
+      padding: 0.375rem;
+      border-radius: 0.375rem;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      transition: color 0.15s ease, background-color 0.15s ease;
+    }
+    .chat-action-button:hover {
+      color: var(--color-text-primary);
+      background-color: var(--color-bg-tertiary);
+    }
+    .chat-send-button {
+      background-color: var(--color-accent-blue-light, #3b82f6);
+      color: #ffffff;
+      border: none;
+      border-radius: 0.375rem;
+      padding: 0.375rem 0.75rem;
+      font-size: 0.875rem;
+      font-weight: 500;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      gap: 0.25rem;
+      transition: opacity 0.15s ease;
+    }
+    .chat-send-button:hover {
+      opacity: 0.9;
+    }
+    .modal-overlay {
+      display: none;
+      position: fixed;
+      inset: 0;
+      background-color: rgba(0, 0, 0, 0.5);
+      z-index: 50;
+      align-items: center;
+      justify-content: center;
+    }
+    .modal-overlay.show {
+      display: flex;
+    }
+    .modal-container {
+      background-color: var(--color-bg-secondary);
+      border: 1px solid var(--color-border);
+      border-radius: 0.5rem;
+      width: 90%;
+      max-width: 400px;
+      padding: 1.25rem;
+      box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.3);
+    }
+    .modal-header {
+      font-size: 1rem;
+      font-weight: 700;
+      color: var(--color-text-primary);
+      margin-bottom: 0.75rem;
+    }
+    .modal-body {
+      display: flex;
+      flex-direction: column;
+      gap: 0.75rem;
+    }
+    .modal-input {
+      width: 100%;
+      padding: 0.5rem 0.75rem;
+      background-color: var(--color-bg);
+      border: 1px solid var(--color-border);
+      border-radius: 0.375rem;
+      color: var(--color-text-primary);
+      font-size: 0.875rem;
+      outline: none;
+    }
+    .modal-input:focus {
+      border-color: var(--color-accent-blue-light, #3b82f6);
+    }
+    .modal-footer {
+      display: flex;
+      justify-content: flex-end;
+      gap: 0.5rem;
+      margin-top: 1rem;
+    }
+    .modal-btn {
+      padding: 0.375rem 0.75rem;
+      border-radius: 0.375rem;
+      font-size: 0.875rem;
+      font-weight: 500;
+      cursor: pointer;
+      border: none;
+    }
+    .modal-btn-secondary {
+      background-color: transparent;
+      color: var(--color-text-secondary);
+      border: 1px solid var(--color-border);
+    }
+    .modal-btn-primary {
+      background-color: var(--color-accent-blue-light, #3b82f6);
+      color: #ffffff;
+    }
+    @media (max-width: 768px) {
+      .chat-channels-sidebar {
+        width: 100%;
+        display: none;
+      }
+      .chat-channels-sidebar.show-mobile {
+        display: flex;
+      }
+      .chat-main-area.hide-mobile {
+        display: none;
+      }
+    }
+    .auto-link {
+      color: var(--color-accent-blue-light, #60a5fa);
+      text-decoration: underline;
+      word-break: break-all;
+    }
+    .chat-bubble--self .auto-link {
+      color: #ffffff;
+      text-decoration: underline;
+    }
+    .auto-link:hover {
+      opacity: 0.8;
+    }
+
+    /* Markdown用のスタイル調整 */
+    .chat-bubble p {
+      margin: 0 0 0.5rem 0;
+    }
+    .chat-bubble p:last-child {
+      margin: 0;
+    }
+    .chat-bubble h1, .chat-bubble h2, .chat-bubble h3 {
+      font-size: 1.1em;
+      margin: 0.5rem 0;
+      font-weight: bold;
+    }
+    .chat-bubble ul, .chat-bubble ol {
+      margin: 0.5rem 0;
+      padding-left: 1.5rem;
+    }
+    .chat-bubble pre {
+      background-color: rgba(0, 0, 0, 0.05);
+      padding: 0.5rem;
+      border-radius: 0.375rem;
+      overflow-x: auto;
+      margin: 0.5rem 0;
+      font-family: monospace;
+      font-size: 0.8rem;
+    }
+    .chat-bubble code {
+      background-color: rgba(0, 0, 0, 0.05);
+      padding: 0.125rem 0.25rem;
+      border-radius: 0.25rem;
+      font-family: monospace;
+      font-size: 0.85em;
+    }
+    .chat-bubble blockquote {
+      border-left: 3px solid var(--color-border);
+      margin: 0.5rem 0;
+      padding-left: 0.75rem;
+      color: var(--color-text-muted);
+    }
+    
+    /* 自分のメッセージ（青背景）内のMarkdown要素の色調整 */
+    .chat-bubble--self a {
+      color: #ffffff;
+      text-decoration: underline;
+    }
+    .chat-bubble--self pre,
+    .chat-bubble--self code {
+      background-color: rgba(255, 255, 255, 0.2);
+    }
+    .chat-bubble--self blockquote {
+      border-left-color: rgba(255, 255, 255, 0.4);
+      color: rgba(255, 255, 255, 0.9);
+    }
+  </style>
+
+  <script>
+    (function() {
+      const savedTheme = localStorage.getItem('namiki-theme');
+      if (savedTheme === 'light') {
+        document.documentElement.classList.remove('dark');
+        document.documentElement.classList.add('light');
+      } else {
+        document.documentElement.classList.remove('light');
+        document.documentElement.classList.add('dark');
+      }
+    })();
+  </script>
+</head>
+<body>
+  <aside class="sidebar">
+    <div class="sidebar-header" onclick="location.href='/index'">
+      <div class="flex items-center gap-3">
+        <div class="logo-badge">
+          <img src="/logo.webp" alt="Logo" class="logo-badge-img" onerror="this.style.display='none'; this.nextElementSibling.style.display='inline';" />
+          <span class="logo-badge-emoji" style="display:none;">🏫</span>
+        </div>
+        <h1 class="font-bold text-sm sidebar-brand-name sidebar-brand-text">
+          並木中等教育学校18回生<br>
+          <span class="text-xs font-normal sidebar-brand-tagline">ダッシュボード</span>
+        </h1>
+      </div>
+    </div>
+
+    <nav class="sidebar-nav">
+      <button onclick="location.href='/index'" class="sidebar-nav-button" id="sidebar-nav-home" title="ホーム">
+        <svg class="icon-nav" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6"/></svg>
+        <span class="sidebar-nav-text">ホーム</span>
+      </button>
+      <button onclick="location.href='/schedule'" class="sidebar-nav-button" id="sidebar-nav-schedule" title="時間割">
+        <svg class="icon-nav" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+        <span class="sidebar-nav-text">時間割</span>
+      </button>
+      <button onclick="location.href='/notice'" class="sidebar-nav-button" id="sidebar-nav-notices" title="お知らせ">
+        <svg class="icon-nav" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9"/></svg>
+        <span class="sidebar-nav-text">お知らせ</span>
+      </button>
+      <button onclick="location.href='/link'" class="sidebar-nav-button" id="sidebar-nav-links" title="リンク">
+        <svg class="icon-nav" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13.828 10.172a4 4 0 00-5.656 0l-4 4a4 4 0 105.656 5.656l1.102-1.101m-.758-4.899a4 4 0 005.656 0l4-4a4 4 0 00-5.656-5.656l-1.1 1.1"/></svg>
+        <span class="sidebar-nav-text">リンク</span>
+      </button>
+      <button onclick="location.href='/calendar'" class="sidebar-nav-button" id="sidebar-nav-calendar" title="カレンダー">
+        <svg class="icon-nav" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"/></svg>
+        <span class="sidebar-nav-text">カレンダー</span>
+      </button>
+      <button onclick="location.href='/classroom'" class="sidebar-nav-button" id="sidebar-nav-classroom" title="Classroom">
+        <svg class="icon-nav" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10"/></svg>
+        <span class="sidebar-nav-text">Classroom</span>
+      </button>
+      
+      <button onclick="location.href='/chat'" class="sidebar-nav-button active" id="sidebar-nav-chat" title="チャット" style="margin-top: 0.25rem;">
+        <svg class="icon-nav" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z"/></svg>
+        <span class="sidebar-nav-text">チャット</span>
+      </button>
+
+      <div class="sidebar-nav-divider">
+        <a href="/privacy" class="sidebar-nav-button" title="プライバシーポリシー">
+          <svg class="icon-nav" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z"/></svg>
+          <span class="sidebar-nav-text">プライバシーポリシー</span>
+        </a>
+        <a href="/terms" class="sidebar-nav-button" title="利用規約">
+          <svg class="icon-nav" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/></svg>
+          <span class="sidebar-nav-text">利用規約</span>
+        </a>
+      </div>
+
+      <a href="/report" class="sidebar-nav-button" id="sidebar-nav-report" title="報告" style="margin-top: auto; margin-bottom: 1rem;">
+        <svg class="icon-nav" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"/></svg>
+        <span class="sidebar-nav-text">報告</span>
+      </a>
+    </nav>
+
+    <div class="sidebar-footer">
+      <div id="account-popup-menu" class="account-popup-menu">
+        <div class="user-info-header" style="padding: 0.5rem 0.75rem; border-bottom: 1px solid var(--color-border); margin-bottom: 0.5rem;">
+          <img id="popup-user-avatar" src="https://via.placeholder.com/40?text=U" alt="User Avatar" class="popup-user-avatar" onerror="this.src='https://via.placeholder.com/40?text=U'" />
+          <div class="user-info-text">
+            <span id="popup-user-name" style="display: block; font-weight: 600; color: var(--color-text-primary); font-size: 0.875rem;" class="truncate">読み込み中...</span>
+            <span id="popup-user-email" style="display: block; font-size: 0.75rem; color: var(--color-text-muted); margin-top: 0.125rem;" class="truncate">読み込み中...</span>
+          </div>
+        </div>
+
+        <button onclick="handleAdminSettings()" class="account-popup-item">
+          <svg class="icon-sm" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z"/><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/></svg>
+          管理者設定
+        </button>
+        <button onclick="handlePersonalSettings()" class="account-popup-item">
+          <svg class="icon-sm" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"/></svg>
+          個人用設定
+        </button>
+        
+        <button class="account-popup-item toggle-row" onclick="toggleTheme()">
+          <div class="flex items-center gap-2">
+            <svg class="icon-sm" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 3v1m0 16v1m9-9h-1M4 12H3m15.364 6.364l-.707-.707M6.343 6.343l-.707-.707m12.728 0l-.707.707M6.343 17.657l-.707.707M16 12a4 4 0 11-8 0 4 4 0 018 0z"/></svg>
+            表示切替
+          </div>
+          <div class="toggle-switch" id="theme-toggle-switch">
+            <div class="toggle-circle"></div>
+          </div>
+        </button>
+
+        <div style="border-top: 1px solid var(--color-border); margin: 0.25rem 0;"></div>
+        <a href="/logout" class="account-popup-item text-red">
+          <svg class="icon-sm" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1"/></svg>
+          ログアウト
+        </a>
+      </div>
+
+      <div id="sidebar-user-toggle" class="sidebar-user-row" onclick="toggleAccountMenu(event)" title="ユーザーメニュー">
+        <img id="sidebar-user-avatar" src="https://via.placeholder.com/40?text=U" alt="Avatar" class="sidebar-avatar-image" onerror="this.src='https://via.placeholder.com/40?text=U'" />
+        <div class="flex-1 min-w-0 sidebar-user-info">
+          <p id="sidebar-user-id" class="text-xs sidebar-user-id-text truncate">読み込み中...</p>
+          <p id="sidebar-user-name" class="text-sm truncate sidebar-user-name-text">読み込み中...</p>
+        </div>
+      </div>
+    </div>
+  </aside>
+
+  <div class="app-main">
+    <header class="mobile-topbar">
+      <div class="flex items-center gap-2" onclick="location.href='/index'" style="cursor: pointer;">
+        <div class="logo-badge logo-badge--mobile">
+          <img src="/logo.webp" alt="Logo" class="logo-badge-img" onerror="this.style.display='none'; this.nextElementSibling.style.display='inline';" />
+          <span class="logo-badge-emoji" style="display:none;">🏫</span>
+        </div>
+        <h1 class="font-bold text-sm mobile-brand-name">並木中等教育学校18回生</h1>
+      </div>
+      <div class="flex items-center gap-3">
+        <button onclick="toggleTheme()" style="background:none; border:none; cursor:pointer; color:var(--color-text-secondary);" title="モード切替">
+          <svg class="icon-sm" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 3v1m0 16v1m9-9h-1M4 12H3m15.364 6.364l-.707-.707M6.343 6.343l-.707-.707m12.728 0l-.707.707M6.343 17.657l-.707.707M16 12a4 4 0 11-8 0 4 4 0 018 0z"/></svg>
+        </button>
+        <img id="mobile-user-avatar" src="https://via.placeholder.com/32?text=U" alt="Avatar" class="mobile-avatar-image" onerror="this.src='https://via.placeholder.com/32?text=U'" />
+      </div>
+    </header>
+
+    <div class="mobile-tab-bar">
+      <button onclick="location.href='/index'" id="mobile-nav-home" class="mobile-nav-button">ホーム</button>
+      <button onclick="location.href='/schedule'" id="mobile-nav-schedule" class="mobile-nav-button">時間割</button>
+      <button onclick="location.href='/notice'" id="mobile-nav-notices" class="mobile-nav-button">お知らせ</button>
+      <button onclick="location.href='/link'" id="mobile-nav-links" class="mobile-nav-button">リンク</button>
+      <button onclick="location.href='/calendar'" id="mobile-nav-calendar" class="mobile-nav-button">カレンダー</button>
+      <button onclick="location.href='/chat'" id="mobile-nav-chat" class="mobile-nav-button active">チャット</button>
+      <button onclick="location.href='/report'" id="mobile-nav-report" class="mobile-nav-button">報告</button>
+    </div>
+
+    <main class="content-area" style="padding-bottom: 1rem;">
+      <div class="chat-layout fade-in">
+        <div class="chat-channels-sidebar">
+          <div class="chat-channels-header">
+            <span>メッセージ</span>
+            <span class="encryption-badge" style="font-size: 0.6875rem;">
+              <svg class="icon-xs" fill="currentColor" viewBox="0 0 20 20"><path d="M5 9V7a5 5 0 0110 0v2a2 2 0 012 2v5a2 2 0 01-2 2H5a2 2 0 01-2-2v-5a2 2 0 012-2zm8-2v2H7V7a3 3 0 016 0z" clip-rule="evenodd" fill-rule="evenodd"></path></svg>
+              AES-GCM
+            </span>
+          </div>
+          <div class="chat-channels-list">
+            <div class="channel-section-header">
+              <span class="channel-section-title">チャンネル</span>
+            </div>
+            <button onclick="switchChannel('grade')" id="channel-button-grade" class="channel-button active">
+              <span class="channel-hash">#</span>
+              <span class="truncate">学年全体</span>
+            </button>
+            <button onclick="switchChannel('class')" id="channel-button-class" class="channel-button">
+              <span class="channel-hash">#</span>
+              <span id="channel-name-class-text" class="truncate">クラス</span>
+            </button>
+
+            <div class="channel-section-header">
+              <span class="channel-section-title">ダイレクトメッセージ</span>
+              <button onclick="openAddDmModal()" class="add-dm-button" title="IDから新規メッセージ作成">
+                <svg class="icon-xs" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/></svg>
+              </button>
+            </div>
+            <div id="chat-dm-list" class="space-y-1"></div>
+          </div>
+        </div>
+
+        <div class="chat-main-area">
+          <div class="chat-main-header">
+            <div>
+              <div id="chat-channel-title" class="chat-channel-title">
+                <span class="channel-hash">#</span> 学年全体チャット
+              </div>
+              <div id="chat-channel-description" class="chat-channel-description">
+                学年全員で交流・情報共有するチャンネルです。
+              </div>
+            </div>
+          </div>
+
+          <div id="chat-messages-list" class="chat-messages-container">
+            <div class="chat-center-message">
+              <div class="chat-center-message-text">チャンネルに接続しました。</div>
+            </div>
+          </div>
+
+          <div class="chat-input-wrapper">
+            <form onsubmit="handleChatSubmit(event)" class="chat-input-form">
+              <button type="button" onclick="handleAttachment()" class="chat-action-button" title="ファイルを添付">
+                <svg class="icon-sm" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15.172 7l-6.586 6.586a2 2 0 102.828 2.828l6.414-6.586a4 4 0 00-5.656-5.656l-6.415 6.585a6 6 0 108.486 8.486L20.5 13"/></svg>
+              </button>
+              <input type="text" id="chat-message-input" class="chat-text-input" placeholder="メッセージを入力..." autocomplete="off" />
+              <button type="submit" class="chat-send-button">
+                <span>送信</span>
+                <svg class="icon-xs" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 19l9 2-9-18-9 18 9-2zm0 0v-8"/></svg>
+              </button>
+            </form>
+          </div>
+        </div>
+      </div>
+
+      <footer class="site-footer" style="margin-top: 1.5rem;">
+        <p>&copy; 2026 Taichi Kimura. All rights reserved.</p>
+        <div class="footer-links">
+          <a href="/privacy" class="footer-link">プライバシーポリシー</a>
+          <a href="/terms" class="footer-link">利用規約</a>
+          <a href="https://github.com/Namiki-18th/Namiki-18th.github.io" target="_blank" class="footer-link">
+            <svg class="icon-sm" fill="currentColor" viewBox="0 0 24 24"><path fill-rule="evenodd" clip-rule="evenodd" d="M12 2C6.477 2 2 6.484 2 12.017c0 4.425 2.865 8.18 6.839 9.504.5.092.682-.217.682-.483 0-.237-.008-.868-.013-1.703-2.782.605-3.369-1.343-3.369-1.343-.454-1.158-1.11-1.466-1.11-1.466-.908-.62.069-.608.069-.608 1.003.07 1.53 1.032 1.53 1.032.892 1.53 2.341 1.088 2.91.832.092-.647.35-1.088.636-1.338-2.22-.253-4.555-1.113-4.555-4.951 0-1.093.39-1.988 1.029-2.688-.103-.253-.446-1.272.098-2.65 0 0 .84-.27 2.75 1.026A9.564 9.564 0 0112 6.844c.85.004 1.705.115 2.504.337 1.909-1.296 2.747-1.027 2.747-1.027.546 1.379.202 2.398.1 2.651.64.7 1.028 1.595 1.028 2.688 0 3.848-2.339 4.695-4.566 4.943.359.309.678.92.678 1.855 0 1.338-.012 2.419-.012 2.747 0 .268.18.58.688.482A10.019 10.019 0 0022 12.017C22 6.84 17.522 2 12 2z"/></svg>
+            GitHub
+          </a>
+        </div>
+      </footer>
+    </main>
+  </div>
+
+  <div id="add-dm-modal" class="modal-overlay">
+    <div class="modal-container">
+      <div class="modal-header">メッセージ相手を追加</div>
+      <div class="modal-body">
+        <label for="add-dm-user-id" style="font-size: 0.75rem; color: var(--color-text-muted);">ユーザーID（学籍番号など）</label>
+        <input type="text" id="add-dm-user-id" class="modal-input" placeholder="例: 180002" autocomplete="off" />
+      </div>
+      <div class="modal-footer">
+        <button onclick="closeAddDmModal()" class="modal-btn modal-btn-secondary">キャンセル</button>
+        <button onclick="handleAddDmSubmit()" class="modal-btn modal-btn-primary">追加</button>
+      </div>
+    </div>
+  </div>
+
+<script>
+  let globalData = { profile: null };
+  let activeDmUsers = [];
+  let currentChannel = 'grade';
+  const socket = io();
+
+  // marked.js の初期設定
+  if (typeof marked !== 'undefined') {
+    marked.use({ breaks: true, gfm: true });
+  }
+
+  function escapeHtml(str) {
+    if (!str) return '';
+    return String(str)
+      .replace(/&/g, "&amp;")
+      .replace(/</g, "&lt;")
+      .replace(/>/g, "&gt;")
+      .replace(/"/g, "&quot;")
+      .replace(/'/g, "&#039;");
+  }
+
+  function toggleAccountMenu(event) {
+    if (event) event.stopPropagation();
+    const menu = document.getElementById('account-popup-menu');
+    if (menu) menu.classList.toggle('show');
+  }
+
+  document.addEventListener('click', (event) => {
+    const menu = document.getElementById('account-popup-menu');
+    const toggleBtn = document.getElementById('sidebar-user-toggle');
+    if (menu && menu.classList.contains('show')) {
+      if (!menu.contains(event.target) && !toggleBtn.contains(event.target)) {
+        menu.classList.remove('show');
+      }
+    }
+  });
+
+  function initThemeToggle() {
+    const toggleSwitch = document.getElementById('theme-toggle-switch');
+    if(toggleSwitch) {
+      if (document.documentElement.classList.contains('dark')) {
+        toggleSwitch.classList.add('on');
+      } else {
+        toggleSwitch.classList.remove('on');
+      }
+    }
+  }
+
+  function toggleTheme() {
+    const htmlEl = document.documentElement;
+    const toggleSwitch = document.getElementById('theme-toggle-switch');
+    if (htmlEl.classList.contains('dark')) {
+      htmlEl.classList.remove('dark');
+      htmlEl.classList.add('light');
+      localStorage.setItem('namiki-theme', 'light');
+      if (toggleSwitch) toggleSwitch.classList.remove('on');
+    } else {
+      htmlEl.classList.remove('light');
+      htmlEl.classList.add('dark');
+      localStorage.setItem('namiki-theme', 'dark');
+      if (toggleSwitch) toggleSwitch.classList.add('on');
+    }
+  }
+
+  function handleAdminSettings() { window.location.href = '/admin'; }
+  function handlePersonalSettings() { alert('個人用設定は開発中です。'); }
+  function handleAttachment() { alert('ファイルの添付機能は現在準備中です。'); }
+
+  async function loadUserData() {
+    try {
+      const res = await fetch('/api/profile').catch(() => ({ ok: false }));
+      if (res.status === 401) {
+        window.location.href = '/login';
+        return;
+      }
+
+      if (res.ok) {
+        globalData.profile = await res.json();
+      } else {
+        globalData.profile = { name: '並木 太郎', email: 'namiki.taro@example.com', id: '180001', role: 'student', userClass: '3-A', picture: '' };
+      }
+      
+      const savedDms = localStorage.getItem('namiki_dm_users');
+      if (savedDms) {
+        activeDmUsers = JSON.parse(savedDms);
+      } else {
+        activeDmUsers = [
+          { id: 'u1', name: '佐藤 先生', picture: '' },
+          { id: '180002', name: '田中 太郎', picture: '' }
+        ];
+      }
+
+      renderUserProfile();
+    } catch (err) {
+      console.error('ユーザー情報取得エラー:', err);
+    }
+  }
+
+  function renderUserProfile() {
+    if (!globalData.profile) return;
+    const p = globalData.profile;
+    const studentIdText = (p.id && p.id !== 'Unknown') ? p.id : '学籍番号未設定';
+    
+    document.getElementById('sidebar-user-id').textContent = `${studentIdText}`;
+    document.getElementById('sidebar-user-name').textContent = p.name || 'ユーザー';
+    
+    const popupName = document.getElementById('popup-user-name');
+    if (popupName) popupName.textContent = p.name || 'ユーザー';
+    const popupEmail = document.getElementById('popup-user-email');
+    if (popupEmail) popupEmail.textContent = p.email || 'メールアドレス未設定';
+
+    const userAvatar = (p.picture && p.picture !== 'admin.png') ? p.picture : `https://via.placeholder.com/40/3b82f6/ffffff?text=${encodeURIComponent(p.name ? p.name.charAt(0) : 'U')}`;
+    
+    const sidebarAvatar = document.getElementById('sidebar-user-avatar');
+    if (sidebarAvatar) sidebarAvatar.src = userAvatar;
+
+    const mobileAvatar = document.getElementById('mobile-user-avatar');
+    if (mobileAvatar) mobileAvatar.src = userAvatar;
+
+    const popupAvatar = document.getElementById('popup-user-avatar');
+    if (popupAvatar) popupAvatar.src = userAvatar;
+
+    const classBtnText = document.getElementById('channel-name-class-text');
+    if (classBtnText) classBtnText.textContent = p.userClass ? p.userClass : 'クラス';
+
+    renderDMUsers();
+    switchChannel(currentChannel);
+  }
+
+  function renderDMUsers() {
+    const container = document.getElementById('chat-dm-list');
+    if (container) {
+      container.innerHTML = activeDmUsers.map(u => {
+        const avatar = (u.picture && u.picture !== 'admin.png') 
+          ? u.picture 
+          : `https://via.placeholder.com/32/555/fff?text=${encodeURIComponent(u.name ? u.name.charAt(0) : 'U')}`;
+          
+        return `
+          <button onclick="switchChannel('dm_${u.id}', '${escapeHtml(u.name)}')" id="dm-button-${u.id}" class="channel-button dm-user-button">
+            <img src="${avatar}" class="dm-user-avatar" alt="Avatar" onerror="this.src='https://via.placeholder.com/32?text=U'" />
+            <span class="truncate">${escapeHtml(u.name)}</span>
+          </button>
+        `;
+      }).join('');
+    }
+  }
+
+  function openAddDmModal() {
+    document.getElementById('add-dm-user-id').value = '';
+    document.getElementById('add-dm-modal').classList.add('show');
+    document.getElementById('add-dm-user-id').focus();
+  }
+
+  function closeAddDmModal() {
+    document.getElementById('add-dm-modal').classList.remove('show');
+  }
+
+  async function handleAddDmSubmit() {
+    const inputId = document.getElementById('add-dm-user-id').value.trim();
+    if (!inputId) {
+      alert('IDを入力してください。');
+      return;
+    }
+
+    if (globalData.profile && String(globalData.profile.id) === inputId) {
+      alert('自分自身を追加することはできません。');
+      return;
+    }
+
+    if (activeDmUsers.some(u => String(u.id) === inputId)) {
+      alert('このユーザーはすでに追加されています。');
+      closeAddDmModal();
+      switchChannel(`dm_${inputId}`, activeDmUsers.find(u => String(u.id) === inputId).name);
+      return;
+    }
+
+    try {
+      const res = await fetch('/api/admin/users').catch(() => null);
+      if (!res || !res.ok) {
+        alert('ユーザー情報の取得に失敗しました。');
+        return;
+      }
+
+      const userList = await res.json();
+      const targetUser = userList.find(u => String(u.id) === inputId);
+
+      if (targetUser) {
+        const newUser = {
+          id: String(targetUser.id),
+          name: targetUser.name || `ユーザー (${targetUser.id})`,
+          picture: targetUser.picture || ''
+        };
+
+        activeDmUsers.push(newUser);
+        localStorage.setItem('namiki_dm_users', JSON.stringify(activeDmUsers));
+        
+        renderDMUsers();
+        closeAddDmModal();
+        switchChannel(`dm_${newUser.id}`, newUser.name);
+      } else {
+        alert(`ID: "${inputId}" のユーザーは見つかりませんでした。`);
+      }
+    } catch (err) {
+      console.error('DMユーザー追加エラー:', err);
+      alert('ユーザー情報の取得中にエラーが発生しました。');
+    }
+  }
+
+  async function switchChannel(channelId, name = '') {
+    currentChannel = channelId;
+    document.querySelectorAll('.channel-button').forEach(btn => btn.classList.remove('active'));
+
+    const titleEl = document.getElementById('chat-channel-title');
+    const descEl = document.getElementById('chat-channel-description');
+
+    if (channelId === 'grade') {
+      document.getElementById('channel-button-grade')?.classList.add('active');
+      titleEl.innerHTML = '<span class="channel-hash">#</span> 学年全体チャット';
+      descEl.textContent = '学年全員で交流・情報共有するチャンネルです。';
+    } else if (channelId === 'class') {
+      document.getElementById('channel-button-class')?.classList.add('active');
+      const cls = globalData.profile?.userClass || 'クラス未設定';
+      titleEl.innerHTML = `<span class="channel-hash">#</span> ${cls} チャット`;
+      descEl.textContent = `${cls}の生徒専用の連絡・相談チャンネルです。`;
+    } else if (channelId.startsWith('dm_')) {
+      const userId = channelId.replace('dm_', '');
+      document.getElementById(`dm-button-${userId}`)?.classList.add('active');
+      titleEl.innerHTML = `<span class="channel-hash">@</span> ${escapeHtml(name)}`;
+      descEl.textContent = `${escapeHtml(name)}さんとのプライベートメッセージです。`;
+    }
+
+    socket.emit('joinChannel', currentChannel);
+    await loadMessages(currentChannel);
+    sendReadSignal();
+  }
+
+  function sendReadSignal() {
+    if (globalData.profile?.email) {
+      socket.emit('markAsRead', {
+        channel: currentChannel,
+        userEmail: globalData.profile.email
+      });
+    }
+  }
+
+  async function loadMessages(channel) {
+    const container = document.getElementById('chat-messages-list');
+    container.innerHTML = '<div class="chat-center-message"><div class="chat-center-message-text">読み込み中...</div></div>';
+    
+    try {
+      const res = await fetch(`/api/chat/messages?channel=${encodeURIComponent(channel)}`);
+      if (res.ok) {
+        const data = await res.json();
+        container.innerHTML = '';
+        if (data.messages.length === 0) {
+          container.innerHTML = '<div class="chat-center-message"><div class="chat-center-message-text">メッセージはまだありません。</div></div>';
+        } else {
+          data.messages.forEach(appendMessage);
+        }
+      }
+    } catch (e) {
+      container.innerHTML = '<div class="chat-center-message"><div class="chat-center-message-text">メッセージの取得に失敗しました。</div></div>';
+    }
+  }
+
+  function appendMessage(msg) {
+    const container = document.getElementById('chat-messages-list');
+    
+    if (msg.id && document.querySelector(`[data-msg-id="${msg.id}"]`)) {
+      return; 
+    }
+
+    const isSelf = msg.senderEmail ? (msg.senderEmail === globalData.profile?.email) : (msg.sender === globalData.profile?.name);
+    const timeStr = msg.timestamp ? new Date(msg.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : '';
+    const avatarSrc = isSelf ? (globalData.profile?.picture || 'https://via.placeholder.com/32/333/fff?text=Me') : (msg.senderPicture || 'https://via.placeholder.com/32/555/fff?text=U');
+
+    const isAdmin = globalData.profile?.role === 'admin';
+    const canDelete = isSelf || isAdmin;
+    const deleteBtnHtml = (canDelete && msg.id) 
+      ? `<button onclick="deleteMessage('${msg.id}')" style="background:none; border:none; color:var(--color-text-muted); cursor:pointer; font-size:0.6875rem; padding:0; margin-left:0.25rem;" title="削除">削除</button>` 
+      : '';
+
+    let readStatusHtml = '';
+    if (isSelf && msg.readBy && msg.readBy.length > 0) {
+      const isDm = currentChannel.startsWith('dm_');
+      const readText = isDm ? '既読' : `既読 ${msg.readBy.length}`;
+      readStatusHtml = `<span class="chat-message-read" style="font-size:0.6875rem; color:var(--color-text-muted); margin-right:0.25rem;">${readText}</span>`;
+    }
+
+    // Markdownのパースとサニタイズ処理
+    const rawHtml = msg.text && typeof marked !== 'undefined' ? marked.parse(msg.text) : escapeHtml(msg.text);
+    const safeHtml = typeof DOMPurify !== 'undefined' ? DOMPurify.sanitize(rawHtml) : rawHtml;
+
+    const msgDiv = document.createElement('div');
+    msgDiv.className = `chat-message ${isSelf ? 'chat-message--self' : 'chat-message--other'}`;
+    if (msg.id) msgDiv.setAttribute('data-msg-id', msg.id);
+
+    msgDiv.innerHTML = `
+      <img src="${escapeHtml(avatarSrc)}" class="chat-message-avatar" alt="Avatar" onerror="this.src='https://via.placeholder.com/32?text=U'" />
+      <div class="chat-message-content ${isSelf ? 'chat-message-content--self' : 'chat-message-content--other'}">
+        ${!isSelf ? `<span class="chat-message-sender">${escapeHtml(msg.sender)}</span>` : ''}
+        <div class="chat-bubble ${isSelf ? 'chat-bubble--self' : 'chat-bubble--other'}">
+          ${safeHtml}
+        </div>
+        <div class="flex items-center gap-1" style="display:flex; align-items:center;">
+          ${readStatusHtml}
+          <span class="chat-message-time">${timeStr}</span>
+          ${deleteBtnHtml}
+        </div>
+      </div>
+    `;
+    container.appendChild(msgDiv);
+    container.scrollTop = container.scrollHeight;
+  }
+
+  async function deleteMessage(msgId) {
+    try {
+      const res = await fetch(`/api/chat/messages/${msgId}?channel=${encodeURIComponent(currentChannel)}`, {
+        method: 'DELETE'
+      });
+      if (!res.ok) {
+        const err = await res.json().catch(() => ({}));
+        alert(err.error || '削除権限がありません。');
+      }
+    } catch (e) {
+      console.error('削除エラー:', e);
+    }
+  }
+
+  async function handleChatSubmit(event) {
+    event.preventDefault();
+    const input = document.getElementById('chat-message-input');
+    const text = input.value.trim();
+    if (!text) return;
+
+    try {
+      const res = await fetch('/api/chat/messages', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ channel: currentChannel, text })
+      });
+      if (res.ok) {
+        input.value = '';
+      } else {
+        alert('送信に失敗しました。');
+      }
+    } catch (e) {
+      console.error('送信エラー:', e);
+    }
+  }
+
+  socket.on('chatMessage', (msg) => {
+    if (msg.channel === currentChannel || !msg.channel) {
+      appendMessage(msg);
+      if (msg.senderEmail !== globalData.profile?.email) {
+        sendReadSignal();
+      }
+    }
+  });
+
+  socket.on('messagesReadUpdated', (data) => {
+    if (data.channel === currentChannel) {
+      const container = document.getElementById('chat-messages-list');
+      container.innerHTML = '';
+      data.messages.forEach(appendMessage);
+    }
+  });
+
+  socket.on('chatMessageDeleted', (data) => {
+    if (data.id) {
+      const msgEl = document.querySelector(`[data-msg-id="${data.id}"]`);
+      if (msgEl) msgEl.remove();
+    }
+  });
+
+  document.addEventListener('DOMContentLoaded', () => {
+    initThemeToggle();
+    loadUserData();
+  });
+</script>
+</body>
+</html>

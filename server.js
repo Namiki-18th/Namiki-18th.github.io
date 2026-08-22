@@ -98,9 +98,13 @@ function encrypt(text) {
 }
 
 function decrypt({ iv, content, tag }) {
-  const decipher = crypto.createDecipheriv('aes-256-gcm', ENCRYPTION_KEY, Buffer.from(iv, 'hex'));
-  decipher.setAuthTag(Buffer.from(tag, 'hex'));
-  return decipher.update(content, 'hex', 'utf8') + decipher.final('utf8');
+  try {
+    const decipher = crypto.createDecipheriv('aes-256-gcm', ENCRYPTION_KEY, Buffer.from(iv, 'hex'));
+    decipher.setAuthTag(Buffer.from(tag, 'hex'));
+    return decipher.update(content, 'hex', 'utf8') + decipher.final('utf8');
+  } catch (err) {
+    return '[復号化エラー]';
+  }
 }
 
 // --- [認証設定] ---
@@ -314,7 +318,6 @@ app.post('/api/classroom', ensureApiKeyOrAdmin, (req, res) => {
 app.get('/api/transit', ensureAuth, async (req, res) => {
   const results = {};
 
-  // 1. JR常磐線（JR東日本 公式サイトから直接取得）
   try {
     const jrRes = await axios.get('https://traininfo.jreast.co.jp/train_info/kanto.aspx', {
       headers: {
@@ -327,7 +330,6 @@ app.get('/api/transit', ensureAuth, async (req, res) => {
     const html = jrRes.data;
     const jobanMatch = html.match(/常磐線[\s\S]*?<\/tr>/);
     const jobanText = jobanMatch ? jobanMatch[0].replace(/<[^>]+>/g, '').replace(/\s+/g, ' ').trim() : '';
-
     const isTrouble = jobanText.includes('遅延') || jobanText.includes('見合わせ') || jobanText.includes('運休');
     
     results.jr = {
@@ -344,7 +346,6 @@ app.get('/api/transit', ensureAuth, async (req, res) => {
     };
   }
 
-  // 2. つくばエクスプレス & 関東鉄道（Yahoo! RSS）
   const otherUrls = {
     tx: 'https://transit.yahoo.co.jp/rss/diainfo/210/0',
     kantetsu: 'https://transit.yahoo.co.jp/rss/diainfo/211/0'
@@ -363,10 +364,7 @@ app.get('/api/transit', ensureAuth, async (req, res) => {
 
       const feed = await rssParser.parseString(response.data);
       const firstItem = feed.items && feed.items.length > 0 ? feed.items[0] : null;
-      
-      const isNormal = !firstItem || 
-                       firstItem.title.includes('平常運転') || 
-                       firstItem.title.includes('平常通り');
+      const isNormal = !firstItem || firstItem.title.includes('平常運転') || firstItem.title.includes('平常通り');
       
       results[key] = {
         status: isNormal ? '平常運行' : '遅延・見合わせ等',
@@ -386,28 +384,195 @@ app.get('/api/transit', ensureAuth, async (req, res) => {
   res.json(results);
 });
 
-// --- [API: チャット] ---
-app.get('/api/chat', ensureAuth, (req, res) => {
-  const channel = (req.query.channel || 'grade').replace(/[^a-zA-Z0-9_-]/g, '_');
-  const file = path.join(PATHS.CHAT_DIR, `${channel}.json`);
-  const data = safeReadJSON(file, { messages: [] });
-  res.json({ channel, messages: data.messages.map(m => ({ ...m, text: decrypt(m.encryptedData) })) });
+// --- [API: チャット機能] ---
+function getSafeChannelName(channel) {
+  return (channel || 'general').replace(/[^a-zA-Z0-9_-]/g, '_');
+}
+
+function getChannelFilePath(channel) {
+  const safeChannel = getSafeChannelName(channel);
+  return path.join(PATHS.CHAT_DIR, `${safeChannel}.json`);
+}
+
+function readChannelData(channel) {
+  const filePath = getChannelFilePath(channel);
+  return safeReadJSON(filePath, { channel: getSafeChannelName(channel), messages: [] });
+}
+
+app.get('/api/chat/channels', ensureAuth, (req, res) => {
+  try {
+    const files = fs.readdirSync(PATHS.CHAT_DIR);
+    const channels = files
+      .filter(file => file.endsWith('.json'))
+      .map(file => {
+        const channelName = file.replace('.json', '');
+        const data = safeReadJSON(path.join(PATHS.CHAT_DIR, file), { messages: [] });
+        const lastMsg = data.messages[data.messages.length - 1];
+        return {
+          channel: channelName,
+          messageCount: data.messages.length,
+          lastActivity: lastMsg ? lastMsg.timestamp : null
+        };
+      });
+    res.json({ channels });
+  } catch (err) {
+    res.status(500).json({ error: 'チャンネル一覧の取得に失敗しました。' });
+  }
 });
 
-app.post('/api/chat', ensureAuth, (req, res) => {
-  const { channel, text } = req.body;
-  if (!channel || !text) return res.status(400).json({ error: 'Missing fields' });
+app.get('/api/chat/messages', ensureAuth, (req, res) => {
+  try {
+    const channel = req.query.channel || 'general';
+    const limit = parseInt(req.query.limit, 10) || 50;
+    const before = req.query.before;
 
-  const safeChannel = channel.replace(/[^a-zA-Z0-9_-]/g, '_');
-  const filePath = path.join(PATHS.CHAT_DIR, `${safeChannel}.json`);
-  const chatData = safeReadJSON(filePath, { channel, messages: [] });
-  
-  const msg = { sender: req.user.name, recipient: channel, encryptedData: encrypt(text), timestamp: new Date().toISOString() };
-  chatData.messages.push(msg);
+    const data = readChannelData(channel);
+    let messages = data.messages;
 
-  safeWriteJSON(filePath, chatData);
-  io.to(channel).emit('chatMessage', { sender: msg.sender, recipient: msg.recipient, text, timestamp: msg.timestamp });
-  res.json({ success: true });
+    if (before) {
+      const targetIndex = messages.findIndex(m => m.id === before);
+      if (targetIndex !== -1) messages = messages.slice(0, targetIndex);
+    }
+
+    const sliced = messages.slice(-limit);
+    const decryptedMessages = sliced.map(m => ({
+      id: m.id,
+      sender: m.sender,
+      senderEmail: m.senderEmail,
+      senderPicture: m.senderPicture,
+      recipient: m.recipient,
+      text: m.encryptedData ? decrypt(m.encryptedData) : m.text,
+      readBy: m.readBy || [],
+      timestamp: m.timestamp,
+      editedAt: m.editedAt || null
+    }));
+
+    res.json({
+      channel: getSafeChannelName(channel),
+      hasMore: messages.length > limit,
+      messages: decryptedMessages
+    });
+  } catch (err) {
+    res.status(500).json({ error: 'メッセージの取得に失敗しました。' });
+  }
+});
+
+app.post('/api/chat/messages', ensureAuth, (req, res) => {
+  try {
+    const { channel = 'general', text } = req.body;
+    if (!text || !text.trim()) {
+      return res.status(400).json({ error: 'メッセージ本文は必須です。' });
+    }
+
+    const safeChannel = getSafeChannelName(channel);
+    const filePath = getChannelFilePath(safeChannel);
+    const chatData = readChannelData(safeChannel);
+
+    const msgId = crypto.randomUUID ? crypto.randomUUID() : crypto.randomBytes(16).toString('hex');
+    const timestamp = new Date().toISOString();
+
+    const msg = {
+      id: msgId,
+      sender: req.user.name,
+      senderEmail: req.user.email,
+      senderPicture: req.user.picture,
+      recipient: safeChannel,
+      encryptedData: encrypt(text.trim()),
+      readBy: [],
+      timestamp
+    };
+
+    chatData.messages.push(msg);
+    safeWriteJSON(filePath, chatData);
+
+    const broadcastPayload = {
+      id: msg.id,
+      channel: safeChannel,
+      sender: msg.sender,
+      senderEmail: msg.senderEmail,
+      senderPicture: msg.senderPicture,
+      recipient: msg.recipient,
+      text: text.trim(),
+      readBy: [],
+      timestamp: msg.timestamp
+    };
+
+    io.to(safeChannel).emit('chatMessage', broadcastPayload);
+    res.json({ success: true, message: broadcastPayload });
+  } catch (err) {
+    res.status(500).json({ error: 'メッセージの送信に失敗しました。' });
+  }
+});
+
+app.put('/api/chat/messages/:id', ensureAuth, (req, res) => {
+  try {
+    const msgId = req.params.id;
+    const { channel = 'general', text } = req.body;
+
+    if (!text || !text.trim()) {
+      return res.status(400).json({ error: '更新後のテキストを入力してください。' });
+    }
+
+    const safeChannel = getSafeChannelName(channel);
+    const filePath = getChannelFilePath(safeChannel);
+    const chatData = readChannelData(safeChannel);
+
+    const targetMsg = chatData.messages.find(m => m.id === msgId);
+    if (!targetMsg) return res.status(404).json({ error: 'メッセージが見つかりません。' });
+
+    const isAdmin = req.user.role === 'admin';
+    if (targetMsg.senderEmail !== req.user.email && !isAdmin) {
+      return res.status(403).json({ error: '他人のメッセージは編集できません。' });
+    }
+
+    targetMsg.encryptedData = encrypt(text.trim());
+    targetMsg.editedAt = new Date().toISOString();
+
+    safeWriteJSON(filePath, chatData);
+
+    const updatedPayload = {
+      id: targetMsg.id,
+      channel: safeChannel,
+      text: text.trim(),
+      editedAt: targetMsg.editedAt
+    };
+
+    io.to(safeChannel).emit('chatMessageUpdated', updatedPayload);
+    res.json({ success: true, message: updatedPayload });
+  } catch (err) {
+    res.status(500).json({ error: 'メッセージの編集に失敗しました。' });
+  }
+});
+
+app.delete('/api/chat/messages/:id', ensureAuth, (req, res) => {
+  try {
+    const msgId = req.params.id;
+    const channel = req.query.channel || req.body.channel || 'general';
+
+    const safeChannel = getSafeChannelName(channel);
+    const filePath = getChannelFilePath(safeChannel);
+    const chatData = readChannelData(safeChannel);
+
+    const targetIndex = chatData.messages.findIndex(m => m.id === msgId);
+    if (targetIndex === -1) {
+      return res.status(404).json({ error: 'メッセージが見つかりません。' });
+    }
+
+    const targetMsg = chatData.messages[targetIndex];
+    const isAdmin = req.user.role === 'admin';
+
+    if (targetMsg.senderEmail !== req.user.email && !isAdmin) {
+      return res.status(403).json({ error: '他人のメッセージは削除できません。' });
+    }
+
+    chatData.messages.splice(targetIndex, 1);
+    safeWriteJSON(filePath, chatData);
+
+    io.to(safeChannel).emit('chatMessageDeleted', { id: msgId, channel: safeChannel });
+    res.json({ success: true, id: msgId });
+  } catch (err) {
+    res.status(500).json({ error: 'メッセージの削除に失敗しました。' });
+  }
 });
 
 // --- [API: 管理者機能] ---
@@ -419,36 +584,95 @@ app.post('/api/admin/settings/maintenance', ensureAdmin, (req, res) => {
   res.json({ success: true, maintenanceMode: systemSettings.maintenanceMode });
 });
 
-// --- [Socket.io 制御] ---
+// --- [Socket.io 既読処理] ---
 io.on('connection', (socket) => {
-  if (!socket.request.session?.passport?.user) return socket.disconnect(true);
   socket.on('joinChannel', (ch) => {
+    const safeCh = getSafeChannelName(ch);
     socket.rooms.forEach(r => r !== socket.id && socket.leave(r));
-    socket.join(ch);
+    socket.join(safeCh);
+  });
+
+  socket.on('markAsRead', ({ channel, userEmail }) => {
+    if (!channel || !userEmail) return;
+    const safeCh = getSafeChannelName(channel);
+    const filePath = getChannelFilePath(safeCh);
+    const chatData = readChannelData(safeCh);
+
+    let updated = false;
+    chatData.messages.forEach(msg => {
+      if (msg.senderEmail !== userEmail) {
+        if (!msg.readBy) msg.readBy = [];
+        if (!msg.readBy.includes(userEmail)) {
+          msg.readBy.push(userEmail);
+          updated = true;
+        }
+      }
+    });
+
+    if (updated) {
+      safeWriteJSON(filePath, chatData);
+      const decryptedMessages = chatData.messages.map(m => ({
+        id: m.id,
+        sender: m.sender,
+        senderEmail: m.senderEmail,
+        senderPicture: m.senderPicture,
+        recipient: m.recipient,
+        text: m.encryptedData ? decrypt(m.encryptedData) : m.text,
+        readBy: m.readBy || [],
+        timestamp: m.timestamp
+      }));
+      io.to(safeCh).emit('messagesReadUpdated', { channel: safeCh, messages: decryptedMessages });
+    }
   });
 });
 
 // --- [エラーハンドラー] ---
+// --- [エラーハンドラー] ---
+// 1. ルーティングに一致しなかった場合は 404 エラーを作成して次へ渡す
+// --- [エラーハンドラー] ---
+// 1. ルーティングに一致しなかった場合は 404 エラーを作成して次へ渡す
+// --- [エラーハンドラー] ---
+// 1. ルーティングに一致しなかった場合は 404 エラーを作成して次へ渡す
 app.use((req, res, next) => {
   const err = new Error('Not Found');
   err.status = 404;
   next(err);
 });
 
+// 2. 全体エラーハンドリング（4引数のミドルウェア）
 app.use((err, req, res, next) => {
   const status = err.status || 500;
+  
+  // ログ出力
   if (status >= 400 && status < 500) {
-    console.warn(`[HTTP ${status}] ${req.method} ${req.url} - ${err.message} | User: ${req.user?.email || 'anonymous'}`);
+    console.warn(`[HTTP ${status}] ${req.method} ${req.url} - ${err.message}`);
   } else {
-    console.error(`[System Error - ${status}] ${req.method} ${req.url} | User: ${req.user?.email || 'anonymous'}`, err.stack);
+    console.error(`[System Error - ${status}] ${req.method} ${req.url}`, err.stack);
   }
 
-  if (req.xhr || req.path.startsWith('/api/')) return res.status(status).json({ error: err.message });
+  // APIリクエストの場合はリダイレクトさせず、JSONでエラーを返す
+  if (req.xhr || req.path.startsWith('/api/')) {
+    return res.status(status).json({ error: err.message });
+  }
 
+  // 【重要】無限リダイレクトループ防止のストッパー
+  // （万が一 /error/error.html 自体が存在しなかった場合のフェイルセーフ）
+  if (req.path.startsWith('/error/')) {
+    return res.status(status).send(`
+      <h1>${status} Error</h1>
+      <p>システムエラーが発生しました。</p>
+    `);
+  }
+
+  // ステータスコード専用のエラーページが存在するか確認
   const customPage = path.join(__dirname, 'public', 'error', `${status}.html`);
-  res.status(status).sendFile(fs.existsSync(customPage) ? customPage : path.join(__dirname, 'public', 'error', 'error.html'), (err) => {
-    if (err) res.status(status).send(`<h1>${status} Error</h1><p>${err.message}</p>`);
-  });
-});
 
+  if (fs.existsSync(customPage)) {
+    // 存在する場合はそのページへ飛ぶ
+    res.redirect(`/error/${status}.html`);
+  } else {
+    // 存在しない場合は、確実に共通の error.html へ飛ぶ
+    res.redirect('/error/error.html');
+  }
+});
 server.listen(PORT, () => console.log(`[Server] Running on port ${PORT}`));
