@@ -11,6 +11,47 @@
   <script src="/socket.io/socket.io.js"></script>
 
   <style>
+        /* 1. モーダル用の色を定義（ライトモード用） */
+    :root {
+      --modal-bg: #ffffff;
+      --modal-text: #333333;
+      --modal-border: #e5e7eb;
+      --modal-close: #9ca3af;
+      --modal-close-hover: #1f2937;
+    }
+
+    /* 2. モーダル用の色を定義（ダークモード用） */
+    html.dark {
+      --modal-bg: #0b0c0c;          /* 暗いグレー背景 */
+      --modal-text: #f9fafb;        /* 白っぽい文字色 */
+      --modal-border: #35373a;      /* 暗めの境界線 */
+      --modal-close: #6b7280;       /* 暗めのバツボタン */
+      --modal-close-hover: #f3f4f6; /* ホバー時は明るく */
+    }
+
+    /* 3. 変数を使ってスタイルを適用（以前の .modal-content と .modal-close-btn を上書き） */
+    .modal-content {
+      background: var(--modal-bg);
+      color: var(--modal-text);
+      padding: 1.5rem;
+      border-radius: 0.5rem;
+      max-width: 90%;
+      width: 400px;
+      border: 1px solid var(--modal-border);
+      box-shadow: 0 4px 6px rgba(0,0,0,0.3); /* ダークモードでも浮いて見えるよう影を少し濃く */
+    }
+
+    .modal-close-btn {
+      cursor: pointer;
+      font-weight: bold;
+      color: var(--modal-close);
+      font-size: 1.2rem;
+      transition: color 0.2s;
+    }
+
+    .modal-close-btn:hover {
+      color: var(--modal-close-hover);
+    }
     .user-info-header {
       display: flex;
       align-items: center;
@@ -21,7 +62,7 @@
       height: 2.25rem;
       border-radius: 9999px;
       object-fit: cover;
-      border: 1px solid var(--color-border);
+      border: 1px solid var(--color-border, #dddddd);
       flex-shrink: 0;
     }
     .user-info-text {
@@ -34,12 +75,29 @@
       border-radius: 9999px;
     }
     .event-chip-event {
-      background: var(--color-accent-blue-light);
+      background: var(--color-accent-blue-light, #3b82f6);
       color: white;
     }
     .event-chip-no-vacation {
       background: #f97316;
       color: white;
+    }
+
+    /* モーダル用のスタイル追加（修正済み） */
+    .modal-overlay {
+      display: none;
+      position: fixed;
+      top: 0; left: 0; right: 0; bottom: 0;
+      background: rgba(0, 0, 0, 0.5);
+      z-index: 1000;
+      align-items: center;
+      justify-content: center;
+    }
+    .modal-overlay.show {
+      display: flex;
+    }
+    .calendar-cell:hover {
+      background: var(--color-bg-tertiary, --modal-close-hover) !important;
     }
   </style>
 
@@ -57,6 +115,7 @@
   </script>
 </head>
 <body>
+  <!-- サイドバー等のナビゲーション (省略せず維持) -->
   <aside class="sidebar">
     <div class="sidebar-header" onclick="location.href='/index'">
       <div class="flex items-center gap-3">
@@ -209,6 +268,10 @@
               <span style="display: inline-block; width: 12px; height: 12px; background: #f97316; border-radius: 2px;"></span>
               ラーケーション不可日
             </div>
+            <div style="display: flex; align-items: center; gap: 0.375rem;">
+              <span style="display: inline-block; width: 12px; height: 12px; border: 1px solid #f87171; border-radius: 2px;"></span>
+              休日・祝日等
+            </div>
           </div>
           
           <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 1.5rem; padding: 1rem; background: var(--color-bg-secondary); border-radius: 0.5rem;">
@@ -265,46 +328,305 @@
     </main>
   </div>
 
+  <!-- イベント詳細表示用のモーダル -->
+  <div id="day-modal" class="modal-overlay" onclick="closeDayModal()">
+    <div class="modal-content" onclick="event.stopPropagation()">
+      <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem;">
+        <h3 id="modal-date-title" style="margin: 0; font-size: 1.1rem; font-weight: 700;"></h3>
+        <span class="modal-close-btn" onclick="closeDayModal()">✕</span>
+      </div>
+      <div id="modal-events-container" style="display: flex; flex-direction: column; gap: 0.5rem;">
+        <!-- イベント一覧がJSによって挿入されます -->
+      </div>
+    </div>
+  </div>
+
   <script>
     let globalData = {
       profile: null,
       calendar: []
     };
 
+    // デフォルトのカレンダーデータ（省略せずに記載）
     const defaultCalendarData = [
-      {"date": "2026-04-06", "title": "新任式・始業式", "type": "event"},
-      {"date": "2026-04-07", "title": "入学式", "type": "event"},
-      {"date": "2026-04-08", "title": "4-5-6年次確認テスト", "type": "event"},
-      {"date": "2026-04-29", "title": "昭和の日 (LK不可)", "type": "no-vacation"},
-      {"date": "2026-05-03", "title": "憲法記念日 (LK不可)", "type": "no-vacation"},
-      {"date": "2026-05-04", "title": "みどりの日 (LK不可)", "type": "no-vacation"},
-      {"date": "2026-05-05", "title": "こどもの日 (LK不可)", "type": "no-vacation"},
-      {"date": "2026-05-06", "title": "振替休日 (LK不可)", "type": "no-vacation"},
-      {"date": "2026-05-08", "title": "PTA総会 (LK不可)", "type": "no-vacation"},
-      {"date": "2026-05-18", "title": "中間テスト (LK不可)", "type": "no-vacation"},
-      {"date": "2026-05-19", "title": "中間テスト (LK不可)", "type": "no-vacation"},
-      {"date": "2026-06-05", "title": "スポーツデイ (LK不可)", "type": "no-vacation"},
-      {"date": "2026-07-20", "title": "海の日 (LK不可)", "type": "no-vacation"},
-      {"date": "2026-08-10", "title": "山の日 (LK不可)", "type": "no-vacation"},
-      {"date": "2026-08-12", "title": "学校閉庁日 (LK不可)", "type": "no-vacation"},
-      {"date": "2026-08-13", "title": "学校閉庁日 (LK不可)", "type": "no-vacation"},
-      {"date": "2026-08-14", "title": "学校閉庁日 (LK不可)", "type": "no-vacation"},
-      {"date": "2026-09-01", "title": "第2学期始業式", "type": "event"},
-      {"date": "2026-09-21", "title": "敬老の日 (LK不可)", "type": "no-vacation"},
-      {"date": "2026-09-23", "title": "秋分の日 (LK不可)", "type": "no-vacation"},
-      {"date": "2026-10-12", "title": "スポーツの日 (LK不可)", "type": "no-vacation"},
-      {"date": "2026-11-03", "title": "文化の日 (LK不可)", "type": "no-vacation"},
-      {"date": "2026-11-13", "title": "県民の日 (LK不可)", "type": "no-vacation"},
-      {"date": "2026-11-23", "title": "勤労感謝の日 (LK不可)", "type": "no-vacation"},
-      {"date": "2027-01-01", "title": "元日 (LK不可)", "type": "no-vacation"},
-      {"date": "2027-01-11", "title": "成人の日 (LK不可)", "type": "no-vacation"},
-      {"date": "2027-01-16", "title": "共通テスト (LK不可)", "type": "no-vacation"},
-      {"date": "2027-01-17", "title": "共通テスト (LK不可)", "type": "no-vacation"},
-      {"date": "2027-02-11", "title": "建国記念の日 (LK不可)", "type": "no-vacation"},
-      {"date": "2027-02-23", "title": "天皇誕生日 (LK不可)", "type": "no-vacation"},
-      {"date": "2027-03-22", "title": "春分の日 (LK不可)", "type": "no-vacation"},
-      {"date": "2027-03-24", "title": "修了式 (LK不可)", "type": "no-vacation"}
-    ];
+    { "date": "2026-04-01", "title": "学年始休業日", "type": "holiday" },
+    { "date": "2026-04-02", "title": "学年始休業日", "type": "holiday" },
+    { "date": "2026-04-03", "title": "学年始休業日", "type": "holiday" },
+    { "date": "2026-04-04", "title": "学年始休業日", "type": "holiday" },
+    { "date": "2026-04-05", "title": "学年始休業日", "type": "holiday" },
+    { "date": "2026-04-08", "title": "新任式・始業式", "type": "ceremony" },
+    { "date": "2026-04-09", "title": "入学式", "type": "ceremony" },
+    { "date": "2026-04-10", "title": "対面式・交通講話", "type": "event" },
+    { "date": "2026-04-11", "title": "スポーツデイ", "type": "school-event" },
+    { "date": "2026-04-12", "title": "スポーツデイ予備日", "type": "school-event" },
+    { "date": "2026-04-13", "title": "部活動紹介", "type": "event" },
+    { "date": "2026-04-14", "title": "生徒総会", "type": "event" },
+    { "date": "2026-04-16", "title": "避難経路確認・視力検査⑥", "type": "event" },
+    { "date": "2026-04-16", "title": "クラス写真撮影（前期生）", "type": "event" },
+    { "date": "2026-04-16", "title": "スタディーサポート（4年）50分", "type": "event" },
+    { "date": "2026-04-17", "title": "市陸上", "type": "event" },
+    { "date": "2026-04-18", "title": "市陸上", "type": "event" },
+    { "date": "2026-04-19", "title": "市陸上", "type": "event" },
+    { "date": "2026-04-20", "title": "市陸上", "type": "event" },
+    { "date": "2026-04-21", "title": "学力推移調査（1年）", "type": "test" },
+    { "date": "2026-04-22", "title": "常置委員会", "type": "event" },
+    { "date": "2026-04-22", "title": "PTA総会", "type": "event" },
+    { "date": "2026-04-25", "title": "大掃除（モップ交換）", "type": "event" },
+    { "date": "2026-04-26", "title": "定期テストⅠ（６年）", "type": "test" },
+    { "date": "2026-04-27", "title": "定期テストⅠ（３～６年）", "type": "test" },
+    { "date": "2026-04-28", "title": "定期テストⅠ（３～６年）", "type": "test" },
+    { "date": "2026-04-28", "title": "定期テストⅠ（２～６年）", "type": "test" },
+    { "date": "2026-04-29", "title": "定期テストⅠ（２～６年）", "type": "test" },
+    { "date": "2026-04-29", "title": "昭和の日", "type": "holiday" },
+    { "date": "2026-04-30", "title": "定期テストⅠ（２～６年）", "type": "test" },
+    { "date": "2026-05-01", "title": "理数探究①②", "type": "event" },
+    { "date": "2026-05-02", "title": "理数探究①②", "type": "event" },
+    { "date": "2026-05-03", "title": "憲法記念日", "type": "holiday" },
+    { "date": "2026-05-04", "title": "みどりの日", "type": "holiday" },
+    { "date": "2026-05-05", "title": "こどもの日", "type": "holiday" },
+    { "date": "2026-05-06", "title": "振替休日", "type": "holiday" },
+    { "date": "2026-05-07", "title": "全国学力調査（英話すこと）", "type": "test" },
+    { "date": "2026-05-11", "title": "１年次学級づくり合宿", "type": "school-event" },
+    { "date": "2026-05-11", "title": "進研模試5年", "type": "test" },
+    { "date": "2026-05-12", "title": "進研模試4・5年", "type": "test" },
+    { "date": "2026-05-14", "title": "内科検診(9時半～／13時半～)", "type": "event" },
+    { "date": "2026-05-17", "title": "かえで祭（前期）①②③④準備・終日準備", "type": "school-event" },
+    { "date": "2026-05-18", "title": "かえで祭（前期）①②③④準備・終日準備", "type": "school-event" },
+    { "date": "2026-05-18", "title": "学力推移調査（2年）", "type": "test" },
+    { "date": "2026-05-19", "title": "かえで祭（前期）①②③④準備・終日準備", "type": "school-event" },
+    { "date": "2026-05-19", "title": "かえで祭（前期）", "type": "school-event" },
+    { "date": "2026-05-20", "title": "かえで祭振休", "type": "holiday" },
+    { "date": "2026-05-21", "title": "県南水泳", "type": "event" },
+    { "date": "2026-05-21", "title": "生徒会選挙", "type": "event" },
+    { "date": "2026-05-22", "title": "教育相談週間（短縮50分）", "type": "event" },
+    { "date": "2026-05-22", "title": "PTA総会代休", "type": "holiday" },
+    { "date": "2026-05-23", "title": "県南駅伝", "type": "event" },
+    { "date": "2026-05-26", "title": "つくば市総体", "type": "event" },
+    { "date": "2026-05-26", "title": "県南陸上", "type": "event" },
+    { "date": "2026-05-28", "title": "新体力テスト", "type": "event" },
+    { "date": "2026-05-29", "title": "歯科検診（前期）", "type": "event" },
+    { "date": "2026-05-31", "title": "眼科検診", "type": "event" },
+    { "date": "2026-05-31", "title": "全国学力調査（AM 英語3技能）", "type": "test" },
+    { "date": "2026-06-03", "title": "理数探究③④", "type": "event" },
+    { "date": "2026-06-04", "title": "理数探究③④", "type": "event" },
+    { "date": "2026-06-08", "title": "教育実習", "type": "event" },
+    { "date": "2026-06-09", "title": "教育実習", "type": "event" },
+    { "date": "2026-06-09", "title": "生徒会選挙告示", "type": "event" },
+    { "date": "2026-06-10", "title": "教育実習", "type": "event" },
+    { "date": "2026-06-10", "title": "内科検診", "type": "event" },
+    { "date": "2026-06-11", "title": "教育実習", "type": "event" },
+    { "date": "2026-06-11", "title": "SSH国内研修旅行", "type": "school-event" },
+    { "date": "2026-06-12", "title": "教育実習", "type": "event" },
+    { "date": "2026-06-13", "title": "教育実習", "type": "event" },
+    { "date": "2026-06-13", "title": "定期テストⅠ（３～６年）", "type": "test" },
+    { "date": "2026-06-13", "title": "定期テストⅠ（２～６年）", "type": "test" },
+    { "date": "2026-06-14", "title": "教育実習", "type": "event" },
+    { "date": "2026-06-14", "title": "定期テストⅠ（３～６年）", "type": "test" },
+    { "date": "2026-06-14", "title": "定期テストⅠ（２～６年）", "type": "test" },
+    { "date": "2026-06-15", "title": "教育実習", "type": "event" },
+    { "date": "2026-06-15", "title": "GTEC（4・5年）", "type": "test" },
+    { "date": "2026-06-15", "title": "理数探究⑤⑥", "type": "event" },
+    { "date": "2026-06-16", "title": "教育実習", "type": "event" },
+    { "date": "2026-06-16", "title": "理数探究⑤⑥", "type": "event" },
+    { "date": "2026-06-17", "title": "教育実習", "type": "event" },
+    { "date": "2026-06-18", "title": "教育実習", "type": "event" },
+    { "date": "2026-06-19", "title": "教育実習", "type": "event" },
+    { "date": "2026-06-20", "title": "教育実習", "type": "event" },
+    { "date": "2026-06-21", "title": "教育実習", "type": "event" },
+    { "date": "2026-06-22", "title": "教育実習", "type": "event" },
+    { "date": "2026-06-23", "title": "PTA本部役員会②", "type": "event" },
+    { "date": "2026-06-24", "title": "定期テストⅢ（３～６年）", "type": "test" },
+    { "date": "2026-06-24", "title": "定期テストⅢ（１～６年）", "type": "test" },
+    { "date": "2026-06-25", "title": "定期テストⅢ（３～６年）", "type": "test" },
+    { "date": "2026-06-25", "title": "定期テストⅢ（１～６年）", "type": "test" },
+    { "date": "2026-06-26", "title": "定期テストⅢ（３～６年）", "type": "test" },
+    { "date": "2026-06-26", "title": "定期テストⅢ（１～６年）", "type": "test" },
+    { "date": "2026-06-29", "title": "衛生委員会", "type": "event" },
+    { "date": "2026-07-01", "title": "後期始業式", "type": "ceremony" },
+    { "date": "2026-07-01", "title": "定期テストⅠ（３～６年）", "type": "test" },
+    { "date": "2026-07-01", "title": "定期テストⅠ（２～６年）", "type": "test" },
+    { "date": "2026-07-02", "title": "定期テストⅠ（３～６年）", "type": "test" },
+    { "date": "2026-07-02", "title": "定期テストⅠ（２～６年）", "type": "test" },
+    { "date": "2026-07-06", "title": "理数探究⑦", "type": "event" },
+    { "date": "2026-07-06", "title": "実力テスト（３～５年）", "type": "test" },
+    { "date": "2026-07-08", "title": "実力テスト（１～５年）", "type": "test" },
+    { "date": "2026-07-08", "title": "理数探究⑨", "type": "event" },
+    { "date": "2026-07-13", "title": "PTA本部役員会③", "type": "event" },
+    { "date": "2026-07-13", "title": "PTA役員選考会", "type": "event" },
+    { "date": "2026-07-15", "title": "海の日", "type": "holiday" },
+    { "date": "2026-07-15", "title": "実力テスト（１～５年）", "type": "test" },
+    { "date": "2026-07-20", "title": "②③④⑤前期終業式", "type": "ceremony" },
+    { "date": "2026-07-20", "title": "①②③WR開会式", "type": "event" },
+    { "date": "2026-07-20", "title": "定期テストⅤ（４～５年）", "type": "test" },
+    { "date": "2026-07-21", "title": "定期テストⅤ（４～５年）", "type": "test" },
+    { "date": "2026-07-21", "title": "定期テストⅤ（３～５年）", "type": "test" },
+    { "date": "2026-07-22", "title": "定期テストⅤ（４～５年）", "type": "test" },
+    { "date": "2026-07-22", "title": "定期テストⅤ（３～５年）", "type": "test" },
+    { "date": "2026-07-22", "title": "集会+入学者選抜準備", "type": "event" },
+    { "date": "2026-07-22", "title": "定期テストⅤ（１～５年）", "type": "test" },
+    { "date": "2026-07-27", "title": "NZ語学研修結団式", "type": "event" },
+    { "date": "2026-07-28", "title": "学校説明会代休", "type": "holiday" },
+    { "date": "2026-08-01", "title": "夏季休業", "type": "holiday" },
+    { "date": "2026-08-02", "title": "夏季休業", "type": "holiday" },
+    { "date": "2026-08-03", "title": "夏季休業", "type": "holiday" },
+    { "date": "2026-08-04", "title": "夏季休業", "type": "holiday" },
+    { "date": "2026-08-04", "title": "4年次NZ語学研修", "type": "school-event" },
+    { "date": "2026-08-05", "title": "夏季休業", "type": "holiday" },
+    { "date": "2026-08-05", "title": "4年次NZ語学研修", "type": "school-event" },
+    { "date": "2026-08-06", "title": "夏季休業", "type": "holiday" },
+    { "date": "2026-08-07", "title": "夏季休業", "type": "holiday" },
+    { "date": "2026-08-08", "title": "夏季休業", "type": "holiday" },
+    { "date": "2026-08-09", "title": "夏季休業", "type": "holiday" },
+    { "date": "2026-08-10", "title": "夏季休業", "type": "holiday" },
+    { "date": "2026-08-10", "title": "山の日", "type": "holiday" },
+    { "date": "2026-08-11", "title": "夏季休業", "type": "holiday" },
+    { "date": "2026-08-12", "title": "夏季休業", "type": "holiday" },
+    { "date": "2026-08-13", "title": "夏季休業", "type": "holiday" },
+    { "date": "2026-08-13", "title": "学校閉庁日", "type": "holiday" },
+    { "date": "2026-08-14", "title": "夏季休業", "type": "holiday" },
+    { "date": "2026-08-14", "title": "学校閉庁日", "type": "holiday" },
+    { "date": "2026-08-15", "title": "夏季休業", "type": "holiday" },
+    { "date": "2026-08-15", "title": "学校閉庁日", "type": "holiday" },
+    { "date": "2026-08-16", "title": "夏季休業", "type": "holiday" },
+    { "date": "2026-08-17", "title": "夏季休業", "type": "holiday" },
+    { "date": "2026-08-18", "title": "夏季休業", "type": "holiday" },
+    { "date": "2026-08-19", "title": "夏季休業", "type": "holiday" },
+    { "date": "2026-08-20", "title": "夏季休業", "type": "holiday" },
+    { "date": "2026-08-21", "title": "夏季休業", "type": "holiday" },
+    { "date": "2026-08-22", "title": "夏季休業", "type": "holiday" },
+    { "date": "2026-08-23", "title": "夏季休業", "type": "holiday" },
+    { "date": "2026-08-24", "title": "夏季休業", "type": "holiday" },
+    { "date": "2026-08-25", "title": "夏季休業", "type": "holiday" },
+    { "date": "2026-08-26", "title": "夏季休業", "type": "holiday" },
+    { "date": "2026-08-27", "title": "夏季休業", "type": "holiday" },
+    { "date": "2026-08-28", "title": "夏季休業", "type": "holiday" },
+    { "date": "2026-08-29", "title": "夏季休業", "type": "holiday" },
+    { "date": "2026-08-30", "title": "夏季休業", "type": "holiday" },
+    { "date": "2026-08-31", "title": "夏季休業", "type": "holiday" },
+    { "date": "2026-09-01", "title": "後期始業式", "type": "ceremony" },
+    { "date": "2026-09-01", "title": "理数探究⑩", "type": "event" },
+    { "date": "2026-09-07", "title": "定期テストⅣ（４～６年）", "type": "test" },
+    { "date": "2026-09-08", "title": "定期テストⅣ（４～６年）", "type": "test" },
+    { "date": "2026-09-08", "title": "理数探究⑪", "type": "event" },
+    { "date": "2026-09-08", "title": "定期テストⅣ（３～６年）", "type": "test" },
+    { "date": "2026-09-09", "title": "定期テストⅣ（４～６年）", "type": "test" },
+    { "date": "2026-09-09", "title": "定期テストⅣ（３～６年）", "type": "test" },
+    { "date": "2026-09-09", "title": "スポーツの日", "type": "holiday" },
+    { "date": "2026-09-09", "title": "定期テストⅣ（１～６年）", "type": "test" },
+    { "date": "2026-09-10", "title": "実力テスト（１～５年）", "type": "test" },
+    { "date": "2026-09-14", "title": "県南新人戦", "type": "event" },
+    { "date": "2026-09-21", "title": "秋分の日", "type": "holiday" },
+    { "date": "2026-09-21", "title": "教育相談週間（短縮50分）", "type": "event" },
+    { "date": "2026-09-22", "title": "教育相談週間（短縮50分）", "type": "event" },
+    { "date": "2026-09-22", "title": "敬老の日", "type": "holiday" },
+    { "date": "2026-10-01", "title": "教育相談週間（短縮50分）", "type": "event" },
+    { "date": "2026-10-01", "title": "理数探究⑫", "type": "event" },
+    { "date": "2026-10-05", "title": "定期テストⅡ（４～６年）", "type": "test" },
+    { "date": "2026-10-06", "title": "定期テストⅡ（４～６年）", "type": "test" },
+    { "date": "2026-10-06", "title": "定期テストⅡ（３～６年）", "type": "test" },
+    { "date": "2026-10-07", "title": "定期テストⅡ（４～６年）", "type": "test" },
+    { "date": "2026-10-07", "title": "定期テストⅡ（３～６年）", "type": "test" },
+    { "date": "2026-10-07", "title": "定期テストⅡ（１～６年）", "type": "test" },
+    { "date": "2026-10-08", "title": "理数探究⑬", "type": "event" },
+    { "date": "2026-10-11", "title": "スポーツの日", "type": "holiday" },
+    { "date": "2026-10-14", "title": "進研模試6年", "type": "test" },
+    { "date": "2026-10-21", "title": "進研模試4・5・6年", "type": "test" },
+    { "date": "2026-10-22", "title": "PTA関東大会：群馬", "type": "event" },
+    { "date": "2026-10-22", "title": "教育相談週間（短縮50分）", "type": "event" },
+    { "date": "2026-10-23", "title": "文化の日", "type": "holiday" },
+    { "date": "2026-11-01", "title": "教育相談週間（短縮50分）", "type": "event" },
+    { "date": "2026-11-01", "title": "理数探究⑭", "type": "event" },
+    { "date": "2026-11-03", "title": "文化の日", "type": "holiday" },
+    { "date": "2026-11-08", "title": "理数探究⑮", "type": "event" },
+    { "date": "2026-11-09", "title": "定期テストⅢ（４～６年）", "type": "test" },
+    { "date": "2026-11-10", "title": "定期テストⅢ（４～６年）", "type": "test" },
+    { "date": "2026-11-10", "title": "定期テストⅢ（３～６年）", "type": "test" },
+    { "date": "2026-11-11", "title": "定期テストⅢ（４～６年）", "type": "test" },
+    { "date": "2026-11-11", "title": "定期テストⅢ（３～６年）", "type": "test" },
+    { "date": "2026-11-11", "title": "定期テストⅢ（１～６年）", "type": "test" },
+    { "date": "2026-11-18", "title": "定期テストⅣ（４～６年）", "type": "test" },
+    { "date": "2026-11-19", "title": "定期テストⅣ（４～６年）", "type": "test" },
+    { "date": "2026-11-19", "title": "定期テストⅣ（３～６年）", "type": "test" },
+    { "date": "2026-11-20", "title": "定期テストⅣ（４～６年）", "type": "test" },
+    { "date": "2026-11-20", "title": "定期テストⅣ（３～６年）", "type": "test" },
+    { "date": "2026-11-20", "title": "定期テストⅣ（１～６年）", "type": "test" },
+    { "date": "2026-11-23", "title": "勤労感謝の日", "type": "holiday" },
+    { "date": "2026-11-23", "title": "PTA全国大会：大分", "type": "event" },
+    { "date": "2026-11-28", "title": "理数探究校内発表会1～4h", "type": "event" },
+    { "date": "2026-12-01", "title": "冬期休業", "type": "holiday" },
+    { "date": "2026-12-02", "title": "冬期休業", "type": "holiday" },
+    { "date": "2026-12-03", "title": "冬期休業", "type": "holiday" },
+    { "date": "2026-12-04", "title": "冬期休業", "type": "holiday" },
+    { "date": "2026-12-05", "title": "冬期休業", "type": "holiday" },
+    { "date": "2026-12-06", "title": "冬期休業", "type": "holiday" },
+    { "date": "2026-12-07", "title": "冬期休業", "type": "holiday" },
+    { "date": "2026-12-07", "title": "創立記念日", "type": "holiday" },
+    { "date": "2026-12-07", "title": "定期テストⅤ（４～５年）", "type": "test" },
+    { "date": "2026-12-08", "title": "冬期休業", "type": "holiday" },
+    { "date": "2026-12-08", "title": "定期テストⅤ（４～５年）", "type": "test" },
+    { "date": "2026-12-08", "title": "定期テストⅤ（３～５年）", "type": "test" },
+    { "date": "2026-12-09", "title": "冬期休業", "type": "holiday" },
+    { "date": "2026-12-09", "title": "定期テストⅤ（４～５年）", "type": "test" },
+    { "date": "2026-12-09", "title": "定期テストⅤ（３～５年）", "type": "test" },
+    { "date": "2026-12-09", "title": "入学者説明会", "type": "event" },
+    { "date": "2026-12-09", "title": "定期テストⅤ（１～５年）", "type": "test" },
+    { "date": "2026-12-10", "title": "冬期休業", "type": "holiday" },
+    { "date": "2026-12-10", "title": "追認考査", "type": "test" },
+    { "date": "2026-12-11", "title": "冬期休業", "type": "holiday" },
+    { "date": "2026-12-12", "title": "冬期休業", "type": "holiday" },
+    { "date": "2026-12-13", "title": "冬期休業", "type": "holiday" },
+    { "date": "2026-12-13", "title": "理数探究⑯", "type": "event" },
+    { "date": "2026-12-14", "title": "冬期休業", "type": "holiday" },
+    { "date": "2026-12-15", "title": "冬期休業", "type": "holiday" },
+    { "date": "2026-12-15", "title": "理数探究⑰", "type": "event" },
+    { "date": "2026-12-16", "title": "冬期休業", "type": "holiday" },
+    { "date": "2026-12-17", "title": "冬期休業", "type": "holiday" },
+    { "date": "2026-12-18", "title": "冬期休業", "type": "holiday" },
+    { "date": "2026-12-19", "title": "冬期休業", "type": "holiday" },
+    { "date": "2026-12-20", "title": "冬期休業", "type": "holiday" },
+    { "date": "2026-12-21", "title": "冬期休業", "type": "holiday" },
+    { "date": "2026-12-22", "title": "冬期休業", "type": "holiday" },
+    { "date": "2026-12-23", "title": "冬期休業", "type": "holiday" },
+    { "date": "2026-12-24", "title": "冬期休業", "type": "holiday" },
+    { "date": "2026-12-25", "title": "冬期休業", "type": "holiday" },
+    { "date": "2026-12-26", "title": "冬期休業", "type": "holiday" },
+    { "date": "2026-12-27", "title": "冬期休業", "type": "holiday" },
+    { "date": "2026-12-28", "title": "冬期休業", "type": "holiday" },
+    { "date": "2026-12-29", "title": "冬期休業", "type": "holiday" },
+    { "date": "2026-12-30", "title": "冬期休業", "type": "holiday" },
+    { "date": "2026-12-31", "title": "冬期休業", "type": "holiday" },
+    { "date": "2027-01-01", "title": "冬期休業", "type": "holiday" },
+    { "date": "2027-01-01", "title": "元日", "type": "holiday" },
+    { "date": "2027-01-02", "title": "冬期休業", "type": "holiday" },
+    { "date": "2027-01-03", "title": "冬期休業", "type": "holiday" },
+    { "date": "2027-01-04", "title": "冬期休業", "type": "holiday" },
+    { "date": "2027-01-05", "title": "冬期休業", "type": "holiday" },
+    { "date": "2027-01-06", "title": "冬期休業", "type": "holiday" },
+    { "date": "2027-01-07", "title": "冬期休業", "type": "holiday" },
+    { "date": "2027-01-08", "title": "冬期休業", "type": "holiday" },
+    { "date": "2027-01-09", "title": "冬期休業", "type": "holiday" },
+    { "date": "2027-01-10", "title": "冬期休業", "type": "holiday" },
+    { "date": "2027-01-11", "title": "成人の日", "type": "holiday" },
+    { "date": "2027-01-15", "title": "建国記念の日", "type": "holiday" },
+    { "date": "2027-01-20", "title": "共通テスト", "type": "test" },
+    { "date": "2027-01-21", "title": "共通テスト", "type": "test" },
+    { "date": "2027-01-27", "title": "入学者選抜", "type": "event" },
+    { "date": "2027-02-01", "title": "共通テスト", "type": "test" },
+    { "date": "2027-02-11", "title": "建国記念の日", "type": "holiday" },
+    { "date": "2027-02-15", "title": "第3回英検（2次）", "type": "test" },
+    { "date": "2027-02-23", "title": "天皇誕生日", "type": "holiday" },
+    { "date": "2027-02-26", "title": "合格発表", "type": "event" },
+    { "date": "2027-03-15", "title": "3年修了式", "type": "ceremony" },
+    { "date": "2027-03-16", "title": "卒業式", "type": "ceremony" },
+    { "date": "2027-03-20", "title": "春分の日", "type": "holiday" },
+    { "date": "2027-03-25", "title": "終業式・大掃除", "type": "ceremony" },
+    { "date": "2027-03-26", "title": "学年末休業日", "type": "holiday" },
+    { "date": "2027-03-27", "title": "学年末休業日", "type": "holiday" },
+    { "date": "2027-03-28", "title": "学年末休業日", "type": "holiday" },
+    { "date": "2027-03-29", "title": "学年末休業日", "type": "holiday" },
+    { "date": "2027-03-30", "title": "学年末休業日", "type": "holiday" },
+    { "date": "2027-03-31", "title": "学年末休業日", "type": "holiday" }
+  ];
 
     let calendarCurrentDate = new Date();
     let calendarEvents = [];
@@ -369,14 +691,8 @@
     async function loadPageData() {
       try {
         const [profileRes, calendarRes] = await Promise.all([
-          fetch('/api/profile').catch(err => {
-            console.error('Profile fetch error:', err);
-            return { ok: false };
-          }),
-          fetch('/api/calendar').catch(err => {
-            console.error('Calendar fetch error:', err);
-            return { ok: false };
-          })
+          fetch('/api/profile').catch(err => ({ ok: false })),
+          fetch('/api/calendar').catch(err => ({ ok: false }))
         ]);
 
         if (profileRes.status === 401) {
@@ -458,53 +774,135 @@
       if (!tbody) return;
 
       let html = '';
+      
       for (let i = 0; i < calendarDays.length; i += 7) {
         html += '<tr style="border-bottom: 1px solid var(--color-border);">';
-        for (let j = 0; j < 7; j++) {
-          const day = calendarDays[i + j];
-          const dayNum = day.getDate();
-          const isCurrentMonth = day.getMonth() === month;
-          const isToday = day.toDateString() === new Date().toDateString();
-
-          const dayEvents = calendarEvents.filter(e => {
+        
+        const weekDays = calendarDays.slice(i, i + 7);
+        const eventsPerDay = weekDays.map(day => {
+          return calendarEvents.filter(e => {
             const eventDate = new Date(e.date);
             return eventDate.getFullYear() === day.getFullYear() &&
                    eventDate.getMonth() === day.getMonth() &&
                    eventDate.getDate() === day.getDate();
           });
+        });
+
+        const slots = [];
+        for (let j = 0; j < 7; j++) {
+          let unassignedEvents = [...eventsPerDay[j]];
+          
+          for (let s = 0; s < slots.length; s++) {
+            if (j > 0 && slots[s][j-1]) {
+              const prevEvent = slots[s][j-1];
+              const matchingEventIndex = unassignedEvents.findIndex(e => e.title === prevEvent.title);
+              if (matchingEventIndex !== -1) {
+                slots[s][j] = unassignedEvents[matchingEventIndex];
+                unassignedEvents.splice(matchingEventIndex, 1);
+              } else {
+                slots[s][j] = null;
+              }
+            } else {
+              slots[s][j] = null;
+            }
+          }
+          
+          for (const event of unassignedEvents) {
+            let placed = false;
+            for (let s = 0; s < slots.length; s++) {
+              if (!slots[s][j]) {
+                slots[s][j] = event;
+                placed = true;
+                break;
+              }
+            }
+            if (!placed) {
+              const newSlot = Array(7).fill(null);
+              newSlot[j] = event;
+              slots.push(newSlot);
+            }
+          }
+        }
+
+        for (let j = 0; j < 7; j++) {
+          const day = weekDays[j];
+          const dayNum = day.getDate();
+          const isCurrentMonth = day.getMonth() === month;
+          const isToday = day.toDateString() === new Date().toDateString();
 
           const bgColor = isCurrentMonth ? 'var(--color-bg-secondary)' : 'var(--color-bg-tertiary)';
-          const textColor = isCurrentMonth ? 'var(--color-text-primary)' : 'var(--color-text-muted)';
+          const baseTextColor = isCurrentMonth ? 'var(--color-text-primary)' : 'var(--color-text-muted)';
           const todayBorder = isToday ? '2px solid var(--color-accent-blue-light)' : 'none';
 
+          // 休日判定（type === 'holiday' のイベントがあるか）
+          const hasHoliday = eventsPerDay[j].some(e => e.type === 'holiday');
+          
+          // ヘッダーの色を決定（日曜または休日なら赤、土曜なら青、それ以外は通常色）
+          let headerColor = baseTextColor;
+          if (j===6) {
+            headerColor = '#3b82f6'
+          } else if (hasHoliday || j === 0) {
+            headerColor = '#f87171'
+          }
+
+          let dayHtml = '';
+          let overflowCount = 0;
+          const MAX_SLOTS = 2;
+
+          for (let s = 0; s < slots.length; s++) {
+            const event = slots[s][j];
+            if (s < MAX_SLOTS) {
+              if (event) {
+                const isContinuedFromPrev = j > 0 && slots[s][j-1] && slots[s][j-1].title === event.title;
+                const isContinuesToNext = j < 6 && slots[s][j+1] && slots[s][j+1].title === event.title;
+                
+                let styles = `padding: 0.25rem 0.375rem; margin-bottom: 0.25rem; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: 0.75rem; height: 1.5rem; line-height: 1rem; box-sizing: border-box;`;
+                
+                if (isContinuedFromPrev) {
+                  styles += ` margin-left: -0.5rem; padding-left: 0.5rem; border-top-left-radius: 0; border-bottom-left-radius: 0;`;
+                } else {
+                  styles += ` border-top-left-radius: 0.25rem; border-bottom-left-radius: 0.25rem;`;
+                }
+                
+                if (isContinuesToNext) {
+                  styles += ` margin-right: -0.5rem; padding-right: 0.5rem; border-top-right-radius: 0; border-bottom-right-radius: 0;`;
+                } else {
+                  styles += ` border-top-right-radius: 0.25rem; border-bottom-right-radius: 0.25rem;`;
+                }
+
+                const finalDisplayText = (!isContinuedFromPrev || j === 0) ? escapeHtml(event.title) : '&nbsp;';
+                const chipClass = event.type === 'no-vacation' ? 'event-chip-no-vacation' : 'event-chip-event';
+                
+                dayHtml += `<div class="${chipClass}" style="${styles}" title="${escapeHtml(event.title)}">${finalDisplayText}</div>`;
+              } else {
+                dayHtml += `<div style="height: 1.5rem; margin-bottom: 0.25rem;"></div>`;
+              }
+            } else {
+              if (event) overflowCount++;
+            }
+          }
+          
+          if (overflowCount > 0) {
+            dayHtml += `<div style="color: var(--color-text-muted); font-size: 0.7rem; line-height: 1;">+${overflowCount}件</div>`;
+          }
+
+          const dateString = `${day.getFullYear()}-${String(day.getMonth()+1).padStart(2, '0')}-${String(day.getDate()).padStart(2, '0')}`;
+
           html += `
-            <td style="
+            <td class="calendar-cell" onclick="showDayDetails('${dateString}')" style="
               height: 100px;
               padding: 0.5rem;
               background: ${bgColor};
               border: ${todayBorder};
               vertical-align: top;
-              color: ${textColor};
+              color: ${headerColor};
               font-weight: ${isToday ? '700' : '500'};
-              ${j === 0 ? 'color: #f87171;' : ''}
-              ${j === 6 ? 'color: #3b82f6;' : ''}
+              cursor: pointer;
+              transition: background 0.2s;
             ">
               <div style="font-size: 0.95rem; font-weight: 600; margin-bottom: 0.25rem;">${dayNum}</div>
               <div style="font-size: 0.75rem;">
-                ${dayEvents.slice(0, 2).map(e => `
-                  <div class="${e.type === 'no-vacation' ? 'event-chip-no-vacation' : 'event-chip-event'}" style="
-                    padding: 0.25rem 0.375rem;
-                    margin-bottom: 0.25rem;
-                    border-radius: 0.25rem;
-                    overflow: hidden;
-                    text-overflow: ellipsis;
-                    white-space: nowrap;
-                    cursor: pointer;
-                  " title="${escapeHtml(e.title)}">
-                    ${escapeHtml(e.title.substring(0, 12))}
-                  </div>
-                `).join('')}
-                ${dayEvents.length > 2 ? `<div style="color: var(--color-text-muted); font-size: 0.7rem;">+${dayEvents.length - 2}件</div>` : ''}
+                ${dayHtml}
               </div>
             </td>
           `;
@@ -548,6 +946,44 @@
         </div>
       `).join('');
     }
+
+    // イベント詳細をモーダルで表示する機能
+    window.showDayDetails = function(dateStr) {
+      const events = calendarEvents.filter(e => e.date === dateStr);
+      const modalDateTitle = document.getElementById('modal-date-title');
+      const modalContainer = document.getElementById('modal-events-container');
+      
+      const d = new Date(dateStr);
+      modalDateTitle.textContent = `${d.getFullYear()}年${d.getMonth() + 1}月${d.getDate()}日の予定`;
+      
+      if (events.length === 0) {
+        modalContainer.innerHTML = '<p style="color: var(--color-text-muted); font-size: 0.9rem;">この日の予定はありません。</p>';
+      } else {
+        modalContainer.innerHTML = events.map(e => {
+          let eventTypeLabel = '';
+          if (e.type === 'holiday') eventTypeLabel = '休日・祝日等';
+          else if (e.type === 'test') eventTypeLabel = 'テスト';
+          else if (e.type === 'ceremony') eventTypeLabel = '式典';
+          else if (e.type === 'school-event') eventTypeLabel = '学校行事';
+          else eventTypeLabel = 'イベント';
+
+          return `
+            <div style="padding: 0.75rem; border: 1px solid var(--color-border); border-radius: 0.375rem; background: var(--color-bg-tertiary);">
+              <div style="font-weight: 600; font-size: 0.95rem;">${escapeHtml(e.title)}</div>
+              <div style="font-size: 0.75rem; color: var(--color-text-muted); margin-top: 0.25rem;">
+                分類: ${eventTypeLabel}
+              </div>
+            </div>
+          `;
+        }).join('');
+      }
+      
+      document.getElementById('day-modal').classList.add('show');
+    };
+
+    window.closeDayModal = function() {
+      document.getElementById('day-modal').classList.remove('show');
+    };
 
     function previousMonth() {
       calendarCurrentDate.setMonth(calendarCurrentDate.getMonth() - 1);
