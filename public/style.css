@@ -1,4 +1,4 @@
-    /* ==========================================
+/* ==========================================
     1. デザイントークン（CSS変数）
     ========================================== */
     :root {
@@ -46,6 +46,16 @@
         padding: 0;
     }
 
+    /* 全要素でスクロールバーを非表示化 */
+    * {
+        -ms-overflow-style: none;  /* IE and Edge */
+        scrollbar-width: none;  /* Firefox */
+    }
+
+    *::-webkit-scrollbar {
+        display: none;  /* Chrome, Safari, Opera */
+    }
+
     body {
         font-family: 'Inter', sans-serif;
         background-color: var(--color-bg);
@@ -56,11 +66,6 @@
     }
 
     ::selection { background-color: rgba(59, 130, 246, 0.3); }
-
-    ::-webkit-scrollbar { width: 8px; height: 8px; }
-    ::-webkit-scrollbar-track { background: transparent; }
-    ::-webkit-scrollbar-thumb { background: #374151; border-radius: 4px; }
-    ::-webkit-scrollbar-thumb:hover { background: #4b5563; }
 
     .fade-in { animation: fadeIn 0.3s ease-in-out; }
     @keyframes fadeIn {
@@ -212,9 +217,7 @@
         backdrop-filter: blur(8px);
         border-bottom: 1px solid var(--color-border);
         z-index: 10;
-        scrollbar-width: none;
     }
-    .mobile-tab-bar::-webkit-scrollbar { display: none; }
     @media (min-width: 768px) {
         .mobile-tab-bar { display: none; }
     }
@@ -265,7 +268,6 @@
     .sidebar-brand-name { color: var(--color-text-primary); line-height: 1.25; }
     .sidebar-brand-tagline { color: var(--color-accent-blue-light); }
 
-    /* 変更点： flex-direction: column を追加して報告タブを下部に配置できるようにする */
     .sidebar-nav { flex: 1; display: flex; flex-direction: column; overflow-y: auto; padding: 1rem 0.75rem; overflow-x: hidden; }
 
     .sidebar-nav-button {

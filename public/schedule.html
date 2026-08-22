@@ -34,60 +34,95 @@
       object-fit: cover;
       border-radius: 9999px;
     }
-    /* 時間割特有のスタイル */
+
+    /* 時間割特有のスタイル (縦方向揃えのGridレイアウト調整) */
     .schedule-grid {
       display: grid;
-      grid-template-columns: repeat(5, minmax(120px, 1fr));
+      grid-template-columns: repeat(6, minmax(110px, 1fr));
       gap: 0.75rem;
       overflow-x: auto;
     }
     @media (max-width: 768px) {
       .schedule-grid {
-        grid-template-columns: repeat(5, minmax(100px, 1fr));
+        grid-template-columns: repeat(6, minmax(95px, 1fr));
       }
     }
+
+    /* 各曜日カラム */
     .day-column {
       background: var(--color-bg-card, rgba(255, 255, 255, 0.03));
       border: 1px solid var(--color-border, rgba(255, 255, 255, 0.1));
       border-radius: 0.5rem;
-      padding: 0.75rem;
+      padding: 0.5rem;
+      display: flex;
+      flex-direction: column;
     }
+
     .day-header {
       font-weight: 700;
       text-align: center;
       padding-bottom: 0.5rem;
-      margin-bottom: 0.75rem;
-      border-bottom: 1px solid var(--color-border, rgba(255, 255, 255, 0.1));
+      margin-bottom: 0.25rem;
+      border-bottom: 2px solid var(--color-border, rgba(255, 255, 255, 0.15));
       color: var(--color-text-primary);
     }
-    .period-card {
-      background: var(--color-bg-hover, rgba(255, 255, 255, 0.05));
-      border-radius: 0.375rem;
-      padding: 0.5rem;
-      margin-bottom: 0.5rem;
-      font-size: 0.8125rem;
-    }
-    .period-number {
-      font-size: 0.7rem;
-      color: var(--color-text-muted, #9ca3af);
-      font-weight: 600;
 
+    /* 時限カード：テキストサイズを拡大し、下部に仕切り線を追加 */
+    .period-card {
+      background: var(--color-bg-hover, rgba(255, 255, 255, 0.02));
+      padding: 0.75rem 0.25rem;
+      min-height: 60px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      border-bottom: 1px solid var(--color-border, rgba(255, 255, 255, 0.08));
     }
+
+    .period-card:last-child {
+      border-bottom: none;
+    }
+
     .period-subject {
-      font-weight: 600;
+      font-weight: 700;
+      font-size: 1.2rem;
       color: var(--color-text-primary);
-      margin-top: 0.125rem;
+      text-align: center;
+      line-height: 1.25;
     }
-    .period-room {
-      font-size: 0.7rem;
-      color: var(--color-text-secondary, #d1d5db);
-      margin-top: 0.125rem;
+
+    /* トグルボタン共通スタイル */
+    .selector-group {
+      display: inline-flex;
+      background: var(--color-bg-hover, rgba(255, 255, 255, 0.05));
+      border: 1px solid var(--color-border, rgba(255, 255, 255, 0.1));
+      border-radius: 0.5rem;
+      padding: 0.25rem;
+      gap: 0.25rem;
     }
+
+    .toggle-btn {
+      padding: 0.25rem 0.75rem;
+      font-size: 0.75rem;
+      font-weight: 600;
+      border-radius: 0.375rem;
+      border: none;
+      background: transparent;
+      color: var(--color-text-muted, #9ca3af);
+      cursor: pointer;
+      transition: all 0.2s ease;
+    }
+
+    .toggle-btn.active {
+      background: var(--color-accent-blue-light, #3b82f6);
+      color: #ffffff;
+    }
+
     .auto-link {
       color: var(--color-accent-blue-light, #60a5fa);
       text-decoration: underline;
       word-break: break-all;
     }
+
     .auto-link:hover {
       opacity: 0.8;
     }
@@ -127,7 +162,6 @@
         <span class="sidebar-nav-text">ホーム</span>
       </button>
       
-      <!-- 時間割ページなので、ここをactiveにする -->
       <button onclick="location.href='/schedule'" class="sidebar-nav-button active" title="時間割">
         <svg class="icon-nav" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
         <span class="sidebar-nav-text">時間割</span>
@@ -249,13 +283,18 @@
     <main class="content-area">
       <div id="page-schedule" class="page-section fade-in space-y-6">
         <div class="app-card content-card">
-          <div class="flex items-center justify-between mb-4">
-            <div>
-              <h2 class="content-card-title">週間時間割</h2>
-              <p class="content-card-subtitle">クラスの授業スケジュール一覧です。</p>
+          <div class="flex items-center justify-between mb-4 flex-wrap gap-2">
+            <!-- 左上：クラス切替ボタン（A・B・C・D） -->
+            <div class="selector-group">
+              <button id="btn-class-a" class="toggle-btn active" onclick="switchClass('A')">A</button>
+              <button id="btn-class-b" class="toggle-btn" onclick="switchClass('B')">B</button>
+              <button id="btn-class-c" class="toggle-btn" onclick="switchClass('C')">C</button>
+              <button id="btn-class-d" class="toggle-btn" onclick="switchClass('D')">D</button>
             </div>
-            <div id="class-select-container">
-              <!-- クラス選択ドロップダウン等を配置可能 -->
+            <!-- 右上：A週 / B週 切替ボタン -->
+            <div class="selector-group">
+              <button id="btn-week-a" class="toggle-btn active" onclick="switchWeek('A')">A週</button>
+              <button id="btn-week-b" class="toggle-btn" onclick="switchWeek('B')">B週</button>
             </div>
           </div>
 
@@ -284,6 +323,9 @@
       profile: null,
       schedule: null
     };
+
+    let currentClass = 'A'; // デフォルトクラス
+    let currentWeek = 'A';  // デフォルト週
 
     function escapeHtml(str) {
       if (!str) return '';
@@ -342,6 +384,24 @@
     function handleAdminSettings() { window.location.href = '/admin'; }
     function handlePersonalSettings() { alert('個人用設定は開発中です。'); }
 
+    /* クラス切り替えのロジック */
+    function switchClass(cls) {
+      currentClass = cls;
+      ['A', 'B', 'C', 'D'].forEach(c => {
+        const btn = document.getElementById(`btn-class-${c.toLowerCase()}`);
+        if (btn) btn.classList.toggle('active', c === cls);
+      });
+      renderSchedule();
+    }
+
+    /* 週切り替えのロジック */
+    function switchWeek(week) {
+      currentWeek = week;
+      document.getElementById('btn-week-a').classList.toggle('active', week === 'A');
+      document.getElementById('btn-week-b').classList.toggle('active', week === 'B');
+      renderSchedule();
+    }
+
     async function loadScheduleData() {
       try {
         const [profileRes, scheduleRes] = await Promise.all([
@@ -355,70 +415,217 @@
         }
 
         if (profileRes.ok) globalData.profile = await profileRes.json();
-        else globalData.profile = { name: '並木 太郎', email: 'namiki.taro@example.com', id: '180001', role: 'student', userClass: '3-A', picture: '' };
+        else globalData.profile = { name: '並木 太郎', email: 'namiki.taro@example.com', id: '180001', role: 'student', userClass: '2-A', picture: '' };
 
         if (scheduleRes.ok) {
           globalData.schedule = await scheduleRes.json();
         } else {
-          // デフォルトの時間割サンプルデータ
+          // デフォルト時間割データ
           globalData.schedule = {
-            days: [
-              {
-                dayName: '月',
-                periods: [
-                  { period: 1, subject: '国語', room: '3-A教室' },
-                  { period: 2, subject: '数学Ⅰ', room: '3-A教室' },
-                  { period: 3, subject: '英語コミュニケーション', room: 'LL教室' },
-                  { period: 4, subject: '物理', room: '理科実験室' },
-                  { period: 5, subject: '体育', room: '体育館' },
-                  { period: 6, subject: '世界史', room: '3-A教室' }
+            "2-A": {
+              "weekA": {
+                "mon": [
+                  { "period": 1, "subject": "理科1" },
+                  { "period": 2, "subject": "理科2" },
+                  { "period": 3, "subject": "体育" },
+                  { "period": 4, "subject": "国語A" },
+                  { "period": 5, "subject": "代数2" },
+                  { "period": 6, "subject": "英語G" }
+                ],
+                "tue": [
+                  { "period": 1, "subject": "美術" },
+                  { "period": 2, "subject": "幾何2" },
+                  { "period": 3, "subject": "社会" },
+                  { "period": 4, "subject": "理科2" },
+                  { "period": 5, "subject": "総合2" },
+                  { "period": 6, "subject": "総合2" }
+                ],
+                "wed": [
+                  { "period": 1, "subject": "体育" },
+                  { "period": 2, "subject": "英語RTT" },
+                  { "period": 3, "subject": "技術・家庭" },
+                  { "period": 4, "subject": "技術・家庭" },
+                  { "period": 5, "subject": "代数2" },
+                  { "period": 6, "subject": "H. R." }
+                ],
+                "thu": [
+                  { "period": 1, "subject": "国語A" },
+                  { "period": 2, "subject": "国語B" },
+                  { "period": 3, "subject": "社会" },
+                  { "period": 4, "subject": "道徳" },
+                  { "period": 5, "subject": "英語R" },
+                  { "period": 6, "subject": "理科2" }
+                ],
+                "fri": [
+                  { "period": 1, "subject": "代数2" },
+                  { "period": 2, "subject": "英語TT" },
+                  { "period": 3, "subject": "幾何2" },
+                  { "period": 4, "subject": "社会" },
+                  { "period": 5, "subject": "国語A" },
+                  { "period": 6, "subject": "体育" }
+                ],
+                "c": [
+                  { "period": 1, "subject": "理科1" },
+                  { "period": 2, "subject": "幾何2" },
+                  { "period": 3, "subject": "音楽" },
+                  { "period": 4, "subject": "国語A" },
+                  { "period": 5, "subject": "社会" },
+                  { "period": 6, "subject": "英語G" }
                 ]
               },
-              {
-                dayName: '火',
-                periods: [
-                  { period: 1, subject: '数学Ⅱ', room: '3-A教室' },
-                  { period: 2, subject: '化学', room: '理科実験室' },
-                  { period: 3, subject: '現代文', room: '3-A教室' },
-                  { period: 4, subject: '英語表現', room: '3-A教室' },
-                  { period: 5, subject: '情報', room: 'パソコン室' },
-                  { period: 6, subject: '総合', room: '3-A教室' }
-                ]
-              },
-              {
-                dayName: '水',
-                periods: [
-                  { period: 1, subject: '論理国語', room: '3-A教室' },
-                  { period: 2, subject: '英語コミュニケーション', room: 'LL教室' },
-                  { period: 3, subject: '地理', room: '社会科教室' },
-                  { period: 4, subject: '数学Ⅰ', room: '3-A教室' },
-                  { period: 5, subject: '芸術', room: '特別教室' },
-                  { period: 6, subject: '芸術', room: '特別教室' }
-                ]
-              },
-              {
-                dayName: '木',
-                periods: [
-                  { period: 1, subject: '物理', room: '理科実験室' },
-                  { period: 2, subject: '古典A', room: '3-A教室' },
-                  { period: 3, subject: '数学Ⅱ', room: '3-A教室' },
-                  { period: 4, subject: '体育', room: 'グラウンド' },
-                  { period: 5, subject: '英語表現', room: '3-A教室' },
-                  { period: 6, subject: 'ホームルーム', room: '3-A教室' }
-                ]
-              },
-              {
-                dayName: '金',
-                periods: [
-                  { period: 1, subject: '化学', room: '理科実験室' },
-                  { period: 2, subject: '現代文', room: '3-A教室' },
-                  { period: 3, subject: '世界史', room: '3-A教室' },
-                  { period: 4, subject: '数学Ⅰ', room: '3-A教室' },
-                  { period: 5, subject: '英語コミュニケーション', room: 'LL教室' },
-                  { period: 6, subject: '自治活動', room: '3-A教室' }
+              "weekB": {
+                "mon": [
+                  { "period": 1, "subject": "英語G" },
+                  { "period": 2, "subject": "代数2" },
+                  { "period": 3, "subject": "体育" },
+                  { "period": 4, "subject": "美術" },
+                  { "period": 5, "subject": "理科2" },
+                  { "period": 6, "subject": "音楽" }
+                ],
+                "tue": [
+                  { "period": 1, "subject": "体育" },
+                  { "period": 2, "subject": "社会" },
+                  { "period": 3, "subject": "幾何2" },
+                  { "period": 4, "subject": "英語R" },
+                  { "period": 5, "subject": "総合2" },
+                  { "period": 6, "subject": "総合2" }
+                ],
+                "wed": [
+                  { "period": 1, "subject": "代数2" },
+                  { "period": 2, "subject": "英語G" },
+                  { "period": 3, "subject": "技術・家庭" },
+                  { "period": 4, "subject": "技術・家庭" },
+                  { "period": 5, "subject": "国語A" },
+                  { "period": 6, "subject": "H. R." }
+                ],
+                "thu": [
+                  { "period": 1, "subject": "英語R" },
+                  { "period": 2, "subject": "社会" },
+                  { "period": 3, "subject": "代数2" },
+                  { "period": 4, "subject": "道徳" },
+                  { "period": 5, "subject": "国語B" },
+                  { "period": 6, "subject": "理科1" }
+                ],
+                "fri": [
+                  { "period": 1, "subject": "英語TT" },
+                  { "period": 2, "subject": "国語A" },
+                  { "period": 3, "subject": "理科1" },
+                  { "period": 4, "subject": "社会" },
+                  { "period": 5, "subject": "幾何2" },
+                  { "period": 6, "subject": "体育" }
+                ],
+                "c": [
+                  { "period": 1, "subject": "理科2" },
+                  { "period": 2, "subject": "幾何2" },
+                  { "period": 3, "subject": "音楽" },
+                  { "period": 4, "subject": "国語A" },
+                  { "period": 5, "subject": "社会" },
+                  { "period": 6, "subject": "英語G" }
                 ]
               }
-            ]
+            },
+            "2-D": {
+              "weekA": {
+                "mon": [
+                  { "period": 1, "subject": "英語R" },
+                  { "period": 2, "subject": "国語B" },
+                  { "period": 3, "subject": "美術" },
+                  { "period": 4, "subject": "体育" },
+                  { "period": 5, "subject": "理科1" },
+                  { "period": 6, "subject": "代数2" }
+                ],
+                "tue": [
+                  { "period": 1, "subject": "英語G" },
+                  { "period": 2, "subject": "体育" },
+                  { "period": 3, "subject": "代数2" },
+                  { "period": 4, "subject": "社会" },
+                  { "period": 5, "subject": "総合2" },
+                  { "period": 6, "subject": "総合2" }
+                ],
+                "wed": [
+                  { "period": 1, "subject": "社会" },
+                  { "period": 2, "subject": "幾何2" },
+                  { "period": 3, "subject": "国語A" },
+                  { "period": 4, "subject": "英語RTT" },
+                  { "period": 5, "subject": "理科2" },
+                  { "period": 6, "subject": "H. R." }
+                ],
+                "thu": [
+                  { "period": 1, "subject": "国語A" },
+                  { "period": 2, "subject": "理科1" },
+                  { "period": 3, "subject": "英語G" },
+                  { "period": 4, "subject": "道徳" },
+                  { "period": 5, "subject": "社会" },
+                  { "period": 6, "subject": "代数2" }
+                ],
+                "fri": [
+                  { "period": 1, "subject": "社会" },
+                  { "period": 2, "subject": "幾何2" },
+                  { "period": 3, "subject": "技術・家庭" },
+                  { "period": 4, "subject": "技術・家庭" },
+                  { "period": 5, "subject": "体育" },
+                  { "period": 6, "subject": "英語TT" }
+                ],
+                "c": [
+                  { "period": 1, "subject": "代数2" },
+                  { "period": 2, "subject": "英語G" },
+                  { "period": 3, "subject": "社会" },
+                  { "period": 4, "subject": "理科2" },
+                  { "period": 5, "subject": "国語A" },
+                  { "period": 6, "subject": "音楽" }
+                ]
+              },
+              "weekB": {
+                "mon": [
+                  { "period": 1, "subject": "美術" },
+                  { "period": 2, "subject": "国語A" },
+                  { "period": 3, "subject": "代数2" },
+                  { "period": 4, "subject": "体育" },
+                  { "period": 5, "subject": "英語G" },
+                  { "period": 6, "subject": "理科1" }
+                ],
+                "tue": [
+                  { "period": 1, "subject": "幾何2" },
+                  { "period": 2, "subject": "体育" },
+                  { "period": 3, "subject": "理科2" },
+                  { "period": 4, "subject": "国語B" },
+                  { "period": 5, "subject": "総合2" },
+                  { "period": 6, "subject": "総合2" }
+                ],
+                "wed": [
+                  { "period": 1, "subject": "国語A" },
+                  { "period": 2, "subject": "社会" },
+                  { "period": 3, "subject": "理科2" },
+                  { "period": 4, "subject": "英語R" },
+                  { "period": 5, "subject": "幾何2" },
+                  { "period": 6, "subject": "H. R." }
+                ],
+                "thu": [
+                  { "period": 1, "subject": "代数2" },
+                  { "period": 2, "subject": "理科1" },
+                  { "period": 3, "subject": "英語R" },
+                  { "period": 4, "subject": "道徳" },
+                  { "period": 5, "subject": "国語A" },
+                  { "period": 6, "subject": "音楽" }
+                ],
+                "fri": [
+                  { "period": 1, "subject": "社会" },
+                  { "period": 2, "subject": "英語TT" },
+                  { "period": 3, "subject": "技術・家庭" },
+                  { "period": 4, "subject": "技術・家庭" },
+                  { "period": 5, "subject": "体育" },
+                  { "period": 6, "subject": "幾何2" }
+                ],
+                "c": [
+                  { "period": 1, "subject": "代数2" },
+                  { "period": 2, "subject": "英語G" },
+                  { "period": 3, "subject": "社会" },
+                  { "period": 4, "subject": "理科2" },
+                  { "period": 5, "subject": "国語A" },
+                  { "period": 6, "subject": "音楽" }
+                ]
+              }
+            }
           };
         }
 
@@ -452,21 +659,42 @@
         if (popupAvatar) popupAvatar.src = userAvatar;
       }
 
-      if (globalData.schedule && globalData.schedule.days) {
-        const container = document.getElementById('schedule-container');
-        container.innerHTML = globalData.schedule.days.map(d => `
+      renderSchedule();
+    }
+
+    function renderSchedule() {
+      const classKey = `2-${currentClass}`;
+      const classData = globalData.schedule && globalData.schedule[classKey];
+      const container = document.getElementById('schedule-container');
+
+      if (!classData) {
+        container.innerHTML = `<div class="empty-state-text" style="grid-column: 1 / -1;">${escapeHtml(classKey)}組の時間割データはありません。</div>`;
+        return;
+      }
+
+      const weekData = currentWeek === 'A' ? classData.weekA : classData.weekB;
+      const dayKeys = [
+        { key: 'mon', label: '月' },
+        { key: 'tue', label: '火' },
+        { key: 'wed', label: '水' },
+        { key: 'thu', label: '木' },
+        { key: 'fri', label: '金' },
+        { key: 'c',   label: 'C' }
+      ];
+
+      container.innerHTML = dayKeys.map(d => {
+        const periods = weekData ? (weekData[d.key] || []) : [];
+        return `
           <div class="day-column">
-            <div class="day-header">${escapeHtml(d.dayName)}曜日</div>
-            ${d.periods.map(p => `
+            <div class="day-header">${d.label}曜日</div>
+            ${periods.map(p => `
               <div class="period-card">
-                <div class="period-number">${escapeHtml(p.period)}限</div>
                 <div class="period-subject">${escapeHtml(p.subject)}</div>
-                ${p.room ? `<div class="period-room">${escapeHtml(p.room)}</div>` : ''}
               </div>
             `).join('')}
           </div>
-        `).join('');
-      }
+        `;
+      }).join('');
     }
 
     document.addEventListener('DOMContentLoaded', () => {
