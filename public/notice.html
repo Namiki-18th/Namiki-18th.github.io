@@ -3,12 +3,103 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>利用規約 - 並木中等教育学校18回生</title>
+  <title>お知らせ - 並木中等教育学校18回生</title>
   <link rel="stylesheet" href="style.css">
   <link rel="icon" href="favicon.ico" type="image/x-icon">
   <link rel="icon" href="favicon.png" type="image/png" sizes="256x256">
   <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" />
+  <script src="/socket.io/socket.io.js"></script>
   
+  <style>
+    /* CSS崩れの補正・インライン調整 */
+    .user-info-header {
+      display: flex;
+      align-items: center;
+      gap: 0.75rem;
+    }
+    .popup-user-avatar {
+      width: 2.25rem;
+      height: 2.25rem;
+      border-radius: 9999px;
+      object-fit: cover;
+      border: 1px solid var(--color-border);
+      flex-shrink: 0;
+    }
+    .user-info-text {
+      flex: 1;
+      min-width: 0;
+    }
+    .sidebar-avatar-image,
+    .mobile-avatar-image {
+      object-fit: cover;
+      border-radius: 9999px;
+    }
+    /* チャット入力欄等の崩れ防止 */
+    .chat-input-wrapper {
+      display: flex;
+      align-items: center;
+    }
+    .chat-text-input {
+      box-sizing: border-box;
+    }
+    /* テキスト内自動リンクのスタイル */
+    .auto-link {
+      color: var(--color-accent-blue-light, #60a5fa);
+      text-decoration: underline;
+      word-break: break-all;
+    }
+    .auto-link:hover {
+      opacity: 0.8;
+    }
+
+    /* 運行情報スタイルの追加 */
+    .transit-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+      gap: 1rem;
+      margin-top: 1rem;
+    }
+    .transit-card {
+      background: var(--color-bg-secondary, rgba(255, 255, 255, 0.05));
+      border: 1px solid var(--color-border, #374151);
+      border-radius: 0.5rem;
+      padding: 1rem;
+    }
+    .transit-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: 0.5rem;
+    }
+    .transit-name {
+      font-weight: 600;
+      font-size: 0.95rem;
+    }
+    .transit-badge {
+      font-size: 0.75rem;
+      padding: 0.15rem 0.5rem;
+      border-radius: 9999px;
+      font-weight: 600;
+    }
+    .status-normal {
+      background-color: rgba(34, 197, 94, 0.2);
+      color: #4ade80;
+    }
+    .status-alert {
+      background-color: rgba(239, 68, 68, 0.2);
+      color: #f87171;
+    }
+    .status-loading {
+      background-color: rgba(156, 163, 175, 0.2);
+      color: #9ca3af;
+    }
+    .transit-body {
+      font-size: 0.825rem;
+      color: var(--color-text-secondary, #9ca3af);
+      line-height: 1.4;
+    }
+  </style>
+
   <script>
     (function() {
       const savedTheme = localStorage.getItem('namiki-theme');
@@ -21,34 +112,8 @@
       }
     })();
   </script>
-
-  <style>
-    .terms-section {
-      margin-top: 1.5rem;
-    }
-    .terms-section h3 {
-      color: var(--color-text-primary);
-      font-weight: 600;
-      font-size: 1rem;
-      margin-bottom: 0.5rem;
-      display: flex;
-      align-items: center;
-    }
-    .terms-section p, .terms-section ul {
-      color: var(--color-text-body);
-      font-size: 0.875rem;
-      line-height: 1.7;
-    }
-    .terms-section ul {
-      list-style-type: disc;
-      padding-left: 1.25rem;
-      margin-top: 0.25rem;
-      margin-bottom: 0.5rem;
-    }
-  </style>
 </head>
 <body>
-
   <aside class="sidebar">
     <div class="sidebar-header" onclick="location.href='/index'">
       <div class="flex items-center gap-3">
@@ -72,12 +137,12 @@
         <svg class="icon-nav" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
         <span class="sidebar-nav-text">時間割</span>
       </button>
-      <button onclick="location.href='/notice'" class="sidebar-nav-button" title="お知らせ">
+      
+      <button onclick="location.href='/notice'" class="sidebar-nav-button active" title="お知らせ">
         <svg class="icon-nav" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9"/></svg>
         <span class="sidebar-nav-text">お知らせ</span>
       </button>
       
-      <!-- リンク集のページなので、ここをactiveにする -->
       <button onclick="location.href='/link'" class="sidebar-nav-button" title="リンク">
         <svg class="icon-nav" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13.828 10.172a4 4 0 00-5.656 0l-4 4a4 4 0 105.656 5.656l1.102-1.101m-.758-4.899a4 4 0 005.656 0l4-4a4 4 0 00-5.656-5.656l-1.1 1.1"/></svg>
         <span class="sidebar-nav-text">リンク</span>
@@ -101,7 +166,7 @@
           <svg class="icon-nav" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z"/></svg>
           <span class="sidebar-nav-text">プライバシーポリシー</span>
         </a>
-        <a href="/terms" class="sidebar-nav-button active" title="利用規約">
+        <a href="/terms" class="sidebar-nav-button" title="利用規約">
           <svg class="icon-nav" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/></svg>
           <span class="sidebar-nav-text">利用規約</span>
         </a>
@@ -114,7 +179,6 @@
     </nav>
 
     <div class="sidebar-footer">
-      
       <div id="account-popup-menu" class="account-popup-menu">
         <div class="user-info-header" style="padding: 0.5rem 0.75rem; border-bottom: 1px solid var(--color-border); margin-bottom: 0.5rem;">
           <img id="popup-user-avatar" src="https://via.placeholder.com/40?text=U" alt="User Avatar" class="popup-user-avatar" onerror="this.src='https://via.placeholder.com/40?text=U'" />
@@ -173,96 +237,61 @@
         <button onclick="toggleTheme()" style="background:none; border:none; cursor:pointer; color:var(--color-text-secondary);" title="モード切替">
           <svg class="icon-sm" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 3v1m0 16v1m9-9h-1M4 12H3m15.364 6.364l-.707-.707M6.343 6.343l-.707-.707m12.728 0l-.707.707M6.343 17.657l-.707.707M16 12a4 4 0 11-8 0 4 4 0 018 0z"/></svg>
         </button>
-        <img id="mobile-user-avatar" src="https://placehold.co/32x32/333/fff?text=U" class="mobile-avatar-image" />
+        <img id="mobile-user-avatar" src="https://via.placeholder.com/32?text=U" alt="Avatar" class="mobile-avatar-image" onerror="this.src='https://via.placeholder.com/32?text=U'" />
       </div>
     </header>
 
     <div class="mobile-tab-bar">
-      <!-- 修正: 不正な active クラスを削除 -->
-      <button onclick="switchTab('home')" id="mobile-nav-home" class="mobile-nav-button">ホーム</button>
-      <button onclick="switchTab('schedule')" id="mobile-nav-schedule" class="mobile-nav-button">時間割</button>
-      <button onclick="switchTab('notices')" id="mobile-nav-notices" class="mobile-nav-button">お知らせ</button>
-      <button onclick="switchTab('links')" id="mobile-nav-links" class="mobile-nav-button">リンク</button>
-      <button onclick="switchTab('calendar')" id="mobile-nav-calendar" class="mobile-nav-button">カレンダー</button>
-      <button onclick="switchTab('chat')" id="mobile-nav-chat" class="mobile-nav-button">チャット</button>
-      <button onclick="switchTab('report')" id="mobile-nav-report" class="mobile-nav-button">報告</button>
+      <button onclick="location.href='/index'" id="mobile-nav-home" class="mobile-nav-button">ホーム</button>
+      <button onclick="location.href='/schedule'" id="mobile-nav-schedule" class="mobile-nav-button">時間割</button>
+      <button onclick="location.href='/notice'" id="mobile-nav-notices" class="mobile-nav-button active">お知らせ</button>
+      <button onclick="location.href='/link'" id="mobile-nav-links" class="mobile-nav-button">リンク</button>
+      <button onclick="location.href='/calendar'" id="mobile-nav-calendar" class="mobile-nav-button">カレンダー</button>
+      <button onclick="location.href='/chat'" id="mobile-nav-chat" class="mobile-nav-button">チャット</button>
+      <button onclick="location.href='/report'" id="mobile-nav-report" class="mobile-nav-button">報告</button>
     </div>
 
     <main class="content-area">
+      <!-- 交通運行情報カードの追加 -->
       <div class="app-card content-card">
-        <h2 class="content-card-title">利用規約</h2>
-        <p class="content-card-subtitle">「並木中等教育学校18回生ポータルサイト」を利用する上での規範とルールを定めています。</p>
-        
-        <div style="font-size: 0.875rem; color: var(--color-text-body); line-height: 1.7; margin-top: 1rem;">
-          <p>本利用規約（以下、「本規約」といいます。）は、「並木中等教育学校18回生ポータルサイト」（以下、「当サイト」といいます。）の利用条件を定めるものです。利用者の皆様（以下、「ユーザー」といいます。）には、本規約に従って当サイトをご利用いただきます。</p>
-
-          <div class="terms-section">
-            <h3>第1条（総則・適用範囲）</h3>
-            <p>1. 本規約は、当サイトが提供するすべてのコンテンツおよび機能（お知らせ、時間割、カレンダー、チャット、各種リンク等）の利用に関する一切の小関係に適用されます。</p>
-            <p>2. 当サイトは、並木中等教育学校18回生および関係者の学習・校内活動・情報共有の便宜を図る目的で運営されています。ユーザーは、本規約に同意した場合に限り、本サイトを利用することができます。</p>
+        <h2 class="content-card-title">リアルタイム交通運行情報</h2>
+        <p class="content-card-subtitle">登下校に関連する主要交通機関の現在の運行状況です。</p>
+        <div class="transit-grid">
+          <!-- JR東日本（常磐線） -->
+          <div class="transit-card">
+            <div class="transit-header">
+              <span class="transit-name">JR常磐線</span>
+              <span id="badge-jr" class="transit-badge status-loading">確認中...</span>
+            </div>
+            <p id="text-jr" class="transit-body">最新の情報を取得しています...</p>
           </div>
 
-          <div class="terms-section">
-            <h3>第2条（アカウントおよびログイン認証）</h3>
-            <p>1. ユーザーは、当サイトの利用にあたり、指定された認証方法を用いてログインを行うものとします。</p>
-            <p>2. ユーザーは、自己のアカウント情報およびログイン認証情報を適切に管理する責任を負い、第三者に譲渡、貸与、または共用させてはなりません。</p>
-            <p>3. アカウントの不適切な管理や第三者の不正使用等により生じた損害について、当サイト管理者は一切の責任を負いません。</p>
-            <p>4. ドメイン制限により、茨城県教育ネットワークのGoogleアカウントのみ登録することができ、外部の者の利用は一切認めておりません。</p>
+          <!-- つくばエクスプレス -->
+          <div class="transit-card">
+            <div class="transit-header">
+              <span class="transit-name">つくばエクスプレス</span>
+              <span id="badge-tx" class="transit-badge status-loading">確認中...</span>
+            </div>
+            <p id="text-tx" class="transit-body">最新の情報を取得しています...</p>
           </div>
 
-          <div class="terms-section">
-            <h3>第3条（禁止事項）</h3>
-            <p>ユーザーは、当サイトの利用にあたり、以下の行為を行ってはなりません。</p>
-            <ul>
-              <li>法令、公序良俗、または校内規則に違反する行為</li>
-              <li>他のユーザー、教職員、または第三者を誹謗中傷・屈辱・脅迫し、あるいは名誉や信用を傷つける行為</li>
-              <li>他のユーザーになりすましてメッセージを投稿または送信する行為</li>
-              <li>不快感を与える不適切な表現（卑猥・暴力的な内容等）を送信・投稿する行為</li>
-              <li>当サイトのサーバーやネットワークシステムに過度な負荷をかける行為、または不当に妨害・破壊する行為</li>
-              <li>当サイト上の情報を不正に抽出、スクレイピング、または二次配布する行為</li>
-              <li>営利目的での広告宣伝、勧誘、その他営業活動（運営者が事前に許可した場合を除く）</li>
-              <li>その他、運営者が不適切と判断する行為</li>
-            </ul>
+          <!-- 関東鉄道バス・鉄道 -->
+          <div class="transit-card">
+            <div class="transit-header">
+              <span class="transit-name">関東鉄道バス / 路線</span>
+              <span id="badge-kantetsu" class="transit-badge status-loading">確認中...</span>
+            </div>
+            <p id="text-kantetsu" class="transit-body">最新の情報を取得しています...</p>
           </div>
+        </div>
+      </div>
 
-          <div class="terms-section">
-            <h3>第4条（チャット・投稿機能の利用規範）</h3>
-            <p>1. チャットおよび報告機能において送信された内容は、他のユーザーや管理者に公開される場合があります。投稿時は常にモラルを守った利用に努めてください。</p>
-            <p>2. 運営者は、ユーザーが第3条に掲げる禁止事項に違反した場合、事前の通知なしに該当する投稿データの削除、アカウントの利用停止の対処を行うことができます。</p>
-          </div>
-
-          <div class="terms-section">
-            <h3>第5条（サービスの停止・変更・終了）</h3>
-            <p>1. 運営者は、以下のいずれかの事由が生じた場合、ユーザーに事前に通知することなく当サイトの全部または一部の提供を一時停止・中断することがあります。</p>
-            <ul>
-              <li>システムの保守点検または更新を行う場合</li>
-              <li>天災、停電、通信障害等の不可抗力によりサービスの提供が困難となった場合</li>
-              <li>その他、運営者が一時中断を必要と判断した場合</li>
-            </ul>
-            <p>2. 運営者は、必要と判断した場合には、ユーザーへの事前の周知をもって当サイトの内容を変更し、または提供を終了することができます。</p>
-          </div>
-
-          <div class="terms-section">
-            <h3>第6条（知的財産権）</h3>
-            <p>1. 当サイトに掲載されている文章、画像、デザイン、プログラム等の著作権その他一切の知的財産権は、運営者または正当な権利を有する第三者に帰属します。</p>
-            <p>2. ユーザーは、権利者の許可なく当サイト上のコンテンツを複製、転載、改変、再配布してはなりません。</p>
-          </div>
-
-          <div class="terms-section">
-            <h3>第7条（免責事項）</h3>
-            <p>1. 運営者は、当サイトに掲載されている情報（時間割、日程、お知らせ等）の正確性・完全性について細心の注意を払っていますが、これを公式に保証するものではありません。学業・学校行事に関する最終的な情報は学校からの公式連絡を確認してください。</p>
-            <p>2. 運営者は、当サイトの利用または利用不能によりユーザーに生じた損害（データ消失、通信トラブル等を含む）について、一切の責任を負いません。</p>
-          </div>
-
-          <div class="terms-section">
-            <h3>第8条（規約の変更）</h3>
-            <p>運営者は、必要と判断した場合には、当サイト上に掲載することにより本規約を変更できるものとします。変更後の規約は、サイト上に掲載された時点より効力を生じるものとします。</p>
-          </div>
-
-          <div class="terms-section" style="margin-top: 2rem; border-top: 1px solid var(--color-border); padding-top: 1rem;">
-            <h3>第9条（お問い合わせ・違反報告窓口）</h3>
-            <p>本規約に関するご質問や、利用規約違反・不具合等のご報告は、「報告」フォームよりご連絡ください。</p>
-            <p style="font-size: 0.75rem; color: var(--color-text-muted); margin-top: 0.5rem;">制定日: 2026年4月1日<br>最終改定日: 2026年8月19日</p>
+      <div id="page-notices" class="page-section fade-in space-y-6">
+        <div class="app-card content-card">
+          <h2 class="content-card-title">お知らせ・連絡事項</h2>
+          <p class="content-card-subtitle">学校生活に関する重要なお知らせ一覧です。</p>
+          <div id="notices-list-full" class="space-y-4">
+            <div class="empty-state-text">データを読み込んでいます...</div>
           </div>
         </div>
       </div>
@@ -282,47 +311,31 @@
   </div>
 
   <script>
-    // ユーザープロフィールの取得と表示
-    async function fetchUserProfile() {
-      try {
-        const res = await fetch('/api/profile');
-        if (res.status === 401) {
-          window.location.href = '/login';
-          return;
-        }
-        
-        let p;
-        if (res.ok) {
-          p = await res.json();
-        } else {
-          p = { name: '並木 太郎', email: 'namiki.taro@example.com', id: '180001', picture: '' };
-        }
+    let globalData = {
+      profile: null,
+      notices: []
+    };
 
-        const studentIdText = (p.id && p.id !== 'Unknown') ? p.id : '学籍番号未設定';
-        const idEl = document.getElementById('sidebar-user-id');
-        if (idEl) idEl.textContent = `学籍番号: ${studentIdText}`;
-        
-        const nameEl = document.getElementById('sidebar-user-name');
-        if (nameEl) nameEl.textContent = p.name || 'ユーザー';
-        
-        const popupName = document.getElementById('popup-user-name');
-        if (popupName) popupName.textContent = p.name || 'ユーザー';
-
-        const popupEmail = document.getElementById('popup-user-email');
-        if (popupEmail) popupEmail.textContent = p.email || 'メールアドレス未設定';
-
-        if (p.picture && p.picture !== 'admin.png') {
-          const sidebarAvatar = document.getElementById('sidebar-user-avatar');
-          const mobileAvatar = document.getElementById('mobile-user-avatar');
-          if (sidebarAvatar) sidebarAvatar.src = p.picture;
-          if (mobileAvatar) mobileAvatar.src = p.picture;
-        }
-      } catch (err) {
-        console.error('プロフィール取得エラー:', err);
-      }
+    function escapeHtml(str) {
+      if (!str) return '';
+      return String(str)
+        .replace(/&/g, "&amp;")
+        .replace(/</g, "&lt;")
+        .replace(/>/g, "&gt;")
+        .replace(/"/g, "&quot;")
+        .replace(/'/g, "&#039;");
     }
 
-    // アカウントポップアップの制御
+    // テキスト内のURLを自動的にリンク化する関数
+    function linkify(text) {
+      if (!text) return '';
+      const escaped = escapeHtml(text);
+      const urlPattern = /(https?:\/\/[^\s<]+)/g;
+      return escaped.replace(urlPattern, function(url) {
+        return `<a href="${url}" target="_blank" rel="noopener noreferrer" class="auto-link">${url}</a>`;
+      });
+    }
+
     function toggleAccountMenu(event) {
       if (event) event.stopPropagation();
       const menu = document.getElementById('account-popup-menu');
@@ -339,10 +352,9 @@
       }
     });
 
-    // テーマ制御
     function initThemeToggle() {
       const toggleSwitch = document.getElementById('theme-toggle-switch');
-      if (toggleSwitch) {
+      if(toggleSwitch) {
         if (document.documentElement.classList.contains('dark')) {
           toggleSwitch.classList.add('on');
         } else {
@@ -371,33 +383,122 @@
     function handleAdminSettings() { window.location.href = '/admin'; }
     function handlePersonalSettings() { alert('個人用設定は開発中です。'); }
 
-    // タブ切り替え処理（修正: ページ内に対象セクションがない場合、/index へリダイレクト）
-    function switchTab(tabId) {
-      const targetContent = document.getElementById(`page-${tabId}`);
-      if (!targetContent) {
-        window.location.href = `/index?tab=${tabId}`;
-        return;
-      }
+    // CORSプロキシを使用してYahoo!路線情報から実データをパース取得する関数
+    async function fetchTransitStatus(targetUrl) {
+      try {
+        const proxyUrl = `https://api.allorigins.win/get?url=${encodeURIComponent(targetUrl)}`;
+        const res = await fetch(proxyUrl);
+        if (!res.ok) throw new Error('Fetch Error');
+        const data = await res.json();
+        
+        const parser = new DOMParser();
+        const doc = parser.parseFromString(data.contents, 'text/html');
+        
+        const troubleEl = doc.querySelector('#mdStatusTroubleLine .trouble p');
+        const normalEl = doc.querySelector('#mdStatusTroubleLine .normal p');
+        const generalEl = doc.querySelector('.elmServiceStatus p');
 
-      document.querySelectorAll('.page-section').forEach(el => el.classList.add('hidden'));
-      document.querySelectorAll('.sidebar-nav-button').forEach(btn => btn.classList.remove('active'));
-      document.querySelectorAll('.mobile-nav-button').forEach(btn => btn.classList.remove('active'));
-
-      targetContent.classList.remove('hidden');
-
-      const targetBtnPC = document.getElementById(`sidebar-nav-${tabId}`);
-      if (targetBtnPC) targetBtnPC.classList.add('active');
-
-      const targetBtnM = document.getElementById(`mobile-nav-${tabId}`);
-      if (targetBtnM) {
-        targetBtnM.classList.add('active');
-        targetBtnM.scrollIntoView({ behavior: 'smooth', block: 'nearest', inline: 'center' });
+        if (troubleEl) {
+          return { status: '遅延・運転見合わせ等', detail: troubleEl.textContent.trim(), isTrouble: true };
+        } else if (normalEl) {
+          return { status: '平常運行', detail: normalEl.textContent.trim(), isTrouble: false };
+        } else if (generalEl) {
+          const text = generalEl.textContent.trim();
+          const isTrouble = !text.includes('平常');
+          return { status: isTrouble ? '注意' : '平常運行', detail: text, isTrouble };
+        }
+        return { status: '平常運行', detail: '現在、大きな事故・遅延の情報はありません。', isTrouble: false };
+      } catch (err) {
+        return { status: '取得エラー', detail: '最新の運行状況の取得に失敗しました。公式Webサイトをご確認ください。', isTrouble: false };
       }
     }
 
-    window.addEventListener('DOMContentLoaded', () => {
-      fetchUserProfile();
+    async function loadRealtimeTransitInfo() {
+      // 各線のYahoo!路線情報ページURL
+      const lines = [
+        { id: 'jr', url: 'https://transit.yahoo.co.jp/diainfo/53/0' },          // 常磐線
+        { id: 'tx', url: 'https://transit.yahoo.co.jp/diainfo/210/0' },         // つくばエクスプレス
+        { id: 'kantetsu', url: 'https://transit.yahoo.co.jp/diainfo/211/0' }    // 関東鉄道
+      ];
+
+      for (const line of lines) {
+        const result = await fetchTransitStatus(line.url);
+        const badgeEl = document.getElementById(`badge-${line.id}`);
+        const textEl = document.getElementById(`text-${line.id}`);
+
+        if (badgeEl && textEl) {
+          badgeEl.textContent = result.status;
+          badgeEl.className = `transit-badge ${result.isTrouble ? 'status-alert' : 'status-normal'}`;
+          textEl.textContent = result.detail;
+        }
+      }
+    }
+
+    async function loadNoticeData() {
+      try {
+        const [profileRes, noticesRes] = await Promise.all([
+          fetch('/api/profile').catch(() => ({ ok: false })),
+          fetch('/api/notices').catch(() => ({ ok: false }))
+        ]);
+
+        if (profileRes.status === 401) {
+          window.location.href = '/login';
+          return;
+        }
+
+        if (profileRes.ok) globalData.profile = await profileRes.json();
+        else globalData.profile = { name: '並木 太郎', email: 'namiki.taro@example.com', id: '180001', role: 'student', userClass: '3-A', picture: '' };
+
+        if (noticesRes.ok) globalData.notices = await noticesRes.json();
+        else globalData.notices = [
+          { id: 1, title: 'システムメンテナンスのお知らせ', date: '2026-08-20', content: '8月20日22:00より、サーバーの定期メンテナンスを実施します。詳細は https://example.com を確認してください。', priority: 'high' }
+        ];
+
+        renderAll();
+      } catch (err) {
+        console.error('データ取得エラー:', err);
+      }
+    }
+
+    function renderAll() {
+      if (globalData.profile) {
+        const p = globalData.profile;
+        const studentIdText = (p.id && p.id !== 'Unknown') ? p.id : '学籍番号未設定';
+        document.getElementById('sidebar-user-id').textContent = `${studentIdText}`;
+        document.getElementById('sidebar-user-name').textContent = p.name || 'ユーザー';
+        
+        const popupName = document.getElementById('popup-user-name');
+        if (popupName) popupName.textContent = p.name || 'ユーザー';
+        const popupEmail = document.getElementById('popup-user-email');
+        if (popupEmail) popupEmail.textContent = p.email || 'メールアドレス未設定';
+
+        const userAvatar = (p.picture && p.picture !== 'admin.png') ? p.picture : `https://via.placeholder.com/40/3b82f6/ffffff?text=${encodeURIComponent(p.name ? p.name.charAt(0) : 'U')}`;
+        
+        const sidebarAvatar = document.getElementById('sidebar-user-avatar');
+        if (sidebarAvatar) sidebarAvatar.src = userAvatar;
+
+        const mobileAvatar = document.getElementById('mobile-user-avatar');
+        if (mobileAvatar) mobileAvatar.src = userAvatar;
+
+        const popupAvatar = document.getElementById('popup-user-avatar');
+        if (popupAvatar) popupAvatar.src = userAvatar;
+      }
+
+      document.getElementById('notices-list-full').innerHTML = globalData.notices.map(n => `
+        <div class="notice-card">
+          <div class="notice-card-header">
+            <span class="notice-card-date">${escapeHtml(n.date)}</span>
+            <h4 class="notice-card-title">${escapeHtml(n.title)}</h4>
+          </div>
+          <p class="notice-card-body">${linkify(n.content)}</p>
+        </div>
+      `).join('');
+    }
+
+    document.addEventListener('DOMContentLoaded', () => {
       initThemeToggle();
+      loadNoticeData();
+      loadRealtimeTransitInfo(); // リアルタイム運行情報の読み込み
     });
   </script>
 </body>

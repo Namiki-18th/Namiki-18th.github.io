@@ -8,10 +8,14 @@ const GoogleStrategy = require('passport-google-oauth20').Strategy;
 const session = require('express-session');
 const crypto = require('crypto');
 const cors = require('cors');
+const RssParser = require('rss-parser');
+const axios = require('axios');
 require('dotenv').config();
 
 const app = express();
 const server = http.createServer(app);
+const rssParser = new RssParser();
+
 const corsOrigin = process.env.CORS_ORIGIN || process.env.RENDER_EXTERNAL_URL || true;
 const io = new Server(server, {
   cors: {
@@ -27,7 +31,6 @@ app.set('trust proxy', 1);
 app.use(express.json({ limit: '10mb' }));
 app.use(express.urlencoded({ limit: '10mb', extended: true }));
 
-// ✅ 修正: CORS設定を追加
 app.use(cors({
   origin: corsOrigin,
   credentials: true,
@@ -35,7 +38,6 @@ app.use(cors({
   allowedHeaders: ['Content-Type', 'x-api-key']
 }));
 
-// ✅ 修正: 静的ファイル提供を先に配置
 app.use(express.static(path.join(__dirname, 'public')));
 
 // --- [パス定義 & ストレージ管理] ---
@@ -71,7 +73,7 @@ function safeReadJSON(filePath, fallback = {}) {
   }
 }
 
-// --- [インメモリキャッシュ（I/O負荷低減）] ---
+// --- [インメモリキャッシュ] ---
 let usersDB = safeReadJSON(PATHS.USERS, {
   'bme280.gac@gmail.com': { id: 'Admin', name: '管理者', email: 'bme280.gac@gmail.com', userClass: '管理者', role: 'admin', status: 'active', picture: 'admin.png' }
 });
@@ -156,7 +158,6 @@ passport.deserializeUser((email, done) => {
 });
 
 const isProduction = process.env.NODE_ENV === 'production' || !!process.env.RENDER;
-// ✅ 修正: HTTPS使用時のみ secure: true を設定
 const useSecureCookie = isProduction && process.env.GOOGLE_CALLBACK_URL?.startsWith('https://');
 
 const sessionMiddleware = session({
@@ -188,12 +189,9 @@ function checkAccountStatus(req, res, next) {
   next();
 }
 
-// ✅ 修正: メンテナンスモードの exempt パスを拡張
 function checkMaintenanceMode(req, res, next) {
   if (systemSettings.maintenanceMode) {
     const isAdmin = req.user?.role === 'admin';
-    
-    // ✅ ログイン関連と静的ファイルを常時アクセス可能に
     const isExempt = 
       req.path === '/' || 
       req.path === '/login' || 
@@ -204,30 +202,24 @@ function checkMaintenanceMode(req, res, next) {
       req.path.startsWith('/api/') || 
       req.path.startsWith('/auth/') ||
       req.path.startsWith('/public/') ||
-      req.path.match(/\.(css|js|png|jpg|jpeg|gif|webp|ico|svg|woff|woff2|ttf|eot)$/i); // 静的ファイル拡張子
+      req.path.match(/\.(css|js|png|jpg|jpeg|gif|webp|ico|svg|woff|woff2|ttf|eot)$/i);
     
     if (!isAdmin && !isExempt) return res.redirect('/offline.html');
   }
   next();
 }
 
-// ✅ 修正: 認証ミドルウェアの適用を制限するパスをホワイトリスト化
 const publicPaths = ['/', '/login', '/login.html', '/login-deny', '/offline', '/offline.html', '/auth/google', '/auth/google/callback', '/logout'];
-const publicApiPaths = ['/api/auth']; // 認証不要なAPI
+const publicApiPaths = ['/api/auth'];
 
 function shouldRequireAuth(req) {
-  // 絶対認証が不要なパス
   if (publicPaths.includes(req.path)) return false;
   if (publicApiPaths.some(p => req.path.startsWith(p))) return false;
-  
-  // 静的ファイルは認証不要
   if (req.path.match(/\.(css|js|png|jpg|jpeg|gif|webp|ico|svg|woff|woff2|ttf|eot)$/i)) return false;
   if (req.path.startsWith('/public/')) return false;
-  
   return true;
 }
 
-// ✅ 修正: 選択的認証チェック
 app.use((req, res, next) => {
   if (shouldRequireAuth(req)) {
     checkAccountStatus(req, res, () => checkMaintenanceMode(req, res, next));
@@ -236,44 +228,22 @@ app.use((req, res, next) => {
   }
 });
 
-// ✅ 修正: 未認証時は /login にリダイレクト
 const ensureAuth = (req, res, next) => {
-  if (req.isAuthenticated()) {
-    return next();
-  }
-  
-  // APIリクエストの場合は401 JSON
-  if (req.xhr || req.path.startsWith('/api/')) {
-    return res.status(401).json({ error: 'Unauthorized' });
-  }
-  
-  // ページリクエストの場合は /login にリダイレクト
+  if (req.isAuthenticated()) return next();
+  if (req.xhr || req.path.startsWith('/api/')) return res.status(401).json({ error: 'Unauthorized' });
   res.redirect('/login');
 };
 
 const ensureAdmin = (req, res, next) => {
-  if (req.isAuthenticated() && req.user?.role === 'admin') {
-    return next();
-  }
-  
-  // APIリクエストの場合は403 JSON
-  if (req.xhr || req.path.startsWith('/api/')) {
-    return res.status(403).json({ error: 'Forbidden' });
-  }
-  
-  // ページリクエストの場合は /login にリダイレクト
+  if (req.isAuthenticated() && req.user?.role === 'admin') return next();
+  if (req.xhr || req.path.startsWith('/api/')) return res.status(403).json({ error: 'Forbidden' });
   res.redirect('/login');
 };
 
-// APIキー認証 または 管理者セッション認証を許可するミドルウェア
 const ensureApiKeyOrAdmin = (req, res, next) => {
   const apiKey = req.headers['x-api-key'];
   const validKey = process.env.API_SECRET_KEY;
-  
-  if (validKey && apiKey === validKey) {
-    return next();
-  }
-  
+  if (validKey && apiKey === validKey) return next();
   return ensureAdmin(req, res, next);
 };
 
@@ -284,10 +254,7 @@ app.get('/auth/google', (req, res, next) => {
   if (!process.env.GOOGLE_CLIENT_ID || !process.env.GOOGLE_CLIENT_SECRET) {
     return res.status(500).send('Google OAuth is not configured on the server.');
   }
-  passport.authenticate('google', {
-    scope: ['profile', 'email'],
-    prompt: 'select_account'
-  })(req, res, next);
+  passport.authenticate('google', { scope: ['profile', 'email'], prompt: 'select_account' })(req, res, next);
 });
 
 app.get('/auth/google/callback', (req, res, next) => {
@@ -326,7 +293,7 @@ app.get('/logout', (req, res, next) => {
   });
 });
 
-['index', 'terms', 'privacy', 'report', 'link', 'calendar'].forEach(p => app.get(`/${p}`, ensureAuth, (req, res) => res.sendFile(path.join(__dirname, 'public', `${p}.html`))));
+['index', 'terms', 'privacy', 'report', 'link', 'calendar', 'schedule', 'chat', 'notice', 'classroom'].forEach(p => app.get(`/${p}`, ensureAuth, (req, res) => res.sendFile(path.join(__dirname, 'public', `${p}.html`))));
 ['admin'].forEach(p => app.get(`/${p}`, ensureAdmin, (req, res) => res.sendFile(path.join(__dirname, 'public', `${p}.html`))));
 app.get('/offline', (req, res) => res.sendFile(path.join(__dirname, 'public', 'offline.html')));
 
@@ -341,6 +308,82 @@ app.post('/api/classroom', ensureApiKeyOrAdmin, (req, res) => {
   safeWriteJSON(PATHS.CLASSROOM, items);
   io.emit('classroomUpdated', items);
   res.json({ success: true, count: items.length });
+});
+
+// --- [API: リアルタイム交通運行情報] ---
+app.get('/api/transit', ensureAuth, async (req, res) => {
+  const results = {};
+
+  // 1. JR常磐線（JR東日本 公式サイトから直接取得）
+  try {
+    const jrRes = await axios.get('https://traininfo.jreast.co.jp/train_info/kanto.aspx', {
+      headers: {
+        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36',
+        'Accept-Language': 'ja-JP,ja;q=0.9'
+      },
+      timeout: 5000
+    });
+
+    const html = jrRes.data;
+    const jobanMatch = html.match(/常磐線[\s\S]*?<\/tr>/);
+    const jobanText = jobanMatch ? jobanMatch[0].replace(/<[^>]+>/g, '').replace(/\s+/g, ' ').trim() : '';
+
+    const isTrouble = jobanText.includes('遅延') || jobanText.includes('見合わせ') || jobanText.includes('運休');
+    
+    results.jr = {
+      status: isTrouble ? '遅延・見合わせ等' : '平常運行',
+      detail: jobanText || '平常通り運転しています。',
+      isTrouble
+    };
+  } catch (err) {
+    console.error(`[Transit API Error] jr (JR East Official):`, err.message);
+    results.jr = {
+      status: '取得エラー',
+      detail: 'JR公式Webサイトをご確認ください。',
+      isTrouble: false
+    };
+  }
+
+  // 2. つくばエクスプレス & 関東鉄道（Yahoo! RSS）
+  const otherUrls = {
+    tx: 'https://transit.yahoo.co.jp/rss/diainfo/210/0',
+    kantetsu: 'https://transit.yahoo.co.jp/rss/diainfo/211/0'
+  };
+
+  for (const [key, url] of Object.entries(otherUrls)) {
+    try {
+      const response = await axios.get(url, {
+        headers: {
+          'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36',
+          'Accept-Language': 'ja-JP,ja;q=0.9',
+          'Referer': 'https://transit.yahoo.co.jp/'
+        },
+        timeout: 5000
+      });
+
+      const feed = await rssParser.parseString(response.data);
+      const firstItem = feed.items && feed.items.length > 0 ? feed.items[0] : null;
+      
+      const isNormal = !firstItem || 
+                       firstItem.title.includes('平常運転') || 
+                       firstItem.title.includes('平常通り');
+      
+      results[key] = {
+        status: isNormal ? '平常運行' : '遅延・見合わせ等',
+        detail: firstItem ? firstItem.title : '現在、１５分以上の遅延ガイド情報はありません。',
+        isTrouble: !isNormal
+      };
+    } catch (err) {
+      console.error(`[Transit API Error] ${key}:`, err.message);
+      results[key] = {
+        status: '取得エラー',
+        detail: '最新情報の取得に失敗しました。',
+        isTrouble: false
+      };
+    }
+  }
+
+  res.json(results);
 });
 
 // --- [API: チャット] ---
@@ -394,8 +437,6 @@ app.use((req, res, next) => {
 
 app.use((err, req, res, next) => {
   const status = err.status || 500;
-  
-  // ✅ 修正: より詳細なログ出力
   if (status >= 400 && status < 500) {
     console.warn(`[HTTP ${status}] ${req.method} ${req.url} - ${err.message} | User: ${req.user?.email || 'anonymous'}`);
   } else {
