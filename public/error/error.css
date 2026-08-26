@@ -1,0 +1,95 @@
+:root {
+    --bg-color: #f8f9fa;
+    --container-bg: #ffffff;
+    --text-main: #333333;
+    --text-sub: #666666;
+    --shadow-color: rgba(0, 0, 0, 0.05);
+    --btn-sec-bg: #f1f3f5;
+    --btn-sec-text: #495057;
+    --btn-sec-border: #ced4da;
+    --btn-sec-hover: #e9ecef;
+}
+
+@media (prefers-color-scheme: dark) {
+    :root {
+    --bg-color: #121212;
+    --container-bg: #2d2d2d;
+    --text-main: #e0e0e0;
+    --text-sub: #aaaaaa;
+    --shadow-color: rgba(0, 0, 0, 0.3);
+    --btn-sec-bg: #3c3c3c;
+    --btn-sec-text: #e0e0e0;
+    --btn-sec-border: #555555;
+    --btn-sec-hover: #4a4a4a;
+    }
+}
+
+body {
+    font-family: 'Helvetica Neue', Arial, sans-serif;
+    background-color: var(--bg-color);
+    color: var(--text-main);
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    height: 100vh;
+    margin: 0;
+    text-align: center;
+    transition: background-color 0.3s ease, color 0.3s ease; /* モード切り替え時にフワッと変える */
+}
+
+h1 {
+    font-size: 100px;
+    margin: 0;
+    color: --text-main; /* アクセントカラーは両モード共通 */
+}
+
+h2 {
+    font-size: 40px;
+    margin: 10px 0 20px;
+}
+
+p {
+    margin-bottom: 30px;
+    color: var(--text-sub);
+    line-height: 1.6;
+}
+
+.button-group {
+    display: flex;
+    gap: 15px;
+    justify-content: center;
+    flex-wrap: wrap;
+}
+
+.btn {
+    display: inline-block;
+    padding: 12px 24px;
+    background-color: #0641b0;
+    color: white;
+    text-decoration: none;
+    border-radius: 6px;
+    font-weight: bold;
+    transition: all 0.3s ease;
+    border: 1px solid transparent;
+}
+
+.btn:hover {
+    background-color: #073894;
+}
+
+.btn-secondary {
+    background-color: var(--btn-sec-bg);
+    color: var(--btn-sec-text);
+    border: 1px solid var(--btn-sec-border);
+    display: inline-block;
+    padding: 12px 24px;
+    text-decoration: none;
+    border-radius: 6px;
+    font-weight: bold;
+    transition: all 0.3s ease;
+}
+
+.btn-secondary:hover {
+    background-color: var(--btn-sec-hover);
+}

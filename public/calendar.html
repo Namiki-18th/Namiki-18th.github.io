@@ -1,0 +1,1058 @@
+<!DOCTYPE html>
+<html lang="ja" class="dark">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>カレンダー - 並木中等教育学校18回生</title>
+  <link rel="stylesheet" href="style.css">
+  <link rel="icon" href="favicon.ico" type="image/x-icon">
+  <link rel="icon" href="favicon.png" type="image/png" sizes="256x256">
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" />
+  <script src="/socket.io/socket.io.js" nonce="%%CSP_NONCE%%"></script>
+
+  <style nonce="%%CSP_NONCE%%">
+    /* 💡CSP対応: style属性から抽出したユーティリティクラス */
+    .gen-24b531 { cursor: pointer; }
+    .gen-93b8ea { display:none; }
+    .gen-951743 { margin-top: 0.25rem; }
+    .gen-f98762 { margin-top: auto; margin-bottom: 1rem; }
+    .gen-fd5985 { padding: 0.5rem 0.75rem; border-bottom: 1px solid var(--color-border); margin-bottom: 0.5rem; }
+    .gen-073e36 { display: block; font-weight: 600; color: var(--color-text-primary); font-size: 0.875rem; }
+    .gen-c8c1bd { display: block; font-size: 0.75rem; color: var(--color-text-muted); margin-top: 0.125rem; }
+    .gen-08cddd { border-top: 1px solid var(--color-border); margin: 0.25rem 0; }
+    .gen-ca678e { background:none; border:none; cursor:pointer; color:var(--color-text-secondary); }
+    .gen-b08097 { display: flex; gap: 1rem; align-items: center; margin-bottom: 1rem; font-size: 0.875rem; }
+    .gen-1649af { display: flex; align-items: center; gap: 0.375rem; }
+    .gen-905fe7 { display: inline-block; width: 12px; height: 12px; background: var(--color-accent-blue-light); border-radius: 2px; }
+    .gen-9c23af { display: inline-block; width: 12px; height: 12px; background: #f97316; border-radius: 2px; }
+    .gen-674049 { display: inline-block; width: 12px; height: 12px; border: 1px solid #f87171; border-radius: 2px; }
+    .gen-56ee33 { display: flex; align-items: center; justify-content: space-between; margin-bottom: 1.5rem; padding: 1rem; background: var(--color-bg-secondary); border-radius: 0.5rem; }
+    .gen-a9a0ae { padding: 0.5rem 1rem; font-size: 0.9rem; }
+    .gen-ef7695 { margin: 0; font-size: 1.25rem; text-align: center; flex: 1; }
+    .gen-b56181 { overflow-x: auto; }
+    .gen-2016c3 { width: 100%; border-collapse: collapse; margin-bottom: 1.5rem; }
+    .gen-f35ed8 { background: var(--color-bg-secondary); border-bottom: 2px solid var(--color-border); }
+    .gen-8ce2af { padding: 0.75rem; text-align: center; font-weight: 600; color: #f87171; width: 14.28%; }
+    .gen-106cb7 { padding: 0.75rem; text-align: center; font-weight: 600; color: var(--color-text-primary); width: 14.28%; }
+    .gen-0b08be { padding: 0.75rem; text-align: center; font-weight: 600; color: #3b82f6; width: 14.28%; }
+    .gen-476907 { text-align: center; padding: 2rem; color: var(--color-text-muted); }
+    .gen-6e2da4 { display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem; }
+    .gen-f3e485 { margin: 0; font-size: 1.1rem; font-weight: 700; }
+    .gen-685eb7 { display: flex; flex-direction: column; gap: 0.5rem; }
+    .gen-886808 { border-bottom: 1px solid var(--color-border); }
+    .gen-14ec71 { height: 1.5rem; margin-bottom: 0.25rem; }
+    .gen-de800b { color: var(--color-text-muted); font-size: 0.7rem; line-height: 1; }
+    .gen-682d69 { font-size: 0.95rem; font-weight: 600; margin-bottom: 0.25rem; }
+    .gen-af89d6 { font-size: 0.75rem; }
+    .gen-30184a { color: var(--color-text-muted); font-size: 0.9rem; }
+    .gen-e5c627 { padding: 0.75rem; border: 1px solid var(--color-border); border-radius: 0.375rem; background: var(--color-bg-tertiary); }
+    .gen-1aecdc { font-weight: 600; font-size: 0.95rem; }
+    .gen-9803d8 { font-size: 0.75rem; color: var(--color-text-muted); margin-top: 0.25rem; }
+    /* 1. モーダル用の色を定義（ライトモード用） */
+    :root {
+      --modal-bg: #ffffff;
+      --modal-text: #333333;
+      --modal-border: #e5e7eb;
+      --modal-close: #9ca3af;
+      --modal-close-hover: #1f2937;
+    }
+
+    /* 2. モーダル用の色を定義（ダークモード用） */
+    html.dark {
+      --modal-bg: #0b0c0c;          /* 暗いグレー背景 */
+      --modal-text: #f9fafb;        /* 白っぽい文字色 */
+      --modal-border: #35373a;      /* 暗めの境界線 */
+      --modal-close: #6b7280;       /* 暗めのバツボタン */
+      --modal-close-hover: #f3f4f6; /* ホバー時は明るく */
+    }
+
+    /* 3. 変数を使ってスタイルを適用（以前の .modal-content と .modal-close-btn を上書き） */
+    .modal-content {
+      background: var(--modal-bg);
+      color: var(--modal-text);
+      padding: 1.5rem;
+      border-radius: 0.5rem;
+      max-width: 90%;
+      width: 400px;
+      border: 1px solid var(--modal-border);
+      box-shadow: 0 4px 6px rgba(0,0,0,0.3); /* ダークモードでも浮いて見えるよう影を少し濃く */
+    }
+
+    .modal-close-btn {
+      cursor: pointer;
+      font-weight: bold;
+      color: var(--modal-close);
+      font-size: 1.2rem;
+      transition: color 0.2s;
+    }
+
+    .modal-close-btn:hover {
+      color: var(--modal-close-hover);
+    }
+    .user-info-header {
+      display: flex;
+      align-items: center;
+      gap: 0.75rem;
+    }
+    .popup-user-avatar {
+      width: 2.25rem;
+      height: 2.25rem;
+      border-radius: 9999px;
+      object-fit: cover;
+      border: 1px solid var(--color-border, #dddddd);
+      flex-shrink: 0;
+    }
+    .user-info-text {
+      flex: 1;
+      min-width: 0;
+    }
+    .sidebar-avatar-image,
+    .mobile-avatar-image {
+      object-fit: cover;
+      border-radius: 9999px;
+    }
+    .event-chip-event {
+      background: var(--color-accent-blue-light, #3b82f6);
+      color: white;
+    }
+    .event-chip-no-vacation {
+      background: #f97316;
+      color: white;
+    }
+
+    /* モーダル用のスタイル追加（修正済み） */
+    .modal-overlay {
+      display: none;
+      position: fixed;
+      top: 0; left: 0; right: 0; bottom: 0;
+      background: rgba(0, 0, 0, 0.5);
+      z-index: 1000;
+      align-items: center;
+      justify-content: center;
+    }
+    .modal-overlay.show {
+      display: flex;
+    }
+    .calendar-cell:hover {
+      background: var(--color-bg-tertiary, var(--modal-close-hover)) !important;
+    }
+  </style>
+
+  <script nonce="%%CSP_NONCE%%">
+    (function() {
+      const savedTheme = localStorage.getItem('namiki-theme');
+      if (savedTheme === 'light') {
+        document.documentElement.classList.remove('dark');
+        document.documentElement.classList.add('light');
+      } else {
+        document.documentElement.classList.remove('light');
+        document.documentElement.classList.add('dark');
+      }
+    })();
+  </script>
+</head>
+<body>
+  <!-- サイドバー等のナビゲーション -->
+  <aside class="sidebar">
+    <div class="sidebar-header nav-link gen-24b531" data-href="/index">
+      <div class="flex items-center gap-3">
+        <div class="logo-badge">
+          <img src="/logo.webp" alt="Logo" class="logo-badge-img fallback-logo-img" />
+          <span class="logo-badge-emoji fallback-logo-emoji gen-93b8ea">🏫</span>
+        </div>
+        <h1 class="font-bold text-sm sidebar-brand-name sidebar-brand-text">
+          並木中等教育学校18回生<br>
+          <span class="text-xs font-normal sidebar-brand-tagline">ダッシュボード</span>
+        </h1>
+      </div>
+    </div>
+
+    <nav class="sidebar-nav">
+      <button data-href="/index" class="sidebar-nav-button nav-link" title="ホーム">
+        <svg class="icon-nav" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6" /></svg>
+        <span class="sidebar-nav-text">ホーム</span>
+      </button>
+      <button data-href="/schedule" class="sidebar-nav-button nav-link" title="時間割">
+        <svg class="icon-nav" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
+        <span class="sidebar-nav-text">時間割</span>
+      </button>
+      <button data-href="/notice" class="sidebar-nav-button nav-link" title="お知らせ">
+        <svg class="icon-nav" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9" /></svg>
+        <span class="sidebar-nav-text">お知らせ</span>
+      </button>
+      <button data-href="/link" class="sidebar-nav-button nav-link" title="リンク">
+        <svg class="icon-nav" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13.828 10.172a4 4 0 00-5.656 0l-4 4a4 4 0 105.656 5.656l1.102-1.101m-.758-4.899a4 4 0 005.656 0l4-4a4 4 0 00-5.656-5.656l-1.1 1.1" /></svg>
+        <span class="sidebar-nav-text">リンク</span>
+      </button>
+      
+      <button data-href="/calendar" class="sidebar-nav-button active nav-link" title="カレンダー">
+        <svg class="icon-nav" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" /></svg>
+        <span class="sidebar-nav-text">カレンダー</span>
+      </button>
+
+      <button data-href="/classroom" class="sidebar-nav-button nav-link" title="Classroom">
+        <svg class="icon-nav" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10" /></svg>
+        <span class="sidebar-nav-text">Classroom</span>
+      </button>
+      <button data-href="/chat" class="sidebar-nav-button nav-link gen-951743" title="チャット">
+        <svg class="icon-nav" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" /></svg>
+        <span class="sidebar-nav-text">チャット</span>
+      </button>
+
+      <div class="sidebar-nav-divider">
+        <a href="/privacy" class="sidebar-nav-button" title="プライバシーポリシー">
+          <svg class="icon-nav" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" /></svg>
+          <span class="sidebar-nav-text">プライバシーポリシー</span>
+        </a>
+        <a href="/terms" class="sidebar-nav-button" title="利用規約">
+          <svg class="icon-nav" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" /></svg>
+          <span class="sidebar-nav-text">利用規約</span>
+        </a>
+      </div>
+
+      <a href="/report" class="sidebar-nav-button gen-f98762" title="報告">
+        <svg class="icon-nav" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" /></svg>
+        <span class="sidebar-nav-text">報告</span>
+      </a>
+    </nav>
+
+    <div class="sidebar-footer">
+      <div id="account-popup-menu" class="account-popup-menu">
+        <div class="user-info-header gen-fd5985">
+          <img id="popup-user-avatar" src="https://via.placeholder.com/40?text=U" alt="User Avatar" class="popup-user-avatar" />
+          <div class="user-info-text">
+            <span id="popup-user-name" class="truncate gen-073e36">読み込み中...</span>
+            <span id="popup-user-email" class="truncate gen-c8c1bd">読み込み中...</span>
+          </div>
+        </div>
+
+        <button id="btn-admin-settings" class="account-popup-item">
+          <svg class="icon-sm" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z" /><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" /></svg>
+          管理者設定
+        </button>
+        <button id="btn-personal-settings" class="account-popup-item">
+          <svg class="icon-sm" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" /></svg>
+          個人用設定
+        </button>
+        
+        <button id="btn-theme-toggle" class="account-popup-item toggle-row">
+          <div class="flex items-center gap-2">
+            <svg class="icon-sm" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 3v1m0 16v1m9-9h-1M4 12H3m15.364 6.364l-.707-.707M6.343 6.343l-.707-.707m12.728 0l-.707.707M6.343 17.657l-.707.707M16 12a4 4 0 11-8 0 4 4 0 018 0z" /></svg>
+            表示切替
+          </div>
+          <div class="toggle-switch" id="theme-toggle-switch">
+            <div class="toggle-circle"></div>
+          </div>
+        </button>
+
+        <div class="gen-08cddd"></div>
+        <a href="/logout" class="account-popup-item text-red">
+          <svg class="icon-sm" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" /></svg>
+          ログアウト
+        </a>
+      </div>
+
+      <div id="sidebar-user-toggle" class="sidebar-user-row" title="ユーザーメニュー">
+        <img id="sidebar-user-avatar" src="https://via.placeholder.com/40?text=U" alt="Avatar" class="sidebar-avatar-image" />
+        <div class="flex-1 min-w-0 sidebar-user-info">
+          <p id="sidebar-user-id" class="text-xs sidebar-user-id-text truncate">読み込み中...</p>
+          <p id="sidebar-user-name" class="text-sm truncate sidebar-user-name-text">読み込み中...</p>
+        </div>
+      </div>
+    </div>
+  </aside>
+
+  <div class="app-main">
+    <header class="mobile-topbar">
+      <div class="flex items-center gap-2 nav-link gen-24b531" data-href="/index">
+        <div class="logo-badge logo-badge--mobile">
+          <img src="/logo.webp" alt="Logo" class="logo-badge-img fallback-logo-img" />
+          <span class="logo-badge-emoji fallback-logo-emoji gen-93b8ea">🏫</span>
+        </div>
+        <h1 class="font-bold text-sm mobile-brand-name">並木中等教育学校18回生</h1>
+      </div>
+      <div class="flex items-center gap-3">
+        <button id="btn-mobile-theme-toggle" title="モード切替" class="gen-ca678e">
+          <svg class="icon-sm" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 3v1m0 16v1m9-9h-1M4 12H3m15.364 6.364l-.707-.707M6.343 6.343l-.707-.707m12.728 0l-.707.707M6.343 17.657l-.707.707M16 12a4 4 0 11-8 0 4 4 0 018 0z" /></svg>
+        </button>
+        <img id="mobile-user-avatar" src="https://via.placeholder.com/32?text=U" alt="Avatar" class="mobile-avatar-image" />
+      </div>
+    </header>
+
+    <div class="mobile-tab-bar">
+      <button data-href="/index" class="mobile-nav-button nav-link">ホーム</button>
+      <button data-href="/schedule" class="mobile-nav-button nav-link">時間割</button>
+      <button data-href="/notice" class="mobile-nav-button nav-link">お知らせ</button>
+      <button data-href="/link" class="mobile-nav-button nav-link">リンク</button>
+      <button data-href="/calendar" class="mobile-nav-button active nav-link">カレンダー</button>
+      <button data-href="/classroom" class="mobile-nav-button nav-link">Classroom</button>
+      <button data-href="/chat" class="mobile-nav-button nav-link">チャット</button>
+      <button data-href="/report" class="mobile-nav-button nav-link">報告</button>
+    </div>
+
+    <main class="content-area">
+      <div id="page-calendar" class="page-section fade-in space-y-6">
+        <div class="app-card content-card">
+          <h2 class="content-card-title">年間行事カレンダー</h2>
+          <p class="content-card-subtitle">今年度の学校行事やテスト日程、ラーケーション取得不可日の一覧です。</p>
+
+          <div class="gen-b08097">
+            <div class="gen-1649af">
+              <span class="gen-905fe7"></span>
+              学校行事・テスト
+            </div>
+            <div class="gen-1649af">
+              <span class="gen-9c23af"></span>
+              ラーケーション不可日
+            </div>
+            <div class="gen-1649af">
+              <span class="gen-674049"></span>
+              休日・祝日等
+            </div>
+          </div>
+          
+          <div class="gen-56ee33">
+            <button id="calendar-prev-btn" class="schedule-day-button gen-a9a0ae">
+              ← 前月
+            </button>
+            <h3 id="calendar-month-title" class="content-card-title gen-ef7695">
+              2026年 8月
+            </h3>
+            <button id="calendar-next-btn" class="schedule-day-button gen-a9a0ae">
+              次月 →
+            </button>
+          </div>
+
+          <div class="gen-b56181">
+            <table id="calendar-table" class="gen-2016c3">
+              <thead>
+                <tr class="gen-f35ed8">
+                  <th class="gen-8ce2af">日</th>
+                  <th class="gen-106cb7">月</th>
+                  <th class="gen-106cb7">火</th>
+                  <th class="gen-106cb7">水</th>
+                  <th class="gen-106cb7">木</th>
+                  <th class="gen-106cb7">金</th>
+                  <th class="gen-0b08be">土</th>
+                </tr>
+              </thead>
+              <tbody id="calendar-body">
+                <tr><td colspan="7" class="gen-476907">カレンダーを読み込んでいます...</td></tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+
+      <footer class="site-footer">
+        <p>&copy; 2026 Taichi Kimura. All rights reserved.</p>
+        <div class="footer-links">
+          <a href="/privacy" class="footer-link">プライバシーポリシー</a>
+          <a href="/terms" class="footer-link">利用規約</a>
+          <a href="https://github.com/Namiki-18th/Namiki-18th.github.io" target="_blank" class="footer-link">
+            <svg class="icon-sm" fill="currentColor" viewBox="0 0 24 24"><path fill-rule="evenodd" clip-rule="evenodd" d="M12 2C6.477 2 2 6.484 2 12.017c0 4.425 2.865 8.18 6.839 9.504.5.092.682-.217.682-.483 0-.237-.008-.868-.013-1.703-2.782.605-3.369-1.343-3.369-1.343-.454-1.158-1.11-1.466-1.11-1.466-.908-.62.069-.608.069-.608 1.003.07 1.53 1.032 1.53 1.032.892 1.53 2.341 1.088 2.91.832.092-.647.35-1.088.636-1.338-2.22-.253-4.555-1.113-4.555-4.951 0-1.093.39-1.988 1.029-2.688-.103-.253-.446-1.272.098-2.65 0 0 .84-.27 2.75 1.026A9.564 9.564 0 0112 6.844c.85.004 1.705.115 2.504.337 1.909-1.296 2.747-1.027 2.747-1.027.546 1.379.202 2.398.1 2.651.64.7 1.028 1.595 1.028 2.688 0 3.848-2.339 4.695-4.566 4.943.359.309.678.92.678 1.855 0 1.338-.012 2.419-.012 2.747 0 .268.18.58.688.482A10.019 10.019 0 0022 12.017C22 6.84 17.522 2 12 2z" /></svg>
+            GitHub
+          </a>
+        </div>
+      </footer>
+    </main>
+  </div>
+
+  <!-- イベント詳細表示用のモーダル -->
+  <div id="day-modal" class="modal-overlay">
+    <div class="modal-content" id="modal-content-box">
+      <div class="gen-6e2da4">
+        <h3 id="modal-date-title" class="gen-f3e485"></h3>
+        <span class="modal-close-btn" id="modal-close-btn">✕</span>
+      </div>
+      <div id="modal-events-container" class="gen-685eb7">
+        <!-- イベント一覧がJSによって挿入されます -->
+      </div>
+    </div>
+  </div>
+
+  <script nonce="%%CSP_NONCE%%">
+    let globalData = {
+      profile: null,
+      calendar: []
+    };
+
+    const defaultCalendarData = [
+    { "date": "2026-04-01", "title": "学年始休業日", "type": "holiday" },
+    { "date": "2026-04-02", "title": "学年始休業日", "type": "holiday" },
+    { "date": "2026-04-03", "title": "学年始休業日", "type": "holiday" },
+    { "date": "2026-04-04", "title": "学年始休業日", "type": "holiday" },
+    { "date": "2026-04-05", "title": "学年始休業日", "type": "holiday" },
+    { "date": "2026-04-08", "title": "新任式・始業式", "type": "ceremony" },
+    { "date": "2026-04-09", "title": "入学式", "type": "ceremony" },
+    { "date": "2026-04-10", "title": "対面式・交通講話", "type": "event" },
+    { "date": "2026-04-11", "title": "スポーツデイ", "type": "school-event" },
+    { "date": "2026-04-12", "title": "スポーツデイ予備日", "type": "school-event" },
+    { "date": "2026-04-13", "title": "部活動紹介", "type": "event" },
+    { "date": "2026-04-14", "title": "生徒総会", "type": "event" },
+    { "date": "2026-04-16", "title": "避難経路確認・視力検査⑥", "type": "event" },
+    { "date": "2026-04-16", "title": "クラス写真撮影（前期生）", "type": "event" },
+    { "date": "2026-04-16", "title": "スタディーサポート（4年）50分", "type": "event" },
+    { "date": "2026-04-17", "title": "市陸上", "type": "event" },
+    { "date": "2026-04-18", "title": "市陸上", "type": "event" },
+    { "date": "2026-04-19", "title": "市陸上", "type": "event" },
+    { "date": "2026-04-20", "title": "市陸上", "type": "event" },
+    { "date": "2026-04-21", "title": "学力推移調査（1年）", "type": "test" },
+    { "date": "2026-04-22", "title": "常置委員会", "type": "event" },
+    { "date": "2026-04-22", "title": "PTA総会", "type": "event" },
+    { "date": "2026-04-25", "title": "大掃除（モップ交換）", "type": "event" },
+    { "date": "2026-04-26", "title": "定期テストⅠ（６年）", "type": "test" },
+    { "date": "2026-04-27", "title": "定期テストⅠ（３～６年）", "type": "test" },
+    { "date": "2026-04-28", "title": "定期テストⅠ（３～６年）", "type": "test" },
+    { "date": "2026-04-28", "title": "定期テストⅠ（２～６年）", "type": "test" },
+    { "date": "2026-04-29", "title": "定期テストⅠ（２～６年）", "type": "test" },
+    { "date": "2026-04-29", "title": "昭和の日", "type": "holiday" },
+    { "date": "2026-04-30", "title": "定期テストⅠ（２～６年）", "type": "test" },
+    { "date": "2026-05-01", "title": "理数探究①②", "type": "event" },
+    { "date": "2026-05-02", "title": "理数探究①②", "type": "event" },
+    { "date": "2026-05-03", "title": "憲法記念日", "type": "holiday" },
+    { "date": "2026-05-04", "title": "みどりの日", "type": "holiday" },
+    { "date": "2026-05-05", "title": "こどもの日", "type": "holiday" },
+    { "date": "2026-05-06", "title": "振替休日", "type": "holiday" },
+    { "date": "2026-05-07", "title": "全国学力調査（英話すこと）", "type": "test" },
+    { "date": "2026-05-11", "title": "１年次学級づくり合宿", "type": "school-event" },
+    { "date": "2026-05-11", "title": "進研模試5年", "type": "test" },
+    { "date": "2026-05-12", "title": "進研模試4・5年", "type": "test" },
+    { "date": "2026-05-14", "title": "内科検診(9時半～／13時半～)", "type": "event" },
+    { "date": "2026-05-17", "title": "かえで祭（前期）①②③④準備・終日準備", "type": "school-event" },
+    { "date": "2026-05-18", "title": "かえで祭（前期）①②③④準備・終日準備", "type": "school-event" },
+    { "date": "2026-05-18", "title": "学力推移調査（2年）", "type": "test" },
+    { "date": "2026-05-19", "title": "かえで祭（前期）①②③④準備・終日準備", "type": "school-event" },
+    { "date": "2026-05-19", "title": "かえで祭（前期）", "type": "school-event" },
+    { "date": "2026-05-20", "title": "かえで祭振休", "type": "holiday" },
+    { "date": "2026-05-21", "title": "県南水泳", "type": "event" },
+    { "date": "2026-05-21", "title": "生徒会選挙", "type": "event" },
+    { "date": "2026-05-22", "title": "教育相談週間（短縮50分）", "type": "event" },
+    { "date": "2026-05-22", "title": "PTA総会代休", "type": "holiday" },
+    { "date": "2026-05-23", "title": "県南駅伝", "type": "event" },
+    { "date": "2026-05-26", "title": "つくば市総体", "type": "event" },
+    { "date": "2026-05-26", "title": "県南陸上", "type": "event" },
+    { "date": "2026-05-28", "title": "新体力テスト", "type": "event" },
+    { "date": "2026-05-29", "title": "歯科検診（前期）", "type": "event" },
+    { "date": "2026-05-31", "title": "眼科検診", "type": "event" },
+    { "date": "2026-05-31", "title": "全国学力調査（AM 英語3技能）", "type": "test" },
+    { "date": "2026-06-03", "title": "理数探究③④", "type": "event" },
+    { "date": "2026-06-04", "title": "理数探究③④", "type": "event" },
+    { "date": "2026-06-08", "title": "教育実習", "type": "event" },
+    { "date": "2026-06-09", "title": "教育実習", "type": "event" },
+    { "date": "2026-06-09", "title": "生徒会選挙告示", "type": "event" },
+    { "date": "2026-06-10", "title": "教育実習", "type": "event" },
+    { "date": "2026-06-10", "title": "内科検診", "type": "event" },
+    { "date": "2026-06-11", "title": "教育実習", "type": "event" },
+    { "date": "2026-06-11", "title": "SSH国内研修旅行", "type": "school-event" },
+    { "date": "2026-06-12", "title": "教育実習", "type": "event" },
+    { "date": "2026-06-13", "title": "教育実習", "type": "event" },
+    { "date": "2026-06-13", "title": "定期テストⅠ（３～６年）", "type": "test" },
+    { "date": "2026-06-13", "title": "定期テストⅠ（２～６年）", "type": "test" },
+    { "date": "2026-06-14", "title": "教育実習", "type": "event" },
+    { "date": "2026-06-14", "title": "定期テストⅠ（３～６年）", "type": "test" },
+    { "date": "2026-06-14", "title": "定期テストⅠ（２～６年）", "type": "test" },
+    { "date": "2026-06-15", "title": "教育実習", "type": "event" },
+    { "date": "2026-06-15", "title": "GTEC（4・5年）", "type": "test" },
+    { "date": "2026-06-15", "title": "理数探究⑤⑥", "type": "event" },
+    { "date": "2026-06-16", "title": "教育実習", "type": "event" },
+    { "date": "2026-06-16", "title": "理数探究⑤⑥", "type": "event" },
+    { "date": "2026-06-17", "title": "教育実習", "type": "event" },
+    { "date": "2026-06-18", "title": "教育実習", "type": "event" },
+    { "date": "2026-06-19", "title": "教育実習", "type": "event" },
+    { "date": "2026-06-20", "title": "教育実習", "type": "event" },
+    { "date": "2026-06-21", "title": "教育実習", "type": "event" },
+    { "date": "2026-06-22", "title": "教育実習", "type": "event" },
+    { "date": "2026-06-23", "title": "PTA本部役員会②", "type": "event" },
+    { "date": "2026-06-24", "title": "定期テストⅢ（３～６年）", "type": "test" },
+    { "date": "2026-06-24", "title": "定期テストⅢ（１～６年）", "type": "test" },
+    { "date": "2026-06-25", "title": "定期テストⅢ（３～６年）", "type": "test" },
+    { "date": "2026-06-25", "title": "定期テストⅢ（１～６年）", "type": "test" },
+    { "date": "2026-06-26", "title": "定期テストⅢ（３～６年）", "type": "test" },
+    { "date": "2026-06-26", "title": "定期テストⅢ（１～６年）", "type": "test" },
+    { "date": "2026-06-29", "title": "衛生委員会", "type": "event" },
+    { "date": "2026-07-01", "title": "後期始業式", "type": "ceremony" },
+    { "date": "2026-07-01", "title": "定期テストⅠ（３～６年）", "type": "test" },
+    { "date": "2026-07-01", "title": "定期テストⅠ（２～６年）", "type": "test" },
+    { "date": "2026-07-02", "title": "定期テストⅠ（３～６年）", "type": "test" },
+    { "date": "2026-07-02", "title": "定期テストⅠ（２～６年）", "type": "test" },
+    { "date": "2026-07-06", "title": "理数探究⑦", "type": "event" },
+    { "date": "2026-07-06", "title": "実力テスト（３～５年）", "type": "test" },
+    { "date": "2026-07-08", "title": "実力テスト（１～５年）", "type": "test" },
+    { "date": "2026-07-08", "title": "理数探究⑨", "type": "event" },
+    { "date": "2026-07-13", "title": "PTA本部役員会③", "type": "event" },
+    { "date": "2026-07-13", "title": "PTA役員選考会", "type": "event" },
+    { "date": "2026-07-15", "title": "海の日", "type": "holiday" },
+    { "date": "2026-07-15", "title": "実力テスト（１～５年）", "type": "test" },
+    { "date": "2026-07-20", "title": "②③④⑤前期終業式", "type": "ceremony" },
+    { "date": "2026-07-20", "title": "①②③WR開会式", "type": "event" },
+    { "date": "2026-07-20", "title": "定期テストⅤ（４～５年）", "type": "test" },
+    { "date": "2026-07-21", "title": "定期テストⅤ（４～５年）", "type": "test" },
+    { "date": "2026-07-21", "title": "定期テストⅤ（３～５年）", "type": "test" },
+    { "date": "2026-07-22", "title": "定期テストⅤ（４～５年）", "type": "test" },
+    { "date": "2026-07-22", "title": "定期テストⅤ（３～５年）", "type": "test" },
+    { "date": "2026-07-22", "title": "集会+入学者選抜準備", "type": "event" },
+    { "date": "2026-07-22", "title": "定期テストⅤ（１～５年）", "type": "test" },
+    { "date": "2026-07-27", "title": "NZ語学研修結団式", "type": "event" },
+    { "date": "2026-07-28", "title": "学校説明会代休", "type": "holiday" },
+    { "date": "2026-08-01", "title": "夏季休業", "type": "holiday" },
+    { "date": "2026-08-02", "title": "夏季休業", "type": "holiday" },
+    { "date": "2026-08-03", "title": "夏季休業", "type": "holiday" },
+    { "date": "2026-08-04", "title": "夏季休業", "type": "holiday" },
+    { "date": "2026-08-04", "title": "4年次NZ語学研修", "type": "school-event" },
+    { "date": "2026-08-05", "title": "夏季休業", "type": "holiday" },
+    { "date": "2026-08-05", "title": "4年次NZ語学研修", "type": "school-event" },
+    { "date": "2026-08-06", "title": "夏季休業", "type": "holiday" },
+    { "date": "2026-08-07", "title": "夏季休業", "type": "holiday" },
+    { "date": "2026-08-08", "title": "夏季休業", "type": "holiday" },
+    { "date": "2026-08-09", "title": "夏季休業", "type": "holiday" },
+    { "date": "2026-08-10", "title": "夏季休業", "type": "holiday" },
+    { "date": "2026-08-10", "title": "山の日", "type": "holiday" },
+    { "date": "2026-08-11", "title": "夏季休業", "type": "holiday" },
+    { "date": "2026-08-12", "title": "夏季休業", "type": "holiday" },
+    { "date": "2026-08-13", "title": "夏季休業", "type": "holiday" },
+    { "date": "2026-08-13", "title": "学校閉庁日", "type": "holiday" },
+    { "date": "2026-08-14", "title": "夏季休業", "type": "holiday" },
+    { "date": "2026-08-14", "title": "学校閉庁日", "type": "holiday" },
+    { "date": "2026-08-15", "title": "夏季休業", "type": "holiday" },
+    { "date": "2026-08-15", "title": "学校閉庁日", "type": "holiday" },
+    { "date": "2026-08-16", "title": "夏季休業", "type": "holiday" },
+    { "date": "2026-08-17", "title": "夏季休業", "type": "holiday" },
+    { "date": "2026-08-18", "title": "夏季休業", "type": "holiday" },
+    { "date": "2026-08-19", "title": "夏季休業", "type": "holiday" },
+    { "date": "2026-08-20", "title": "夏季休業", "type": "holiday" },
+    { "date": "2026-08-21", "title": "夏季休業", "type": "holiday" },
+    { "date": "2026-08-22", "title": "夏季休業", "type": "holiday" },
+    { "date": "2026-08-23", "title": "夏季休業", "type": "holiday" },
+    { "date": "2026-08-24", "title": "夏季休業", "type": "holiday" },
+    { "date": "2026-08-25", "title": "夏季休業", "type": "holiday" },
+    { "date": "2026-08-26", "title": "夏季休業", "type": "holiday" },
+    { "date": "2026-08-27", "title": "夏季休業", "type": "holiday" },
+    { "date": "2026-08-28", "title": "夏季休業", "type": "holiday" },
+    { "date": "2026-08-29", "title": "夏季休業", "type": "holiday" },
+    { "date": "2026-08-30", "title": "夏季休業", "type": "holiday" },
+    { "date": "2026-08-31", "title": "夏季休業", "type": "holiday" },
+    { "date": "2026-09-01", "title": "後期始業式", "type": "ceremony" },
+    { "date": "2026-09-01", "title": "理数探究⑩", "type": "event" },
+    { "date": "2026-09-07", "title": "定期テストⅣ（４～６年）", "type": "test" },
+    { "date": "2026-09-08", "title": "定期テストⅣ（４～６年）", "type": "test" },
+    { "date": "2026-09-08", "title": "理数探究⑪", "type": "event" },
+    { "date": "2026-09-08", "title": "定期テストⅣ（３～６年）", "type": "test" },
+    { "date": "2026-09-09", "title": "定期テストⅣ（４～６年）", "type": "test" },
+    { "date": "2026-09-09", "title": "定期テストⅣ（３～６年）", "type": "test" },
+    { "date": "2026-09-09", "title": "スポーツの日", "type": "holiday" },
+    { "date": "2026-09-09", "title": "定期テストⅣ（１～６年）", "type": "test" },
+    { "date": "2026-09-10", "title": "実力テスト（１～５年）", "type": "test" },
+    { "date": "2026-09-14", "title": "県南新人戦", "type": "event" },
+    { "date": "2026-09-21", "title": "秋分の日", "type": "holiday" },
+    { "date": "2026-09-21", "title": "教育相談週間（短縮50分）", "type": "event" },
+    { "date": "2026-09-22", "title": "教育相談週間（短縮50分）", "type": "event" },
+    { "date": "2026-09-22", "title": "敬老の日", "type": "holiday" },
+    { "date": "2026-10-01", "title": "教育相談週間（短縮50分）", "type": "event" },
+    { "date": "2026-10-01", "title": "理数探究⑫", "type": "event" },
+    { "date": "2026-10-05", "title": "定期テストⅡ（４～６年）", "type": "test" },
+    { "date": "2026-10-06", "title": "定期テストⅡ（４～６年）", "type": "test" },
+    { "date": "2026-10-06", "title": "定期テストⅡ（３～６年）", "type": "test" },
+    { "date": "2026-10-07", "title": "定期テストⅡ（４～６年）", "type": "test" },
+    { "date": "2026-10-07", "title": "定期テストⅡ（３～６年）", "type": "test" },
+    { "date": "2026-10-07", "title": "定期テストⅡ（１～６年）", "type": "test" },
+    { "date": "2026-10-08", "title": "理数探究⑬", "type": "event" },
+    { "date": "2026-10-11", "title": "スポーツの日", "type": "holiday" },
+    { "date": "2026-10-14", "title": "進研模試6年", "type": "test" },
+    { "date": "2026-10-21", "title": "進研模試4・5・6年", "type": "test" },
+    { "date": "2026-10-22", "title": "PTA関東大会：群馬", "type": "event" },
+    { "date": "2026-10-22", "title": "教育相談週間（短縮50分）", "type": "event" },
+    { "date": "2026-10-23", "title": "文化の日", "type": "holiday" },
+    { "date": "2026-11-01", "title": "教育相談週間（短縮50分）", "type": "event" },
+    { "date": "2026-11-01", "title": "理数探究⑭", "type": "event" },
+    { "date": "2026-11-03", "title": "文化の日", "type": "holiday" },
+    { "date": "2026-11-08", "title": "理数探究⑮", "type": "event" },
+    { "date": "2026-11-09", "title": "定期テストⅢ（４～６年）", "type": "test" },
+    { "date": "2026-11-10", "title": "定期テストⅢ（４～６年）", "type": "test" },
+    { "date": "2026-11-10", "title": "定期テストⅢ（３～６年）", "type": "test" },
+    { "date": "2026-11-11", "title": "定期テストⅢ（４～６年）", "type": "test" },
+    { "date": "2026-11-11", "title": "定期テストⅢ（３～６年）", "type": "test" },
+    { "date": "2026-11-11", "title": "定期テストⅢ（１～６年）", "type": "test" },
+    { "date": "2026-11-18", "title": "定期テストⅣ（４～６年）", "type": "test" },
+    { "date": "2026-11-19", "title": "定期テストⅣ（４～６年）", "type": "test" },
+    { "date": "2026-11-19", "title": "定期テストⅣ（３～６年）", "type": "test" },
+    { "date": "2026-11-20", "title": "定期テストⅣ（４～６年）", "type": "test" },
+    { "date": "2026-11-20", "title": "定期テストⅣ（３～６年）", "type": "test" },
+    { "date": "2026-11-20", "title": "定期テストⅣ（１～６年）", "type": "test" },
+    { "date": "2026-11-23", "title": "勤労感謝の日", "type": "holiday" },
+    { "date": "2026-11-23", "title": "PTA全国大会：大分", "type": "event" },
+    { "date": "2026-11-28", "title": "理数探究校内発表会1～4h", "type": "event" },
+    { "date": "2026-12-01", "title": "冬期休業", "type": "holiday" },
+    { "date": "2026-12-02", "title": "冬期休業", "type": "holiday" },
+    { "date": "2026-12-03", "title": "冬期休業", "type": "holiday" },
+    { "date": "2026-12-04", "title": "冬期休業", "type": "holiday" },
+    { "date": "2026-12-05", "title": "冬期休業", "type": "holiday" },
+    { "date": "2026-12-06", "title": "冬期休業", "type": "holiday" },
+    { "date": "2026-12-07", "title": "冬期休業", "type": "holiday" },
+    { "date": "2026-12-07", "title": "創立記念日", "type": "holiday" },
+    { "date": "2026-12-07", "title": "定期テストⅤ（４～５年）", "type": "test" },
+    { "date": "2026-12-08", "title": "冬期休業", "type": "holiday" },
+    { "date": "2026-12-08", "title": "定期テストⅤ（４～５年）", "type": "test" },
+    { "date": "2026-12-08", "title": "定期テストⅤ（３～５年）", "type": "test" },
+    { "date": "2026-12-09", "title": "冬期休業", "type": "holiday" },
+    { "date": "2026-12-09", "title": "定期テストⅤ（４～５年）", "type": "test" },
+    { "date": "2026-12-09", "title": "定期テストⅤ（３～５年）", "type": "test" },
+    { "date": "2026-12-09", "title": "入学者説明会", "type": "event" },
+    { "date": "2026-12-09", "title": "定期テストⅤ（１～５年）", "type": "test" },
+    { "date": "2026-12-10", "title": "冬期休業", "type": "holiday" },
+    { "date": "2026-12-10", "title": "追認考査", "type": "test" },
+    { "date": "2026-12-11", "title": "冬期休業", "type": "holiday" },
+    { "date": "2026-12-12", "title": "冬期休業", "type": "holiday" },
+    { "date": "2026-12-13", "title": "冬期休業", "type": "holiday" },
+    { "date": "2026-12-13", "title": "理数探究⑯", "type": "event" },
+    { "date": "2026-12-14", "title": "冬期休業", "type": "holiday" },
+    { "date": "2026-12-15", "title": "冬期休業", "type": "holiday" },
+    { "date": "2026-12-15", "title": "理数探究⑰", "type": "event" },
+    { "date": "2026-12-16", "title": "冬期休業", "type": "holiday" },
+    { "date": "2026-12-17", "title": "冬期休業", "type": "holiday" },
+    { "date": "2026-12-18", "title": "冬期休業", "type": "holiday" },
+    { "date": "2026-12-19", "title": "冬期休業", "type": "holiday" },
+    { "date": "2026-12-20", "title": "冬期休業", "type": "holiday" },
+    { "date": "2026-12-21", "title": "冬期休業", "type": "holiday" },
+    { "date": "2026-12-22", "title": "冬期休業", "type": "holiday" },
+    { "date": "2026-12-23", "title": "冬期休業", "type": "holiday" },
+    { "date": "2026-12-24", "title": "冬期休業", "type": "holiday" },
+    { "date": "2026-12-25", "title": "冬期休業", "type": "holiday" },
+    { "date": "2026-12-26", "title": "冬期休業", "type": "holiday" },
+    { "date": "2026-12-27", "title": "冬期休業", "type": "holiday" },
+    { "date": "2026-12-28", "title": "冬期休業", "type": "holiday" },
+    { "date": "2026-12-29", "title": "冬期休業", "type": "holiday" },
+    { "date": "2026-12-30", "title": "冬期休業", "type": "holiday" },
+    { "date": "2026-12-31", "title": "冬期休業", "type": "holiday" },
+    { "date": "2027-01-01", "title": "冬期休業", "type": "holiday" },
+    { "date": "2027-01-01", "title": "元日", "type": "holiday" },
+    { "date": "2027-01-02", "title": "冬期休業", "type": "holiday" },
+    { "date": "2027-01-03", "title": "冬期休業", "type": "holiday" },
+    { "date": "2027-01-04", "title": "冬期休業", "type": "holiday" },
+    { "date": "2027-01-05", "title": "冬期休業", "type": "holiday" },
+    { "date": "2027-01-06", "title": "冬期休業", "type": "holiday" },
+    { "date": "2027-01-07", "title": "冬期休業", "type": "holiday" },
+    { "date": "2027-01-08", "title": "冬期休業", "type": "holiday" },
+    { "date": "2027-01-09", "title": "冬期休業", "type": "holiday" },
+    { "date": "2027-01-10", "title": "冬期休業", "type": "holiday" },
+    { "date": "2027-01-11", "title": "成人の日", "type": "holiday" },
+    { "date": "2027-01-15", "title": "建国記念の日", "type": "holiday" },
+    { "date": "2027-01-20", "title": "共通テスト", "type": "test" },
+    { "date": "2027-01-21", "title": "共通テスト", "type": "test" },
+    { "date": "2027-01-27", "title": "入学者選抜", "type": "event" },
+    { "date": "2027-02-01", "title": "共通テスト", "type": "test" },
+    { "date": "2027-02-11", "title": "建国記念の日", "type": "holiday" },
+    { "date": "2027-02-15", "title": "第3回英検（2次）", "type": "test" },
+    { "date": "2027-02-23", "title": "天皇誕生日", "type": "holiday" },
+    { "date": "2027-02-26", "title": "合格発表", "type": "event" },
+    { "date": "2027-03-15", "title": "3年修了式", "type": "ceremony" },
+    { "date": "2027-03-16", "title": "卒業式", "type": "ceremony" },
+    { "date": "2027-03-20", "title": "春分の日", "type": "holiday" },
+    { "date": "2027-03-25", "title": "終業式・大掃除", "type": "ceremony" },
+    { "date": "2027-03-26", "title": "学年末休業日", "type": "holiday" },
+    { "date": "2027-03-27", "title": "学年末休業日", "type": "holiday" },
+    { "date": "2027-03-28", "title": "学年末休業日", "type": "holiday" },
+    { "date": "2027-03-29", "title": "学年末休業日", "type": "holiday" },
+    { "date": "2027-03-30", "title": "学年末休業日", "type": "holiday" },
+    { "date": "2027-03-31", "title": "学年末休業日", "type": "holiday" }
+  ];
+
+    let calendarCurrentDate = new Date();
+    let calendarEvents = [];
+
+    function escapeHtml(str) {
+      if (!str) return '';
+      return String(str)
+        .replace(/&/g, "&amp;")
+        .replace(/</g, "&lt;")
+        .replace(/>/g, "&gt;")
+        .replace(/"/g, "&quot;")
+        .replace(/'/g, "&#039;");
+    }
+
+    function toggleAccountMenu(event) {
+      if (event) event.stopPropagation();
+      const menu = document.getElementById('account-popup-menu');
+      if (menu) menu.classList.toggle('show');
+    }
+
+    function initThemeToggle() {
+      const toggleSwitch = document.getElementById('theme-toggle-switch');
+      if (toggleSwitch) {
+        if (document.documentElement.classList.contains('dark')) {
+          toggleSwitch.classList.add('on');
+        } else {
+          toggleSwitch.classList.remove('on');
+        }
+      }
+    }
+
+    function toggleTheme() {
+      const htmlEl = document.documentElement;
+      const toggleSwitch = document.getElementById('theme-toggle-switch');
+      
+      if (htmlEl.classList.contains('dark')) {
+        htmlEl.classList.remove('dark');
+        htmlEl.classList.add('light');
+        localStorage.setItem('namiki-theme', 'light');
+        if (toggleSwitch) toggleSwitch.classList.remove('on');
+      } else {
+        htmlEl.classList.remove('light');
+        htmlEl.classList.add('dark');
+        localStorage.setItem('namiki-theme', 'dark');
+        if (toggleSwitch) toggleSwitch.classList.add('on');
+      }
+    }
+
+    function handleAdminSettings() { window.location.href = '/admin'; }
+    function handlePersonalSettings() { alert('個人用設定は開発中です。'); }
+
+    async function loadPageData() {
+      try {
+        const [profileRes, calendarRes] = await Promise.all([
+          fetch('/api/profile').catch(err => ({ ok: false })),
+          fetch('/api/calendar').catch(err => ({ ok: false }))
+        ]);
+
+        if (profileRes.status === 401) {
+          window.location.href = '/login';
+          return;
+        }
+
+        if (profileRes.ok) {
+          globalData.profile = await profileRes.json();
+        }
+
+        if (calendarRes.ok) {
+          const apiCalendar = await calendarRes.json();
+          globalData.calendar = (apiCalendar && apiCalendar.length > 0) ? apiCalendar : defaultCalendarData;
+        } else {
+          globalData.calendar = defaultCalendarData;
+        }
+      } catch (err) {
+        console.error('データ取得エラー:', err);
+        globalData.calendar = defaultCalendarData;
+      } finally {
+        renderUserInfo();
+        initializeCalendar(globalData.calendar);
+      }
+    }
+
+    function renderUserInfo() {
+      if (globalData.profile) {
+        const p = globalData.profile;
+        const studentIdText = (p.id && p.id !== 'Unknown') ? p.id : '学籍番号未設定';
+        document.getElementById('sidebar-user-id').textContent = `${studentIdText}`;
+        document.getElementById('sidebar-user-name').textContent = p.name || 'ユーザー';
+        
+        const popupName = document.getElementById('popup-user-name');
+        if (popupName) popupName.textContent = p.name || 'ユーザー';
+        const popupEmail = document.getElementById('popup-user-email');
+        if (popupEmail) popupEmail.textContent = p.email || 'メールアドレス未設定';
+
+        const userAvatar = (p.picture && p.picture !== 'admin.png') ? p.picture : `https://via.placeholder.com/40/3b82f6/ffffff?text=${encodeURIComponent(p.name ? p.name.charAt(0) : 'U')}`;
+        
+        const sidebarAvatar = document.getElementById('sidebar-user-avatar');
+        if (sidebarAvatar) sidebarAvatar.src = userAvatar;
+
+        const mobileAvatar = document.getElementById('mobile-user-avatar');
+        if (mobileAvatar) mobileAvatar.src = userAvatar;
+
+        const popupAvatar = document.getElementById('popup-user-avatar');
+        if (popupAvatar) popupAvatar.src = userAvatar;
+      }
+    }
+
+    function initializeCalendar(events) {
+      calendarEvents = events || [];
+      calendarCurrentDate = new Date();
+      renderCalendar();
+    }
+
+    function renderCalendar() {
+      const year = calendarCurrentDate.getFullYear();
+      const month = calendarCurrentDate.getMonth();
+
+      const titleEl = document.getElementById('calendar-month-title');
+      if (titleEl) {
+        titleEl.textContent = `${year}年 ${month + 1}月`;
+      }
+
+      const firstDay = new Date(year, month, 1);
+      const startDate = new Date(firstDay);
+      startDate.setDate(startDate.getDate() - firstDay.getDay());
+
+      const calendarDays = [];
+      const currentDate = new Date(startDate);
+      while (calendarDays.length < 42) {
+        calendarDays.push(new Date(currentDate));
+        currentDate.setDate(currentDate.getDate() + 1);
+      }
+
+      const tbody = document.getElementById('calendar-body');
+      if (!tbody) return;
+
+      let html = '';
+      
+      for (let i = 0; i < calendarDays.length; i += 7) {
+        html += '<tr class="gen-886808">';
+        
+        const weekDays = calendarDays.slice(i, i + 7);
+        const eventsPerDay = weekDays.map(day => {
+          return calendarEvents.filter(e => {
+            const eventDate = new Date(e.date);
+            return eventDate.getFullYear() === day.getFullYear() &&
+                   eventDate.getMonth() === day.getMonth() &&
+                   eventDate.getDate() === day.getDate();
+          });
+        });
+
+        const slots = [];
+        for (let j = 0; j < 7; j++) {
+          let unassignedEvents = [...eventsPerDay[j]];
+          
+          for (let s = 0; s < slots.length; s++) {
+            if (j > 0 && slots[s][j-1]) {
+              const prevEvent = slots[s][j-1];
+              const matchingEventIndex = unassignedEvents.findIndex(e => e.title === prevEvent.title);
+              if (matchingEventIndex !== -1) {
+                slots[s][j] = unassignedEvents[matchingEventIndex];
+                unassignedEvents.splice(matchingEventIndex, 1);
+              } else {
+                slots[s][j] = null;
+              }
+            } else {
+              slots[s][j] = null;
+            }
+          }
+          
+          for (const event of unassignedEvents) {
+            let placed = false;
+            for (let s = 0; s < slots.length; s++) {
+              if (!slots[s][j]) {
+                slots[s][j] = event;
+                placed = true;
+                break;
+              }
+            }
+            if (!placed) {
+              const newSlot = Array(7).fill(null);
+              newSlot[j] = event;
+              slots.push(newSlot);
+            }
+          }
+        }
+
+        for (let j = 0; j < 7; j++) {
+          const day = weekDays[j];
+          const dayNum = day.getDate();
+          const isCurrentMonth = day.getMonth() === month;
+          const isToday = day.toDateString() === new Date().toDateString();
+
+          const bgColor = isCurrentMonth ? 'var(--color-bg-secondary)' : 'var(--color-bg-tertiary)';
+          const baseTextColor = isCurrentMonth ? 'var(--color-text-primary)' : 'var(--color-text-muted)';
+          const todayBorder = isToday ? '2px solid var(--color-accent-blue-light)' : 'none';
+
+          // 休日判定（type === 'holiday' のイベントがあるか）
+          const hasHoliday = eventsPerDay[j].some(e => e.type === 'holiday');
+          
+          // ヘッダーの色を決定（日曜または休日なら赤、土曜なら青、それ以外は通常色）
+          let headerColor = baseTextColor;
+          if (j===6) {
+            headerColor = '#3b82f6'
+          } else if (hasHoliday || j === 0) {
+            headerColor = '#f87171'
+          }
+          
+          const fontWeight = isToday ? '700' : '500';
+
+          let dayHtml = '';
+          let overflowCount = 0;
+          const MAX_SLOTS = 2;
+
+          for (let s = 0; s < slots.length; s++) {
+            const event = slots[s][j];
+            if (s < MAX_SLOTS) {
+              if (event) {
+                const isContinuedFromPrev = j > 0 && slots[s][j-1] && slots[s][j-1].title === event.title;
+                const isContinuesToNext = j < 6 && slots[s][j+1] && slots[s][j+1].title === event.title;
+                
+                let styles = `padding: 0.25rem 0.375rem; margin-bottom: 0.25rem; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: 0.75rem; height: 1.5rem; line-height: 1rem; box-sizing: border-box;`;
+                
+                if (isContinuedFromPrev) {
+                  styles += ` margin-left: -0.5rem; padding-left: 0.5rem; border-top-left-radius: 0; border-bottom-left-radius: 0;`;
+                } else {
+                  styles += ` border-top-left-radius: 0.25rem; border-bottom-left-radius: 0.25rem;`;
+                }
+                
+                if (isContinuesToNext) {
+                  styles += ` margin-right: -0.5rem; padding-right: 0.5rem; border-top-right-radius: 0; border-bottom-right-radius: 0;`;
+                } else {
+                  styles += ` border-top-right-radius: 0.25rem; border-bottom-right-radius: 0.25rem;`;
+                }
+
+                const finalDisplayText = (!isContinuedFromPrev || j === 0) ? escapeHtml(event.title) : '&nbsp;';
+                const chipClass = event.type === 'no-vacation' ? 'event-chip-no-vacation' : 'event-chip-event';
+                
+                dayHtml += `<div class="${chipClass}" style="${styles}" title="${escapeHtml(event.title)}">${finalDisplayText}</div>`;
+              } else {
+                dayHtml += `<div class="gen-14ec71"></div>`;
+              }
+            } else {
+              if (event) overflowCount++;
+            }
+          }
+          
+          if (overflowCount > 0) {
+            dayHtml += `<div class="gen-de800b">+${overflowCount}件</div>`;
+          }
+
+          const dateString = `${day.getFullYear()}-${String(day.getMonth()+1).padStart(2, '0')}-${String(day.getDate()).padStart(2, '0')}`;
+
+          html += `
+            <td class="calendar-cell" style="height: 100px; padding: 0.5rem; background: ${bgColor}; border: ${todayBorder}; vertical-align: top; color: ${headerColor}; font-weight: ${fontWeight}; cursor: pointer; transition: background 0.2s;" data-date="${dateString}">
+              <div class="gen-682d69">${dayNum}</div>
+              <div class="gen-af89d6">
+                ${dayHtml}
+              </div>
+            </td>
+          `;
+        }
+        html += '</tr>';
+      }
+      tbody.innerHTML = html;
+    }
+
+    function showDayDetails(dateStr) {
+      const events = calendarEvents.filter(e => e.date === dateStr);
+      const modalDateTitle = document.getElementById('modal-date-title');
+      const modalContainer = document.getElementById('modal-events-container');
+      
+      const d = new Date(dateStr);
+      modalDateTitle.textContent = `${d.getFullYear()}年${d.getMonth() + 1}月${d.getDate()}日の予定`;
+      
+      if (events.length === 0) {
+        modalContainer.innerHTML = '<p class="gen-30184a">この日の予定はありません。</p>';
+      } else {
+        modalContainer.innerHTML = events.map(e => {
+          let eventTypeLabel = '';
+          if (e.type === 'holiday') eventTypeLabel = '休日・祝日等';
+          else if (e.type === 'test') eventTypeLabel = 'テスト';
+          else if (e.type === 'ceremony') eventTypeLabel = '式典';
+          else if (e.type === 'school-event') eventTypeLabel = '学校行事';
+          else eventTypeLabel = 'イベント';
+
+          return `
+            <div class="gen-e5c627">
+              <div class="gen-1aecdc">${escapeHtml(e.title)}</div>
+              <div class="gen-9803d8">
+                分類: ${eventTypeLabel}
+              </div>
+            </div>
+          `;
+        }).join('');
+      }
+      
+      document.getElementById('day-modal').classList.add('show');
+    };
+
+    function closeDayModal() {
+      document.getElementById('day-modal').classList.remove('show');
+    };
+
+    function previousMonth() {
+      calendarCurrentDate.setMonth(calendarCurrentDate.getMonth() - 1);
+      renderCalendar();
+    }
+
+    function nextMonth() {
+      calendarCurrentDate.setMonth(calendarCurrentDate.getMonth() + 1);
+      renderCalendar();
+    }
+
+    // イベントリスナーの登録（CSP対応）
+    document.addEventListener('DOMContentLoaded', () => {
+      initThemeToggle();
+      loadPageData();
+
+      // 画像のエラーフォールバック
+      document.querySelectorAll('img.fallback-logo-img').forEach(img => {
+        img.addEventListener('error', function() {
+          this.style.display = 'none';
+          const sibling = this.parentElement.querySelector('.fallback-logo-emoji');
+          if (sibling) sibling.style.display = 'inline';
+        });
+      });
+      document.querySelectorAll('img.sidebar-avatar-image, img.mobile-avatar-image, img.popup-user-avatar').forEach(img => {
+        img.addEventListener('error', function() {
+          this.src = 'https://via.placeholder.com/40?text=U';
+        });
+      });
+
+      // ナビゲーションリンク
+      document.querySelectorAll('.nav-link').forEach(btn => {
+        btn.addEventListener('click', function() {
+          if (this.dataset.href) {
+            location.href = this.dataset.href;
+          }
+        });
+      });
+
+      // アカウントメニュー周り
+      const sidebarToggle = document.getElementById('sidebar-user-toggle');
+      if (sidebarToggle) sidebarToggle.addEventListener('click', toggleAccountMenu);
+      
+      const adminBtn = document.getElementById('btn-admin-settings');
+      if (adminBtn) adminBtn.addEventListener('click', handleAdminSettings);
+
+      const personalBtn = document.getElementById('btn-personal-settings');
+      if (personalBtn) personalBtn.addEventListener('click', handlePersonalSettings);
+
+      const themeToggle = document.getElementById('btn-theme-toggle');
+      if (themeToggle) themeToggle.addEventListener('click', toggleTheme);
+
+      const mobileThemeToggle = document.getElementById('btn-mobile-theme-toggle');
+      if (mobileThemeToggle) mobileThemeToggle.addEventListener('click', toggleTheme);
+
+      // カレンダーの月切り替え
+      const prevBtn = document.getElementById('calendar-prev-btn');
+      if (prevBtn) prevBtn.addEventListener('click', previousMonth);
+
+      const nextBtn = document.getElementById('calendar-next-btn');
+      if (nextBtn) nextBtn.addEventListener('click', nextMonth);
+
+      // カレンダーセルのクリック（イベント委譲）
+      const calendarBody = document.getElementById('calendar-body');
+      if (calendarBody) {
+        calendarBody.addEventListener('click', (e) => {
+          const cell = e.target.closest('.calendar-cell');
+          if (cell && cell.dataset.date) {
+            showDayDetails(cell.dataset.date);
+          }
+        });
+      }
+
+      // モーダル周り
+      const modalOverlay = document.getElementById('day-modal');
+      if (modalOverlay) modalOverlay.addEventListener('click', closeDayModal);
+
+      const modalContentBox = document.getElementById('modal-content-box');
+      if (modalContentBox) modalContentBox.addEventListener('click', (e) => e.stopPropagation());
+
+      const modalCloseBtn = document.getElementById('modal-close-btn');
+      if (modalCloseBtn) modalCloseBtn.addEventListener('click', closeDayModal);
+
+      // メニュー外のクリック処理
+      document.addEventListener('click', (event) => {
+        const menu = document.getElementById('account-popup-menu');
+        const toggleBtn = document.getElementById('sidebar-user-toggle');
+        if (menu && menu.classList.contains('show')) {
+          if (!menu.contains(event.target) && toggleBtn && !toggleBtn.contains(event.target)) {
+            menu.classList.remove('show');
+          }
+        }
+      });
+    });
+  </script>
+</body>
+</html>

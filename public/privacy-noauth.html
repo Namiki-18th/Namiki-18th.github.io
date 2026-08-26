@@ -1,0 +1,409 @@
+<!DOCTYPE html>
+<html lang="ja" class="dark">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline' https://cdn.jsdelivr.net https://cdnjs.cloudflare.com; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com; img-src 'self' data: https:; connect-src 'self'; object-src 'none'; frame-ancestors 'self';">
+  <title>プライバシーポリシー - 並木中等教育学校18回生</title>
+  <link rel="stylesheet" href="style.css">
+  <link rel="icon" href="favicon.ico" type="image/x-icon">
+  <link rel="icon" href="favicon.png" type="image/png" sizes="256x256">
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" />
+  
+  <script>
+    (function() {
+      const savedTheme = localStorage.getItem('namiki-theme');
+      if (savedTheme === 'light') {
+        document.documentElement.classList.remove('dark');
+        document.documentElement.classList.add('light');
+      } else {
+        document.documentElement.classList.remove('light');
+        document.documentElement.classList.add('dark');
+      }
+    })();
+  </script>
+
+  <style>
+    .policy-section {
+      margin-top: 1.5rem;
+    }
+    .policy-section h3 {
+      color: var(--color-text-primary);
+      font-weight: 600;
+      font-size: 1rem;
+      margin-bottom: 0.5rem;
+      display: flex;
+      align-items: center; /* 修正: CSSプロパティ名を修復 */
+    }
+    .policy-section p, .policy-section ul {
+      color: var(--color-text-body);
+      font-size: 0.875rem;
+      line-height: 1.7;
+    }
+    .policy-section ul {
+      list-style-type: disc;
+      padding-left: 1.25rem;
+      margin-top: 0.25rem;
+      margin-bottom: 0.5rem;
+    }
+  </style>
+</head>
+<body>
+
+    <aside class="sidebar">
+    <div class="sidebar-header" onclick="location.href='/index'">
+      <div class="flex items-center gap-3">
+        <div class="logo-badge">
+          <img src="/logo.webp" alt="Logo" class="logo-badge-img" onerror="this.style.display='none'; this.nextElementSibling.style.display='inline';" />
+          <span class="logo-badge-emoji" style="display:none;">🏫</span>
+        </div>
+        <h1 class="font-bold text-sm sidebar-brand-name sidebar-brand-text">
+          並木中等教育学校18回生<br>
+          <span class="text-xs font-normal sidebar-brand-tagline">ダッシュボード</span>
+        </h1>
+      </div>
+    </div>
+
+    <nav class="sidebar-nav">
+      <button onclick="location.href='/index'" class="sidebar-nav-button" title="ホーム">
+        <svg class="icon-nav" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6"/></svg>
+        <span class="sidebar-nav-text">ホーム</span>
+      </button>
+      <button onclick="location.href='/schedule'" class="sidebar-nav-button" title="時間割">
+        <svg class="icon-nav" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+        <span class="sidebar-nav-text">時間割</span>
+      </button>
+      <button onclick="location.href='/notice'" class="sidebar-nav-button" title="お知らせ">
+        <svg class="icon-nav" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9"/></svg>
+        <span class="sidebar-nav-text">お知らせ</span>
+      </button>
+      
+      <!-- リンク集のページなので、ここをactiveにする -->
+      <button onclick="location.href='/link'" class="sidebar-nav-button" title="リンク">
+        <svg class="icon-nav" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13.828 10.172a4 4 0 00-5.656 0l-4 4a4 4 0 105.656 5.656l1.102-1.101m-.758-4.899a4 4 0 005.656 0l4-4a4 4 0 00-5.656-5.656l-1.1 1.1"/></svg>
+        <span class="sidebar-nav-text">リンク</span>
+      </button>
+      
+      <button onclick="location.href='/calendar'" class="sidebar-nav-button" title="カレンダー">
+        <svg class="icon-nav" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"/></svg>
+        <span class="sidebar-nav-text">カレンダー</span>
+      </button>
+      <button onclick="location.href='/classroom'" class="sidebar-nav-button" title="Classroom">
+        <svg class="icon-nav" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10"/></svg>
+        <span class="sidebar-nav-text">Classroom</span>
+      </button>
+      <button onclick="location.href='/chat'" class="sidebar-nav-button" title="チャット" style="margin-top: 0.25rem;">
+        <svg class="icon-nav" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z"/></svg>
+        <span class="sidebar-nav-text">チャット</span>
+      </button>
+
+      <div class="sidebar-nav-divider">
+        <a href="/privacy-noauth" class="sidebar-nav-button active" title="プライバシーポリシー">
+          <svg class="icon-nav" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z"/></svg>
+          <span class="sidebar-nav-text">プライバシーポリシー</span>
+        </a>
+        <a href="/terms-noauth" class="sidebar-nav-button" title="利用規約">
+          <svg class="icon-nav" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/></svg>
+          <span class="sidebar-nav-text">利用規約</span>
+        </a>
+      </div>
+
+      <a href="/report" class="sidebar-nav-button" title="報告" style="margin-top: auto; margin-bottom: 1rem;">
+        <svg class="icon-nav" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"/></svg>
+        <span class="sidebar-nav-text">報告</span>
+      </a>
+    </nav>
+
+    <div class="sidebar-footer">
+      
+      <div id="account-popup-menu" class="account-popup-menu">
+        <div class="user-info-header" style="padding: 0.5rem 0.75rem; border-bottom: 1px solid var(--color-border); margin-bottom: 0.5rem;">
+          <img id="popup-user-avatar" src="https://via.placeholder.com/40?text=U" alt="User Avatar" class="popup-user-avatar" onerror="this.src='https://via.placeholder.com/40?text=U'" />
+          <div class="user-info-text">
+            <span id="popup-user-name" style="display: block; font-weight: 600; color: var(--color-text-primary); font-size: 0.875rem;" class="truncate">読み込み中...</span>
+            <span id="popup-user-email" style="display: block; font-size: 0.75rem; color: var(--color-text-muted); margin-top: 0.125rem;" class="truncate">読み込み中...</span>
+          </div>
+        </div>
+
+        <button onclick="handleAdminSettings()" class="account-popup-item">
+          <svg class="icon-sm" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z"/><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/></svg>
+          管理者設定
+        </button>
+        <button onclick="handlePersonalSettings()" class="account-popup-item">
+          <svg class="icon-sm" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"/></svg>
+          個人用設定
+        </button>
+        
+        <button class="account-popup-item toggle-row" onclick="toggleTheme()">
+          <div class="flex items-center gap-2">
+            <svg class="icon-sm" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 3v1m0 16v1m9-9h-1M4 12H3m15.364 6.364l-.707-.707M6.343 6.343l-.707-.707m12.728 0l-.707.707M6.343 17.657l-.707.707M16 12a4 4 0 11-8 0 4 4 0 018 0z"/></svg>
+            表示切替
+          </div>
+          <div class="toggle-switch" id="theme-toggle-switch">
+            <div class="toggle-circle"></div>
+          </div>
+        </button>
+
+        <div style="border-top: 1px solid var(--color-border); margin: 0.25rem 0;"></div>
+        <a href="/logout" class="account-popup-item text-red">
+          <svg class="icon-sm" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1"/></svg>
+          ログアウト
+        </a>
+      </div>
+
+      <div id="sidebar-user-toggle" class="sidebar-user-row" onclick="toggleAccountMenu(event)" title="ユーザーメニュー">
+        <img id="sidebar-user-avatar" src="https://via.placeholder.com/40?text=U" alt="Avatar" class="sidebar-avatar-image" onerror="this.src='https://via.placeholder.com/40?text=U'" />
+        <div class="flex-1 min-w-0 sidebar-user-info">
+          <p id="sidebar-user-id" class="text-xs sidebar-user-id-text truncate">読み込み中...</p>
+          <p id="sidebar-user-name" class="text-sm truncate sidebar-user-name-text">読み込み中...</p>
+        </div>
+      </div>
+    </div>
+  </aside>
+
+  <div class="app-main">
+    <header class="mobile-topbar">
+      <div class="flex items-center gap-2" onclick="location.href='/index'" style="cursor: pointer;">
+        <div class="logo-badge logo-badge--mobile">
+          <img src="/logo.webp" alt="Logo" class="logo-badge-img" onerror="this.style.display='none'; this.nextElementSibling.style.display='inline';" />
+          <span class="logo-badge-emoji" style="display:none;">🏫</span>
+        </div>
+        <h1 class="font-bold text-sm mobile-brand-name">並木中等教育学校18回生</h1>
+      </div>
+      <div class="flex items-center gap-3">
+        <button onclick="toggleTheme()" style="background:none; border:none; cursor:pointer; color:var(--color-text-secondary);" title="モード切替">
+          <svg class="icon-sm" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 3v1m0 16v1m9-9h-1M4 12H3m15.364 6.364l-.707-.707M6.343 6.343l-.707-.707m12.728 0l-.707.707M6.343 17.657l-.707.707M16 12a4 4 0 11-8 0 4 4 0 018 0z"/></svg>
+        </button>
+        <img id="mobile-user-avatar" src="https://placehold.co/32x32/333/fff?text=U" class="mobile-avatar-image" />
+      </div>
+    </header>
+
+    <div class="mobile-tab-bar">
+      <!-- 修正: 重複していた active クラスを削除 -->
+      <button onclick="switchTab('home')" id="mobile-nav-home" class="mobile-nav-button">ホーム</button>
+      <button onclick="switchTab('schedule')" id="mobile-nav-schedule" class="mobile-nav-button">時間割</button>
+      <button onclick="switchTab('notices')" id="mobile-nav-notices" class="mobile-nav-button">お知らせ</button>
+      <button onclick="switchTab('links')" id="mobile-nav-links" class="mobile-nav-button">リンク</button>
+      <button onclick="switchTab('calendar')" id="mobile-nav-calendar" class="mobile-nav-button">カレンダー</button>
+      <button onclick="switchTab('chat')" id="mobile-nav-chat" class="mobile-nav-button">チャット</button>
+      <button onclick="switchTab('report')" id="mobile-nav-report" class="mobile-nav-button">報告</button>
+    </div>
+
+    <main class="content-area">
+      <div class="app-card content-card">
+        <h2 class="content-card-title">プライバシーポリシー</h2>
+        <p class="content-card-subtitle">本ポータルサイトにおける個人情報の取扱いおよびセキュリティ方針について規定しています。</p>
+        
+        <div style="font-size: 0.875rem; color: var(--color-text-body); line-height: 1.7; margin-top: 1rem;">
+          <p>「並木中等教育学校18回生ポータルサイト」（以下、「当サイト」といいます。）は、利用者のプライバシーを尊重し、個人情報の保護と適切な管理に努めます。</p>
+
+          <div class="policy-section">
+            <h3>1. 収集する情報</h3>
+            <p>当サイトでは、Google OAuth2 等の認証連携を利用してログインを行う際、以下の情報を自動的に取得します。</p>
+            <ul>
+              <li>氏名（表示名）</li>
+              <li>メールアドレス</li>
+              <li>プロフィール画像（アイコン）</li>
+              <li>学籍番号・クラス情報（アカウント照合に使用）</li>
+            </ul>
+            <p>※当サイトが利用者のGoogleアカウント等のパスワードを取得・保存することは一切ありません。</p>
+          </div>
+
+          <div class="policy-section">
+            <h3>2. 個人情報の利用目的</h3>
+            <p>取得した個人情報は、以下の目的でのみ利用します。</p>
+            <ul>
+              <li>利用者認証および本人確認</li>
+              <li>当サイトにおけるクラス・学年機能（お知らせ、時間割、チャット等）の提供</li>
+              <li>不正アクセスや違反行為の防止および安全な運用管理</li>
+            </ul>
+          </div>
+
+
+          <div class="policy-section">
+            <h3>3. データの安全管理と暗号化</h3>
+            <p>当サイトは、利用者の個人情報およびメッセージデータを保護するため、以下の安全対策を導入しています。</p>
+            <ul>
+              <li><strong>データ暗号化：</strong> 登録されている名簿データおよびチャットメッセージは、AES-256-GCMと呼ばれる極めて強力な暗号化方式を用いて厳重に保護されています。</li>
+              <li><strong>通信の保護：</strong> 全ての通信は暗号化（HTTPS/TLS）を通じて行われます。</li>
+              <li><strong>ドメイン制限による防御：</strong> ドメイン制限をかけ、特定のドメインのGoogleアカウントのみのアクセスを許可しています。</li>
+              <li><strong>不正アクセス・IDOR対策：</strong> 利用者が他者のダイレクトメッセージや権限のないデータに不正アクセスできないよう、サーバー内部で厳格な権限チェック（認可制御）を実施し、安全なアクセスのみを許可しています。</li>
+              <li><strong>悪意あるスクリプトの遮断（XSS対策）：</strong> CSP（Content Security Policy）と呼ばれる強力なセキュリティ方式により、マルウェアや不正なスクリプトの実行を無効化します。</li>
+              <li><strong>DoS攻撃・スパム対策：</strong> 短時間に集中する不正な連続アクセスやシステムへの過負荷攻撃を防ぐため、アクセス頻度の上限設定（レートリミット）を導入し、自動的に遮断しています。</li>
+              <li><strong>タイミング攻撃対策：</strong> 処理時間の微小な差から秘密情報が推測されることを防ぐため、専用の安全な照合処理を採用し、高度なサイバー攻撃を防止しています。</li>
+              <li><strong>入力データの無害化と検証：</strong> 不正な形式や過剰なデータ量によるシステムの誤作動を防ぐため、送信される全てのデータに対して厳密な入力チェックを実施しています。</li>
+              <li><strong>セッションとCookieの保護：</strong> 不正なログイン状態の偽装を防ぐため、安全な通信でのみCookieを送信し、悪意あるサイトからの操作を防ぐ仕組み（SameSite属性等）を導入しています。</li>
+              <li><strong>不正な外部リクエストの遮断（CORS制限）：</strong> 許可されていない外部サイトからの不正な通信（API呼び出し）を遮断する制限を設け、システムの安全性を高めています。</li>
+            </ul>
+          </div>
+
+          <div class="policy-section">
+            <h3>4. チャットデータの管理とアクセス制限</h3>
+            <p>チャット機能で送信されたデータは暗号化して保存されます。原則として第三者に公開されることはありませんが、システムセキュリティの保持や不正行為調査等の正当な理由がある場合、管理者が適切かつ必要最小限の範囲で確認を行うことがあります。</p>
+          </div>
+
+          <div class="policy-section">
+            <h3>5. 第三者への提供の禁止</h3>
+            <p>当サイトは、法令に基づく場合を除き、利用者の同意を得ることなく個人情報を第三者に提供・開示することはありません。</p>
+          </div>
+
+          <div class="policy-section">
+            <h3>6. プライバシーポリシーの改定</h3>
+            <p>当サイトは、法令の改正や運用の変更に応じて、本プライバシーポリシーを適宜見直し、改定することがあります。改定後の内容は、当サイト上に掲載した時点より効力を生じるものとします。</p>
+          </div>
+
+          <div class="policy-section" style="margin-top: 2rem; border-top: 1px solid var(--color-border); padding-top: 1rem;">
+            <p><strong>【お問い合わせ窓口】</strong></p>
+            <p>本ポリシーに関するご質問やご報告は、サイドバーの「報告」フォームまたはサイト管理者までご連絡ください。</p>
+            <p style="font-size: 0.75rem; color: var(--color-text-muted); margin-top: 0.5rem;">制定日: 2026年4月1日<br>最終改定日: 2026年8月19日</p>
+          </div>
+        </div>
+      </div>
+
+      <footer class="site-footer">
+        <p>&copy; 2026 Taichi Kimura. All rights reserved.</p>
+        <div class="footer-links">
+          <a href="/privacy-noauth" class="footer-link">プライバシーポリシー</a>
+          <a href="/terms-noauth" class="footer-link">利用規約</a>
+          <a href="https://github.com/Namiki-18th/Namiki-18th.github.io" target="_blank" class="footer-link">
+            <svg class="icon-sm" fill="currentColor" viewBox="0 0 24 24"><path fill-rule="evenodd" clip-rule="evenodd" d="M12 2C6.477 2 2 6.484 2 12.017c0 4.425 2.865 8.18 6.839 9.504.5.092.682-.217.682-.483 0-.237-.008-.868-.013-1.703-2.782.605-3.369-1.343-3.369-1.343-.454-1.158-1.11-1.466-1.11-1.466-.908-.62.069-.608.069-.608 1.003.07 1.53 1.032 1.53 1.032.892 1.53 2.341 1.088 2.91.832.092-.647.35-1.088.636-1.338-2.22-.253-4.555-1.113-4.555-4.951 0-1.093.39-1.988 1.029-2.688-.103-.253-.446-1.272.098-2.65 0 0 .84-.27 2.75 1.026A9.564 9.564 0 0112 6.844c.85.004 1.705.115 2.504.337 1.909-1.296 2.747-1.027 2.747-1.027.546 1.379.202 2.398.1 2.651.64.7 1.028 1.595 1.028 2.688 0 3.848-2.339 4.695-4.566 4.943.359.309.678.92.678 1.855 0 1.338-.012 2.419-.012 2.747 0 .268.18.58.688.482A10.019 10.019 0 0022 12.017C22 6.84 17.522 2 12 2z"/></svg>
+            GitHub
+          </a>
+        </div>
+      </footer>
+    </main>
+  </div>
+
+  <script>
+    // ユーザープロフィールの取得と表示
+    async function fetchUserProfile() {
+      try {
+        const res = await fetch('/api/profile');
+        if (res.status === 401) {
+          if (!window.location.pathname.includes('-noauth')) {
+            window.location.href = '/login';
+            return;
+          }
+        }
+        
+        let p;
+        if (res.ok) {
+          p = await res.json();
+        } else {
+          p = { name: '並木 太郎', email: 'namiki.taro@example.com', id: '180001', picture: '' };
+        }
+
+        const studentIdText = (p.id && p.id !== 'Unknown') ? p.id : '学籍番号未設定';
+        const idEl = document.getElementById('sidebar-user-id');
+        if (idEl) idEl.textContent = `学籍番号: ${studentIdText}`;
+        
+        const nameEl = document.getElementById('sidebar-user-name');
+        if (nameEl) nameEl.textContent = p.name || 'ユーザー';
+        
+        const popupName = document.getElementById('popup-user-name');
+        if (popupName) popupName.textContent = p.name || 'ユーザー';
+
+        const popupEmail = document.getElementById('popup-user-email');
+        if (popupEmail) popupEmail.textContent = p.email || 'メールアドレス未設定';
+
+        if (p.picture && p.picture !== 'admin.png') {
+          const sidebarAvatar = document.getElementById('sidebar-user-avatar');
+          const mobileAvatar = document.getElementById('mobile-user-avatar');
+          if (sidebarAvatar) sidebarAvatar.src = p.picture;
+          if (mobileAvatar) mobileAvatar.src = p.picture;
+        }
+      } catch (err) {
+        console.error('プロフィール取得エラー:', err);
+      }
+    }
+
+    // アカウントポップアップの制御
+    function toggleAccountMenu(event) {
+      if (event) event.stopPropagation();
+      const menu = document.getElementById('account-popup-menu');
+      if (menu) menu.classList.toggle('show');
+    }
+
+    document.addEventListener('click', (event) => {
+      const menu = document.getElementById('account-popup-menu');
+      const toggleBtn = document.getElementById('sidebar-user-toggle');
+      if (menu && menu.classList.contains('show')) {
+        if (!menu.contains(event.target) && !toggleBtn.contains(event.target)) {
+          menu.classList.remove('show');
+        }
+      }
+    });
+
+    // テーマ制御
+    function initThemeToggle() {
+      const toggleSwitch = document.getElementById('theme-toggle-switch');
+      if (toggleSwitch) {
+        if (document.documentElement.classList.contains('dark')) {
+          toggleSwitch.classList.add('on');
+        } else {
+          toggleSwitch.classList.remove('on');
+        }
+      }
+    }
+
+    function toggleTheme() {
+      const htmlEl = document.documentElement;
+      const toggleSwitch = document.getElementById('theme-toggle-switch');
+      
+      if (htmlEl.classList.contains('dark')) {
+        htmlEl.classList.remove('dark');
+        htmlEl.classList.add('light');
+        localStorage.setItem('namiki-theme', 'light');
+        if (toggleSwitch) toggleSwitch.classList.remove('on');
+      } else {
+        htmlEl.classList.remove('light');
+        htmlEl.classList.add('dark');
+        localStorage.setItem('namiki-theme', 'dark');
+        if (toggleSwitch) toggleSwitch.classList.add('on');
+      }
+    }
+
+    function handleAdminSettings() { window.location.href = '/admin'; }
+    function handlePersonalSettings() { alert('個人用設定は開発中です。'); }
+
+    // タブ切り替え処理（修正: ページ内に対象セクションがない場合、/index へリダイレクト）
+    function switchTab(tabId) {
+      const routes = {
+        home: '/index',
+        schedule: '/schedule',
+        notices: '/notice',
+        links: '/link',
+        calendar: '/calendar',
+        classroom: '/classroom',
+        chat: '/chat',
+        report: '/report'
+      };
+      const targetContent = document.getElementById(`page-${tabId}`);
+      if (!targetContent) {
+        window.location.href = routes[tabId] || '/index';
+        return;
+      }
+
+      document.querySelectorAll('.page-section').forEach(el => el.classList.add('hidden'));
+      document.querySelectorAll('.sidebar-nav-button').forEach(btn => btn.classList.remove('active'));
+      document.querySelectorAll('.mobile-nav-button').forEach(btn => btn.classList.remove('active'));
+
+      targetContent.classList.remove('hidden');
+
+      const targetBtnPC = document.getElementById(`sidebar-nav-${tabId}`);
+      if (targetBtnPC) targetBtnPC.classList.add('active');
+
+      const targetBtnM = document.getElementById(`mobile-nav-${tabId}`);
+      if (targetBtnM) {
+        targetBtnM.classList.add('active');
+        targetBtnM.scrollIntoView({ behavior: 'smooth', block: 'nearest', inline: 'center' });
+      }
+    }
+
+    window.addEventListener('DOMContentLoaded', () => {
+      fetchUserProfile();
+      initThemeToggle();
+    });
+  </script>
+</body>
+</html>

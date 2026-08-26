@@ -1,0 +1,546 @@
+<!DOCTYPE html>
+<html lang="ja" class="dark">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>ダッシュボード - 並木中等教育学校18回生</title>
+  <link rel="stylesheet" href="style.css">
+  <link rel="icon" href="favicon.ico" type="image/x-icon">
+  <link rel="icon" href="favicon.png" type="image/png" sizes="256x256">
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" />
+  
+  <style nonce="%%CSP_NONCE%%">
+    /* CSS崩れの補正・インライン調整 */
+    .user-info-header {
+      display: flex;
+      align-items: center;
+      gap: 0.75rem;
+    }
+    .popup-user-avatar {
+      width: 2.25rem;
+      height: 2.25rem;
+      border-radius: 9999px;
+      object-fit: cover;
+      border: 1px solid var(--color-border);
+      flex-shrink: 0;
+    }
+    .user-info-text {
+      flex: 1;
+      min-width: 0;
+    }
+    .sidebar-avatar-image,
+    .mobile-avatar-image {
+      object-fit: cover;
+      border-radius: 9999px;
+    }
+
+    /* 💡CSP対応: style属性をやめてクラス化したユーティリティ */
+    .cursor-pointer { cursor: pointer; }
+    .u-hidden { display: none; }
+    .mt-quarter-rem { margin-top: 0.25rem; }
+    .nav-report-btn { margin-top: auto; margin-bottom: 1rem; }
+    .popup-user-info-header {
+      padding: 0.5rem 0.75rem;
+      border-bottom: 1px solid var(--color-border);
+      margin-bottom: 0.5rem;
+    }
+    .popup-user-name {
+      display: block;
+      font-weight: 600;
+      color: var(--color-text-primary);
+      font-size: 0.875rem;
+    }
+    .popup-user-email {
+      display: block;
+      font-size: 0.75rem;
+      color: var(--color-text-muted);
+      margin-top: 0.125rem;
+    }
+    .popup-divider {
+      border-top: 1px solid var(--color-border);
+      margin: 0.25rem 0;
+    }
+    .theme-toggle-btn {
+      background: none;
+      border: none;
+      cursor: pointer;
+      color: var(--color-text-secondary);
+    }
+
+    /* スマホ対応（レスポンシブデザイン）の保証 */
+    @media (max-width: 767px) {
+      .sidebar { display: none !important; }
+      .mobile-topbar { display: flex !important; position: sticky; top: 0; z-index: 50; }
+      .mobile-tab-bar { display: flex !important; position: fixed; bottom: 0; width: 100%; z-index: 50; }
+      .app-main { padding-bottom: 70px; /* 下部タブバー用の余白 */ }
+    }
+    @media (min-width: 768px) {
+      .mobile-topbar { display: none !important; }
+      .mobile-tab-bar { display: none !important; }
+    }
+  </style>
+
+  <script nonce="%%CSP_NONCE%%">
+    (function() {
+      const savedTheme = localStorage.getItem('namiki-theme');
+      if (savedTheme === 'light') {
+        document.documentElement.classList.remove('dark');
+        document.documentElement.classList.add('light');
+      } else {
+        document.documentElement.classList.remove('light');
+        document.documentElement.classList.add('dark');
+      }
+    })();
+  </script>
+</head>
+<body>
+  <!-- PC用サイドメニュー -->
+  <aside class="sidebar">
+    <div class="sidebar-header cursor-pointer" data-href="/index">
+      <div class="flex items-center gap-3">
+        <div class="logo-badge">
+          <img src="/logo.webp" alt="Logo" class="logo-badge-img" />
+          <span class="logo-badge-emoji u-hidden">🏫</span>
+        </div>
+        <h1 class="font-bold text-sm sidebar-brand-name sidebar-brand-text">
+          並木中等教育学校18回生<br>
+          <span class="text-xs font-normal sidebar-brand-tagline">ダッシュボード</span>
+        </h1>
+      </div>
+    </div>
+
+    <nav class="sidebar-nav">
+      <button data-href="/index" class="sidebar-nav-button active" title="ホーム">
+        <svg class="icon-nav" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6"/></svg>
+        <span class="sidebar-nav-text">ホーム</span>
+      </button>
+      <button data-href="/schedule" class="sidebar-nav-button" title="時間割">
+        <svg class="icon-nav" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+        <span class="sidebar-nav-text">時間割</span>
+      </button>
+      <button data-href="/notice" class="sidebar-nav-button" title="お知らせ">
+        <svg class="icon-nav" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9"/></svg>
+        <span class="sidebar-nav-text">お知らせ</span>
+      </button>
+      <button data-href="/link" class="sidebar-nav-button" title="リンク">
+        <svg class="icon-nav" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13.828 10.172a4 4 0 00-5.656 0l-4 4a4 4 0 105.656 5.656l1.102-1.101m-.758-4.899a4 4 0 005.656 0l4-4a4 4 0 00-5.656-5.656l-1.1 1.1"/></svg>
+        <span class="sidebar-nav-text">リンク</span>
+      </button>
+      <button data-href="/calendar" class="sidebar-nav-button" title="カレンダー">
+        <svg class="icon-nav" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"/></svg>
+        <span class="sidebar-nav-text">カレンダー</span>
+      </button>
+      <button data-href="/classroom" class="sidebar-nav-button" title="Classroom">
+        <svg class="icon-nav" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10"/></svg>
+        <span class="sidebar-nav-text">Classroom</span>
+      </button>
+      <button data-href="/chat" class="sidebar-nav-button mt-quarter-rem" title="チャット">
+        <svg class="icon-nav" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z"/></svg>
+        <span class="sidebar-nav-text">チャット</span>
+      </button>
+
+      <div class="sidebar-nav-divider">
+        <a href="/privacy" class="sidebar-nav-button" title="プライバシーポリシー">
+          <svg class="icon-nav" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z"/></svg>
+          <span class="sidebar-nav-text">プライバシーポリシー</span>
+        </a>
+        <a href="/terms" class="sidebar-nav-button" title="利用規約">
+          <svg class="icon-nav" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/></svg>
+          <span class="sidebar-nav-text">利用規約</span>
+        </a>
+      </div>
+
+      <a href="/report" class="sidebar-nav-button nav-report-btn" title="報告">
+        <svg class="icon-nav" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"/></svg>
+        <span class="sidebar-nav-text">報告</span>
+      </a>
+    </nav>
+
+    <div class="sidebar-footer">
+      <div id="account-popup-menu" class="account-popup-menu">
+        <div class="user-info-header popup-user-info-header">
+          <img id="popup-user-avatar" src="https://via.placeholder.com/40?text=U" alt="User Avatar" class="popup-user-avatar" />
+          <div class="user-info-text">
+            <span id="popup-user-name" class="popup-user-name truncate">読み込み中...</span>
+            <span id="popup-user-email" class="popup-user-email truncate">読み込み中...</span>
+          </div>
+        </div>
+
+        <button id="btn-admin-settings" class="account-popup-item">
+          <svg class="icon-sm" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z"/><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/></svg>
+          管理者設定
+        </button>
+        <button id="btn-personal-settings" class="account-popup-item">
+          <svg class="icon-sm" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"/></svg>
+          個人用設定
+        </button>
+        
+        <button class="account-popup-item toggle-row theme-toggle-btn">
+          <div class="flex items-center gap-2">
+            <svg class="icon-sm" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 3v1m0 16v1m9-9h-1M4 12H3m15.364 6.364l-.707-.707M6.343 6.343l-.707-.707m12.728 0l-.707.707M6.343 17.657l-.707.707M16 12a4 4 0 11-8 0 4 4 0 018 0z"/></svg>
+            表示切替
+          </div>
+          <div class="toggle-switch" id="theme-toggle-switch">
+            <div class="toggle-circle"></div>
+          </div>
+        </button>
+
+        <div class="popup-divider"></div>
+        <a href="/logout" class="account-popup-item text-red">
+          <svg class="icon-sm" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1"/></svg>
+          ログアウト
+        </a>
+      </div>
+
+      <div id="sidebar-user-toggle" class="sidebar-user-row" title="ユーザーメニュー">
+        <img id="sidebar-user-avatar" src="https://via.placeholder.com/40?text=U" alt="Avatar" class="sidebar-avatar-image" />
+        <div class="flex-1 min-w-0 sidebar-user-info">
+          <p id="sidebar-user-id" class="text-xs sidebar-user-id-text truncate">読み込み中...</p>
+          <p id="sidebar-user-name" class="text-sm truncate sidebar-user-name-text">読み込み中...</p>
+        </div>
+      </div>
+    </div>
+  </aside>
+
+  <div class="app-main">
+    <!-- スマホ用上部ヘッダー -->
+    <header class="mobile-topbar">
+      <div class="flex items-center gap-2 cursor-pointer" data-href="/index">
+        <div class="logo-badge logo-badge--mobile">
+          <img src="/logo.webp" alt="Logo" class="logo-badge-img" />
+        </div>
+        <h1 class="font-bold text-sm mobile-brand-name">並木中等教育学校18回生</h1>
+      </div>
+      <div class="flex items-center gap-3">
+        <button class="theme-toggle-btn" title="モード切替">
+          <svg class="icon-sm" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 3v1m0 16v1m9-9h-1M4 12H3m15.364 6.364l-.707-.707M6.343 6.343l-.707-.707m12.728 0l-.707.707M6.343 17.657l-.707.707M16 12a4 4 0 11-8 0 4 4 0 018 0z"/></svg>
+        </button>
+        <img id="mobile-user-avatar" src="https://via.placeholder.com/32?text=U" alt="Avatar" class="mobile-avatar-image" />
+      </div>
+    </header>
+
+    <!-- スマホ用下部タブバー（data-tab から data-href に変更） -->
+    <div class="mobile-tab-bar">
+      <button data-href="/index" class="mobile-nav-button active">ホーム</button>
+      <button data-href="/schedule" class="mobile-nav-button">時間割</button>
+      <button data-href="/notice" class="mobile-nav-button">お知らせ</button>
+      <button data-href="/link" class="mobile-nav-button">リンク</button>
+      <button data-href="/calendar" class="mobile-nav-button">カレンダ</button>
+      <button data-href="/chat" class="mobile-nav-button">チャット</button>
+    </div>
+
+    <!-- ダッシュボードのメインコンテンツ -->
+    <main class="content-area">
+      <div id="page-home" class="page-section fade-in space-y-6">
+        <div class="welcome-banner">
+          <div class="welcome-banner-glow"></div>
+          <div class="welcome-banner-row">
+            <div>
+              <p id="dashboard-date-display" class="welcome-date-text">日付を読み込んでいます...</p>
+              <h2 id="dashboard-welcome-heading" class="welcome-heading-text">ようこそ、ダッシュボードへ</h2>
+            </div>
+            <button data-href="/schedule" class="button-primary">
+              📅 今日の時間割を見る
+            </button>
+          </div>
+        </div>
+
+        <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+          <div class="lg:col-span-2 space-y-6">
+            <!-- 最新のお知らせ -->
+            <div class="app-card">
+              <div class="card-header-row">
+                <h3 class="card-title"><span class="card-icon--yellow">🔔</span> 最新のお知らせ</h3>
+                <button data-href="/notice" class="card-link-button">すべて見る &rarr;</button>
+              </div>
+              <div id="dashboard-notices-list" class="space-y-3">
+                <div class="skeleton-loader-row">
+                  <div class="flex-1 space-y-3">
+                    <div class="skeleton-bar skeleton-bar--lg"></div>
+                    <div class="skeleton-bar skeleton-bar--sm"></div>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <!-- 本日のハイライト（時間割） -->
+            <div class="app-card">
+              <div class="card-header-row">
+                <h3 class="card-title"><span class="card-icon--green">📅</span> 本日のハイライト</h3>
+                <button data-href="/schedule" class="card-link-button">詳細 &rarr;</button>
+              </div>
+              <div id="dashboard-schedule-highlights" class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                <div class="placeholder-text">読み込み中...</div>
+              </div>
+            </div>
+          </div>
+
+          <div class="space-y-6">
+            <!-- クイックリンク -->
+            <div class="app-card">
+              <div class="card-header-row">
+                <h3 class="card-title"><span class="card-icon--purple">🔗</span> クイックリンク</h3>
+              </div>
+              <div id="dashboard-quicklinks-list" class="space-y-2">
+                <div class="placeholder-text">読み込み中...</div>
+              </div>
+            </div>
+
+            <!-- システムステータス -->
+            <div class="app-card status-card">
+              <h3 class="status-card-title">システムステータス</h3>
+              <div class="space-y-3">
+                <div class="status-row">
+                  <span class="status-label">認証状態</span>
+                  <span class="status-badge-ok">正常 (Active)</span>
+                </div>
+                <div class="status-row">
+                  <span class="status-label">所属クラス</span>
+                  <span id="dashboard-user-class" class="status-value">読込中</span>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <footer class="site-footer">
+        <p>&copy; 2026 Taichi Kimura. All rights reserved.</p>
+        <div class="footer-links">
+          <a href="/privacy" class="footer-link">プライバシーポリシー</a>
+          <a href="/terms" class="footer-link">利用規約</a>
+          <a href="https://github.com/Namiki-18th/Namiki-18th.github.io" target="_blank" class="footer-link">
+            GitHub
+          </a>
+        </div>
+      </footer>
+    </main>
+  </div>
+
+  <script nonce="%%CSP_NONCE%%">
+    let globalData = {
+      profile: null,
+      schedule: [],
+      notices: [],
+      links: []
+    };
+
+    function escapeHtml(str) {
+      if (!str) return '';
+      return String(str)
+        .replace(/&/g, "&amp;")
+        .replace(/</g, "&lt;")
+        .replace(/>/g, "&gt;")
+        .replace(/"/g, "&quot;")
+        .replace(/'/g, "&#039;");
+    }
+
+    // アカウントメニューの開閉
+    function toggleAccountMenu(event) {
+      if (event) event.stopPropagation();
+      const menu = document.getElementById('account-popup-menu');
+      if (menu) menu.classList.toggle('show');
+    }
+
+    // メニュー外クリックで閉じる
+    document.addEventListener('click', (event) => {
+      const menu = document.getElementById('account-popup-menu');
+      const toggleBtn = document.getElementById('sidebar-user-toggle');
+      if (menu && menu.classList.contains('show')) {
+        if (!menu.contains(event.target) && (!toggleBtn || !toggleBtn.contains(event.target))) {
+          menu.classList.remove('show');
+        }
+      }
+    });
+
+    // テーマ切り替え設定
+    function initThemeToggle() {
+      const toggleSwitch = document.getElementById('theme-toggle-switch');
+      if(toggleSwitch) {
+        if (document.documentElement.classList.contains('dark')) {
+          toggleSwitch.classList.add('on');
+        } else {
+          toggleSwitch.classList.remove('on');
+        }
+      }
+    }
+
+    function toggleTheme() {
+      const htmlEl = document.documentElement;
+      const toggleSwitch = document.getElementById('theme-toggle-switch');
+      
+      if (htmlEl.classList.contains('dark')) {
+        htmlEl.classList.remove('dark');
+        htmlEl.classList.add('light');
+        localStorage.setItem('namiki-theme', 'light');
+        if (toggleSwitch) toggleSwitch.classList.remove('on');
+      } else {
+        htmlEl.classList.remove('light');
+        htmlEl.classList.add('dark');
+        localStorage.setItem('namiki-theme', 'dark');
+        if (toggleSwitch) toggleSwitch.classList.add('on');
+      }
+    }
+
+    function handleAdminSettings() { window.location.href = '/admin'; }
+    function handlePersonalSettings() { alert('個人用設定は開発中です。'); }
+
+    // 今日の日付を表示
+    function initDateStr() {
+      const now = new Date();
+      const options = { year: 'numeric', month: 'long', day: 'numeric', weekday: 'long' };
+      document.getElementById('dashboard-date-display').textContent = now.toLocaleDateString('ja-JP', options);
+    }
+
+    // データの読み込み
+    async function loadDashboardData() {
+      try {
+        const [profileRes, scheduleRes, noticesRes, linksRes] = await Promise.all([
+          fetch('/api/profile').catch(() => ({ ok: false })),
+          fetch('/api/schedule').catch(() => ({ ok: false })),
+          fetch('/api/notices').catch(() => ({ ok: false })),
+          fetch('/api/links').catch(() => ({ ok: false }))
+        ]);
+
+        if (profileRes.status === 401) {
+          window.location.href = '/login';
+          return;
+        }
+
+        if (profileRes.ok) globalData.profile = await profileRes.json();
+        else globalData.profile = { name: '並木 太郎', email: 'namiki.taro@example.com', id: '180001', role: 'student', userClass: '3-A', picture: '' };
+
+        if (scheduleRes.ok) globalData.schedule = await scheduleRes.json();
+        else globalData.schedule = [
+          { id: 1, day: '月', time: '9:00-9:50', subject: '数学特講', room: 'A-102', teacher: '田中先生' },
+          { id: 2, day: '月', time: '10:00-10:50', subject: '英語表現', room: 'A-103', teacher: 'Smith先生' }
+        ];
+
+        if (noticesRes.ok) globalData.notices = await noticesRes.json();
+        else globalData.notices = [
+          { id: 1, title: 'システムメンテナンスのお知らせ', date: '2026-08-20', content: 'テスト', priority: 'high' }
+        ];
+
+        if (linksRes.ok) globalData.links = await linksRes.json();
+        else globalData.links = [
+          { id: 1, name: 'Google Classroom', url: 'https://classroom.google.com' }
+        ];
+
+        renderDashboard();
+      } catch (err) {
+        console.error('データ取得エラー:', err);
+      }
+    }
+
+    // ダッシュボードへの描画
+    function renderDashboard() {
+      // プロフィールの描画
+      if (globalData.profile) {
+        const p = globalData.profile;
+        document.getElementById('sidebar-user-id').textContent = (p.id && p.id !== 'Unknown') ? p.id : '学籍番号未設定';
+        document.getElementById('sidebar-user-name').textContent = p.name || 'ユーザー';
+        
+        if (document.getElementById('popup-user-name')) document.getElementById('popup-user-name').textContent = p.name || 'ユーザー';
+        if (document.getElementById('popup-user-email')) document.getElementById('popup-user-email').textContent = p.email || '未設定';
+
+        const userAvatar = (p.picture && p.picture !== 'admin.png') ? p.picture : `https://via.placeholder.com/40/3b82f6/ffffff?text=${encodeURIComponent(p.name ? p.name.charAt(0) : 'U')}`;
+        
+        if (document.getElementById('sidebar-user-avatar')) document.getElementById('sidebar-user-avatar').src = userAvatar;
+        if (document.getElementById('mobile-user-avatar')) document.getElementById('mobile-user-avatar').src = userAvatar;
+        if (document.getElementById('popup-user-avatar')) document.getElementById('popup-user-avatar').src = userAvatar;
+
+        document.getElementById('dashboard-welcome-heading').textContent = `ようこそ、${p.name || 'ユーザー'} さん`;
+        document.getElementById('dashboard-user-class').textContent = p.userClass || '未設定';
+      }
+
+      // お知らせの描画
+      const homeNotices = document.getElementById('dashboard-notices-list');
+      homeNotices.innerHTML = globalData.notices.slice(0, 3).map(n => `
+        <div class="notice-item">
+          <div class="notice-item-icon">${n.priority === 'high' ? '🔴' : '🔵'}</div>
+          <div>
+            <div class="notice-item-title">${escapeHtml(n.title)}</div>
+            <div class="notice-item-date">${escapeHtml(n.date)}</div>
+          </div>
+        </div>
+      `).join('');
+
+      // クイックリンクの描画
+      const homeLinks = document.getElementById('dashboard-quicklinks-list');
+      homeLinks.innerHTML = globalData.links.slice(0, 4).map(l => `
+        <a href="${escapeHtml(l.url)}" target="_blank" class="quicklink-item">
+          <span>${escapeHtml(l.name)}</span>
+          <svg class="quicklink-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14"/></svg>
+        </a>
+      `).join('');
+
+      // 今日の時間割（月曜日で仮固定）
+      const homeContainer = document.getElementById('dashboard-schedule-highlights');
+      const todaySchedule = globalData.schedule.filter(s => s.day === '月');
+      
+      if (todaySchedule.length === 0) {
+        homeContainer.innerHTML = `<div class="placeholder-text">データがありません</div>`;
+      } else {
+        homeContainer.innerHTML = todaySchedule.slice(0, 4).map(item => `
+          <div class="schedule-highlight-item">
+            <div class="schedule-highlight-period">${item.id}限</div>
+            <div class="min-w-0">
+              <div class="schedule-highlight-subject truncate">${escapeHtml(item.subject)}</div>
+              <div class="schedule-highlight-room truncate">${escapeHtml(item.room)} (${escapeHtml(item.time)})</div>
+            </div>
+          </div>
+        `).join('');
+      }
+    }
+
+    // 初期化とイベントの司令塔
+    document.addEventListener('DOMContentLoaded', () => {
+      initDateStr();
+      initThemeToggle();
+      loadDashboardData();
+
+      // クリックイベントの委譲
+      document.addEventListener('click', (e) => {
+        // --- 画面遷移 (PCサイドバー & スマホ下部タブ) ---
+        const hrefTarget = e.target.closest('[data-href]');
+        if (hrefTarget) {
+          window.location.href = hrefTarget.getAttribute('data-href');
+          return;
+        }
+
+        // --- 各種ボタンの処理 ---
+        if (e.target.closest('.theme-toggle-btn')) {
+          toggleTheme();
+          return;
+        }
+        if (e.target.closest('#sidebar-user-toggle')) {
+          toggleAccountMenu(e);
+          return;
+        }
+        if (e.target.closest('#btn-admin-settings')) {
+          handleAdminSettings();
+          return;
+        }
+        if (e.target.closest('#btn-personal-settings')) {
+          handlePersonalSettings();
+          return;
+        }
+      });
+
+      // 画像エラー時の代替処理
+      document.addEventListener('error', (e) => {
+        if (e.target.tagName && e.target.tagName.toLowerCase() === 'img') {
+          if (e.target.classList.contains('logo-badge-img')) {
+            e.target.style.display = 'none';
+            if (e.target.nextElementSibling) {
+              e.target.nextElementSibling.style.display = 'inline';
+            }
+          } else {
+            e.target.src = 'https://via.placeholder.com/40?text=U';
+          }
+        }
+      }, true);
+    });
+  </script>
+</body>
+</html>

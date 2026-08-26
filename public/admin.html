@@ -1,0 +1,796 @@
+<!DOCTYPE html>
+<html lang="ja" class="dark">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  
+  <!-- CSP設定: 'unsafe-inline' は使用せず、サーバーが発行するnonceでインラインscript/styleのみ許可しています -->
+  <!-- style属性は使用せず、全てnonce付きstyleタグ内のCSSクラスとして定義しています -->
+  
+  <title>管理者パネル - 並木中等教育学校18回生</title>
+  <link rel="stylesheet" href="style.css">
+  <link rel="icon" href="favicon.ico" type="image/x-icon">
+  <link rel="icon" href="favicon.png" type="image/png" sizes="256x256">
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" />
+  <style nonce="%%CSP_NONCE%%">
+    .gen-93b8ea { display:none; }
+    .gen-fd5985 { padding: 0.5rem 0.75rem; border-bottom: 1px solid var(--color-border); margin-bottom: 0.5rem; }
+    .gen-073e36 { display: block; font-weight: 600; color: var(--color-text-primary); font-size: 0.875rem; }
+    .gen-c8c1bd { display: block; font-size: 0.75rem; color: var(--color-text-muted); margin-top: 0.125rem; }
+    .gen-08cddd { border-top: 1px solid var(--color-border); margin: 0.25rem 0; }
+    .gen-24b531 { cursor: pointer; }
+    .gen-ca678e { background:none; border:none; cursor:pointer; color:var(--color-text-secondary); }
+    .gen-91f0da { width: 100%; border-collapse: collapse; }
+    .gen-886808 { border-bottom: 1px solid var(--color-border); }
+    .gen-9e227a { padding: 0.75rem; text-align: left; }
+    .gen-36239d { padding: 0.75rem; text-align: right; }
+    .gen-c590b8 { padding: 1rem; text-align: center; }
+    .gen-114f3e { display:block; font-size:0.875rem; color:var(--color-text-secondary); margin-bottom:0.5rem; }
+    .gen-07e2e8 { width:100%; padding:0.75rem; background:var(--color-bg); border:1px solid var(--color-border); border-radius:0.5rem; color:var(--color-text-primary); }
+    .gen-a8f441 { display:grid; grid-template-columns: 1fr 1fr; gap:1rem; }
+    .gen-78427c { margin-top:1rem; }
+    .gen-09cbfd { margin-bottom:1rem; }
+    .gen-07ea9a { margin-top:1rem; padding:1rem; background:var(--color-bg); border:1px solid var(--color-border); border-radius:0.5rem; font-size:0.75rem; color:var(--color-text-secondary); overflow-x:auto; }
+    .gen-98f9c9 { margin-top:1rem; padding-bottom: 1rem; border-bottom: 1px solid var(--color-border); }
+    .gen-5f3073 { display:flex; align-items:center; gap:0.5rem; cursor:pointer; }
+    .gen-5c41db { transform: scale(1.2); }
+    .gen-0e0434 { font-size:0.875rem; font-weight:600; }
+    .gen-988c5f { margin-top: 1rem; }
+    .gen-628c88 { font-size:0.95rem; font-weight:600; color:var(--color-text-primary); }
+    .gen-f89a84 { display:block; font-size:0.875rem; color:var(--color-text-secondary); margin-bottom:0.25rem; }
+    .gen-623cbe { width:100%; padding:0.6rem; background:var(--color-bg); border:1px solid var(--color-border); border-radius:0.375rem; color:var(--color-text-primary); }
+    .gen-d92c17 { padding: 0.5rem 1rem; font-size: 0.85rem; }
+    .gen-93a5df { display:flex; justify-content:space-between; align-items:center; margin-bottom:1rem; }
+    .gen-e2b6ce { padding:0.4rem 0.8rem; font-size:0.8rem; }
+    .gen-3eac61 { width:100%; text-align:left; border-collapse:collapse; }
+    .gen-ec0641 { border-bottom:1px solid var(--color-border); font-size:0.85rem; color:var(--color-text-secondary); }
+    .gen-6f9be4 { padding:0.75rem; }
+    .gen-b30001 { font-size:0.85rem; }
+    .gen-cfedb1 { padding:1rem; text-align:center; }
+    .gen-dbd0ea { color:var(--color-accent-red); padding:1rem; text-align:center; }
+    .gen-765905 { display:flex; align-items:center; gap:0.75rem; padding: 0.75rem; }
+    .gen-44afae { width:2rem; height:2rem; border-radius:50%; object-fit:cover; }
+    .gen-16f6b7 { font-weight:600; color:var(--color-text-primary); font-size:0.875rem; }
+    .gen-dd5fdf { font-size:0.75rem; color:var(--color-text-muted); font-family:monospace; }
+    .gen-756cf3 { padding: 0.75rem; }
+    .gen-d51363 { padding:0.35rem 0.5rem; background:var(--color-bg); border:1px solid var(--color-border); border-radius:0.375rem; color:var(--color-text-primary); font-size:0.85rem; }
+    .gen-22a4ad { text-align:right; padding: 0.75rem; }
+    .gen-795a98 { padding:0.35rem 0.75rem; font-size:0.75rem; }
+    .gen-4ccb56 { border-bottom:1px solid var(--color-border); }
+    .gen-300fcd { padding:0.75rem; white-space:nowrap; color:var(--color-text-secondary); }
+    .gen-891c24 { background:var(--color-bg); border:1px solid var(--color-border); padding:0.2rem 0.5rem; border-radius:4px; font-size:0.75rem; }
+    .gen-c60936 { padding:0.75rem; color:var(--color-text-primary); }
+    .gen-fbd1b5 { padding:0.75rem; font-family:monospace; color:var(--color-text-muted); }
+    .gen-916915 { padding:0.75rem; color:var(--color-text-secondary); }
+    .gen-15c61f { display:flex; justify-content:space-between; align-items:center; padding: 0.75rem; border-bottom: 1px solid var(--color-border); }
+    .gen-a369a6 { font-size:0.75rem; color:var(--color-text-muted); }
+    .gen-ef046d { font-weight:600; color:var(--color-text-primary); font-size:0.95rem; }
+    .gen-ef0939 { color:var(--color-accent-red); background:none; border:none; cursor:pointer; font-size:0.875rem; }
+  </style>
+  <script src="/socket.io/socket.io.js" nonce="%%CSP_NONCE%%"></script>
+  
+  <script nonce="%%CSP_NONCE%%">
+    (function() {
+      const savedTheme = localStorage.getItem('namiki-theme');
+      if (savedTheme === 'light') {
+        document.documentElement.classList.remove('dark');
+        document.documentElement.classList.add('light');
+      } else {
+        document.documentElement.classList.remove('light');
+        document.documentElement.classList.add('dark');
+      }
+    })();
+  </script>
+</head>
+<body>
+
+  <!-- サイドバー -->
+  <aside class="sidebar">
+    <div class="sidebar-header" id="sidebar-header">
+      <div class="flex items-center gap-3">
+        <div class="logo-badge">
+          <img src="/logo.webp" alt="Logo" class="logo-badge-img" id="sidebar-logo" />
+          <span class="logo-badge-emoji gen-93b8ea" id="sidebar-logo-fallback">⚙️</span>
+        </div>
+        <h1 class="font-bold text-sm sidebar-brand-name sidebar-brand-text">
+          管理者パネル<br>
+          <span class="text-xs font-normal sidebar-brand-tagline">システム管理・各種更新</span>
+        </h1>
+      </div>
+    </div>
+
+    <nav class="sidebar-nav">
+      <button id="sidebar-nav-users" class="sidebar-nav-button active admin-tab-btn" data-tab="users" title="ユーザー管理">
+        <svg class="icon-nav" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z" /></svg>
+        <span class="sidebar-nav-text">ユーザー管理</span>
+      </button>
+      <button id="sidebar-nav-notices" class="sidebar-nav-button admin-tab-btn" data-tab="notices" title="お知らせ投稿">
+        <svg class="icon-nav" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5.882V19.24a1.76 1.76 0 01-3.417.592l-2.147-6.15M18 13a3 3 0 100-6M5.436 13.683A4.001 4.001 0 017 6h1.832c.41 0 .789.24 1.002.618L12.5 12.5" /></svg>
+        <span class="sidebar-nav-text">お知らせ配信</span>
+      </button>
+      <button id="sidebar-nav-schedule" class="sidebar-nav-button admin-tab-btn" data-tab="schedule" title="時間割管理">
+        <svg class="icon-nav" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" /></svg>
+        <span class="sidebar-nav-text">時間割・行事管理</span>
+      </button>
+      <button id="sidebar-nav-system" class="sidebar-nav-button admin-tab-btn" data-tab="system" title="システム状態">
+        <svg class="icon-nav" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z" /></svg>
+        <span class="sidebar-nav-text">システム連携</span>
+      </button>
+      <button id="sidebar-nav-logs" class="sidebar-nav-button admin-tab-btn" data-tab="logs" title="アクセスログ">
+        <svg class="icon-nav" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" /></svg>
+        <span class="sidebar-nav-text">アクセスログ</span>
+      </button>
+
+      <div class="sidebar-nav-divider">
+        <a href="/index" class="sidebar-nav-button">
+          <svg class="icon-nav" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 15l-3-3m0 0l3-3m-3 3h8M3 12a9 9 0 1118 0 9 9 0 01-18 0z" /></svg>
+          <span class="sidebar-nav-text">ダッシュボードへ戻る</span>
+        </a>
+      </div>
+    </nav>
+
+    <div class="sidebar-footer">
+      <div id="account-popup-menu" class="account-popup-menu">
+        <div class="user-info-header gen-fd5985">
+          <span id="popup-user-name" class="gen-073e36">管理者</span>
+          <span id="popup-user-email" class="gen-c8c1bd">認証確認中...</span>
+        </div>
+        <button class="account-popup-item toggle-row theme-toggle-btn">
+          <div class="flex items-center gap-2">
+            <svg class="icon-sm" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 3v1m0 16v1m9-9h-1M4 12H3m15.364 6.364l-.707-.707M6.343 6.343l-.707-.707m12.728 0l-.707.707M6.343 17.657l-.707.707M16 12a4 4 0 11-8 0 4 4 0 018 0z" /></svg>
+            表示切替
+          </div>
+          <div class="toggle-switch" id="theme-toggle-switch">
+            <div class="toggle-circle"></div>
+          </div>
+        </button>
+        <div class="gen-08cddd"></div>
+        <a href="/logout" class="account-popup-item text-red">
+          <svg class="icon-sm" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" /></svg>
+          ログアウト
+        </a>
+      </div>
+
+      <div id="sidebar-user-toggle" class="sidebar-user-row">
+        <img id="sidebar-user-avatar" src="https://placehold.co/40x40/333/fff?text=A" alt="Avatar" class="sidebar-avatar-image" />
+        <div class="flex-1 min-w-0 sidebar-user-info">
+          <p id="sidebar-user-id" class="text-xs sidebar-user-id-text truncate">Admin</p>
+          <p id="sidebar-user-name" class="text-sm truncate sidebar-user-name-text">管理者</p>
+        </div>
+      </div>
+    </div>
+  </aside>
+
+  <!-- メインコンテンツ -->
+  <div class="app-main">
+    <header class="mobile-topbar">
+      <div class="flex items-center gap-2 gen-24b531" id="mobile-header-brand">
+        <h1 class="font-bold text-sm mobile-brand-name">⚙️ 管理者コントロール</h1>
+      </div>
+      <div class="flex items-center gap-3">
+        <button class="theme-toggle-btn gen-ca678e">
+          <svg class="icon-sm" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 3v1m0 16v1m9-9h-1M4 12H3m15.364 6.364l-.707-.707M6.343 6.343l-.707-.707m12.728 0l-.707.707M6.343 17.657l-.707.707M16 12a4 4 0 11-8 0 4 4 0 018 0z" /></svg>
+        </button>
+      </div>
+    </header>
+
+    <div class="mobile-tab-bar">
+      <button id="mobile-nav-users" class="mobile-nav-button active admin-tab-btn" data-tab="users">ユーザー</button>
+      <button id="mobile-nav-notices" class="mobile-nav-button admin-tab-btn" data-tab="notices">お知らせ</button>
+      <button id="mobile-nav-schedule" class="mobile-nav-button admin-tab-btn" data-tab="schedule">時間割</button>
+      <button id="mobile-nav-system" class="mobile-nav-button admin-tab-btn" data-tab="system">システム</button>
+      <button id="mobile-nav-logs" class="mobile-nav-button admin-tab-btn" data-tab="logs">ログ</button>
+    </div>
+
+    <main class="content-area">
+      <!-- 1. ユーザー管理セクション -->
+      <div id="page-users" class="page-section fade-in space-y-6">
+        <div class="welcome-banner">
+          <div class="welcome-banner-glow"></div>
+          <div class="welcome-banner-row">
+            <div>
+              <p class="welcome-date-text">User Authorization & Class Control</p>
+              <h2 class="welcome-heading-text">ユーザー権限・クラス・アカウント設定</h2>
+            </div>
+            <button id="btn-save-all-settings" class="button-primary">
+              💾 全ユーザーの一括保存
+            </button>
+          </div>
+        </div>
+
+        <div class="app-card overflow-x-auto">
+          <table class="gen-91f0da">
+            <thead>
+              <tr class="gen-886808">
+                <th class="gen-9e227a">ユーザー名 / Email</th>
+                <th class="gen-9e227a">所属クラス</th>
+                <th class="gen-9e227a">権限</th>
+                <th class="gen-9e227a">アカウント状態</th>
+                <th class="gen-36239d">操作</th>
+              </tr>
+            </thead>
+            <tbody id="admin-user-table">
+              <tr><td colspan="5" class="placeholder-text gen-c590b8">ユーザーデータを読み込んでいます...</td></tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      <!-- 2. お知らせ作成・管理セクション -->
+      <div id="page-notices" class="page-section hidden fade-in space-y-6">
+        <div class="app-card content-card">
+          <h2 class="content-card-title">📢 お知らせの新規配信</h2>
+          <p class="content-card-subtitle">ダッシュボードおよびClassroom連携タブへ即座に反映されます。</p>
+          <form id="form-notice" class="space-y-4">
+            <div>
+              <label class="gen-114f3e">タイトル</label>
+              <input type="text" id="notice-title" required placeholder="例: 定期テストの範囲発表" class="gen-07e2e8" />
+            </div>
+            <div class="gen-a8f441">
+              <div>
+                <label class="gen-114f3e">優先度</label>
+                <select id="notice-priority" class="gen-07e2e8">
+                  <option value="normal">通常 (Normal)</option>
+                  <option value="high">重要 (High)</option>
+                </select>
+              </div>
+              <div>
+                <label class="gen-114f3e">タイプ / アイコン</label>
+                <select id="notice-type" class="gen-07e2e8">
+                  <option value="announcement">📢 お知らせ</option>
+                  <option value="courseWork">📝 課題</option>
+                  <option value="material">📚 資料・添付</option>
+                </select>
+              </div>
+            </div>
+            <div>
+              <label class="gen-114f3e">本文内容</label>
+              <textarea id="notice-content" rows="4" required placeholder="お知らせの詳しい本文を入力してください..." class="gen-07e2e8"></textarea>
+            </div>
+            <button type="submit" class="button-primary">配信・投稿する</button>
+          </form>
+        </div>
+
+        <div class="app-card content-card">
+          <h2 class="content-card-title">配信済みお知らせ一覧</h2>
+          <div id="admin-notices-list" class="space-y-3 gen-78427c">
+            <div class="placeholder-text">読み込み中...</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- 3. 時間割・スケジュール設定 -->
+      <div id="page-schedule" class="page-section hidden fade-in space-y-6">
+        <div class="app-card content-card">
+          <h2 class="content-card-title">📅 時間割データ管理</h2>
+          <p class="content-card-subtitle">曜日ごとの授業予定を一発更新します。</p>
+          <div class="placeholder-text">時間割データ編集インターフェース（API連動可能）</div>
+        </div>
+      </div>
+
+      <!-- 4. システム状態・メンテナンスモード -->
+      <div id="page-system" class="page-section hidden fade-in space-y-6">
+        <div class="app-card status-card">
+          <h3 class="status-card-title">Google Classroom / GAS 同期連携設定</h3>
+          <p class="content-card-subtitle gen-09cbfd">External API & Webhook URL: <code>/api/classroom</code></p>
+          <button id="btn-trigger-sync" class="button-primary">
+            🔄 テスト用同期リクエストを送信
+          </button>
+          <pre id="admin-sync-log" class="gen-07ea9a">ログ待ち...</pre>
+        </div>
+        
+        <!-- メンテナンスモード & 文言設定 フォーム -->
+        <div class="app-card status-card">
+          <h3 class="status-card-title">🛠 メンテナンスモード & 表示設定</h3>
+          <p class="content-card-subtitle">有効にすると、管理者以外の一般ユーザーはすべて /offline に転送されます。</p>
+          
+          <div class="gen-98f9c9">
+            <label class="gen-5f3073">
+              <input type="checkbox" id="maintenance-toggle" class="gen-5c41db">
+              <span class="gen-0e0434">メンテナンスモードを有効にする</span>
+            </label>
+          </div>
+
+          <form id="form-offline-config" class="space-y-4 gen-988c5f">
+            <h4 class="gen-628c88">offline.html 表示内容の設定</h4>
+            
+            <div>
+              <label class="gen-f89a84">メインタイトル (H1)</label>
+              <input type="text" id="offline-title-input" placeholder="例: Maintenance" class="gen-623cbe" />
+            </div>
+
+            <div>
+              <label class="gen-f89a84">サブタイトル (H2)</label>
+              <input type="text" id="offline-subtitle-input" placeholder="例: 只今システムメンテナンス中です" class="gen-623cbe" />
+            </div>
+
+            <div>
+              <label class="gen-f89a84">案内メッセージ (HTMLタグ可)</label>
+              <textarea id="offline-message-input" rows="4" placeholder="説明文を入力してください..." class="gen-623cbe"></textarea>
+            </div>
+
+            <div>
+              <label class="gen-f89a84">復旧予定日時 (未定の場合は空欄)</label>
+              <input type="text" id="offline-recovery-input" placeholder="例: 2026年8月22日 18:00頃" class="gen-623cbe" />
+            </div>
+
+            <button type="submit" class="button-primary gen-d92c17">
+              💾 表示内容を更新する
+            </button>
+          </form>
+        </div>
+      </div>
+
+      <!-- 5. アクセスログセクション -->
+      <div id="page-logs" class="page-section hidden fade-in space-y-6">
+        <div class="app-card content-card">
+          <div class="gen-93a5df">
+            <div>
+              <h2 class="content-card-title">🔍 システムアクセスログ</h2>
+              <p class="content-card-subtitle">直近の操作・アクセス履歴を表示します（最大1000件）。</p>
+            </div>
+            <button id="btn-load-logs" class="button-primary gen-e2b6ce">
+              🔄 更新
+            </button>
+          </div>
+          <div class="overflow-x-auto">
+            <table class="gen-3eac61">
+              <thead>
+                <tr class="gen-ec0641">
+                  <th class="gen-6f9be4">日時</th>
+                  <th class="gen-6f9be4">アクション</th>
+                  <th class="gen-6f9be4">ユーザー(Email)</th>
+                  <th class="gen-6f9be4">IPアドレス</th>
+                  <th class="gen-6f9be4">詳細</th>
+                </tr>
+              </thead>
+              <tbody id="admin-logs-table" class="gen-b30001">
+                <tr><td colspan="5" class="placeholder-text gen-cfedb1">ログを読み込んでいます...</td></tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+
+      <footer class="site-footer">
+        <p>&copy; 2026 学校生活ダッシュボード 管理者システム</p>
+      </footer>
+    </main>
+  </div>
+
+  <script nonce="%%CSP_NONCE%%">
+    let usersData = [];
+
+    // イベントリスナーの登録処理
+    document.addEventListener('DOMContentLoaded', () => {
+      // ヘッダー・ロゴクリック
+      document.getElementById('sidebar-header').addEventListener('click', () => location.href = '/index');
+      document.getElementById('mobile-header-brand').addEventListener('click', () => location.href = '/index');
+
+      // ロゴエラー時のフォールバック処理
+      const logoImg = document.getElementById('sidebar-logo');
+      if (logoImg) {
+        logoImg.addEventListener('error', function() {
+          this.style.display = 'none';
+          document.getElementById('sidebar-logo-fallback').style.display = 'inline';
+        });
+      }
+
+      // タブ切り替え
+      document.querySelectorAll('.admin-tab-btn').forEach(btn => {
+        btn.addEventListener('click', (e) => {
+          const tabId = e.currentTarget.getAttribute('data-tab');
+          switchAdminTab(tabId);
+        });
+      });
+
+      // テーマ切り替え
+      document.querySelectorAll('.theme-toggle-btn').forEach(btn => {
+        btn.addEventListener('click', toggleTheme);
+      });
+
+      // アカウントメニュー
+      const userToggle = document.getElementById('sidebar-user-toggle');
+      if (userToggle) {
+        userToggle.addEventListener('click', toggleAccountMenu);
+      }
+
+      // 各種ボタン・フォームアクション
+      document.getElementById('btn-save-all-settings')?.addEventListener('click', saveAllSettings);
+      document.getElementById('form-notice')?.addEventListener('submit', handleNoticeSubmit);
+      document.getElementById('btn-trigger-sync')?.addEventListener('click', triggerAdminClassroomSync);
+      document.getElementById('form-offline-config')?.addEventListener('submit', saveOfflineConfig);
+      document.getElementById('btn-load-logs')?.addEventListener('click', loadAdminLogs);
+
+      const maintenanceToggle = document.getElementById('maintenance-toggle');
+      if (maintenanceToggle) {
+        maintenanceToggle.addEventListener('change', (e) => toggleMaintenanceMode(e.target.checked));
+      }
+
+      // 動的生成されるボタン用デリゲーション（ユーザー管理）
+      const adminUserTable = document.getElementById('admin-user-table');
+      if (adminUserTable) {
+        adminUserTable.addEventListener('click', (e) => {
+          if (e.target.classList.contains('save-user-btn')) {
+            const email = e.target.getAttribute('data-email');
+            saveUser(email);
+          }
+        });
+      }
+
+      // 動的生成されるボタン用デリゲーション（お知らせ管理）
+      const adminNoticesList = document.getElementById('admin-notices-list');
+      if (adminNoticesList) {
+        adminNoticesList.addEventListener('click', (e) => {
+          if (e.target.classList.contains('delete-notice-btn')) {
+            const id = e.target.getAttribute('data-id');
+            deleteNotice(id);
+          }
+        });
+      }
+
+      // 初期化処理
+      checkAdminAuthAndLoad();
+      loadSystemSettings(); 
+      
+      const savedTheme = localStorage.getItem('namiki-theme');
+      if (savedTheme === 'light') {
+        document.getElementById('theme-toggle-switch')?.classList.remove('on');
+      } else {
+        document.getElementById('theme-toggle-switch')?.classList.add('on');
+      }
+    });
+
+    function switchAdminTab(tabId) {
+      document.querySelectorAll('.page-section').forEach(el => el.classList.add('hidden'));
+      document.querySelectorAll('.sidebar-nav-button').forEach(btn => btn.classList.remove('active'));
+      document.querySelectorAll('.mobile-nav-button').forEach(btn => btn.classList.remove('active'));
+
+      const pageEl = document.getElementById(`page-${tabId}`);
+      if (pageEl) pageEl.classList.remove('hidden');
+      
+      const sidebarNav = document.getElementById(`sidebar-nav-${tabId}`);
+      if (sidebarNav) sidebarNav.classList.add('active');
+      
+      const mobileNav = document.getElementById(`mobile-nav-${tabId}`);
+      if (mobileNav) mobileNav.classList.add('active');
+
+      if (tabId === 'notices') loadAdminNotices();
+      if (tabId === 'logs') loadAdminLogs();
+    }
+
+    function toggleAccountMenu(event) {
+      if (event) event.stopPropagation();
+      document.getElementById('account-popup-menu')?.classList.toggle('show');
+    }
+
+    function toggleTheme() {
+      const htmlEl = document.documentElement;
+      const toggleSwitch = document.getElementById('theme-toggle-switch');
+      if (htmlEl.classList.contains('dark')) {
+        htmlEl.classList.remove('dark');
+        htmlEl.classList.add('light');
+        localStorage.setItem('namiki-theme', 'light');
+        toggleSwitch?.classList.remove('on');
+      } else {
+        htmlEl.classList.remove('light');
+        htmlEl.classList.add('dark');
+        localStorage.setItem('namiki-theme', 'dark');
+        toggleSwitch?.classList.add('on');
+      }
+    }
+
+    async function checkAdminAuthAndLoad() {
+      try {
+        const res = await fetch('/api/profile');
+        if (!res.ok) throw new Error('未認証');
+        const profile = await res.json();
+        
+        if (!profile || profile.role !== 'admin') {
+          alert('管理者権限がありません。');
+          window.location.href = '/index';
+          return;
+        }
+
+        document.getElementById('sidebar-user-name').textContent = profile.name;
+        document.getElementById('popup-user-name').textContent = profile.name;
+        document.getElementById('popup-user-email').textContent = profile.email;
+        if (profile.picture && profile.picture !== 'admin.png') {
+          document.getElementById('sidebar-user-avatar').src = profile.picture;
+        }
+
+        loadAdminData();
+      } catch (err) {
+        window.location.href = '/login';
+      }
+    }
+
+    async function loadAdminData() {
+      try {
+        const res = await fetch('/api/admin/users');
+        if (!res.ok) throw new Error('ユーザー一覧取得失敗');
+        usersData = await res.json();
+        renderAdminTable();
+      } catch (err) {
+        document.getElementById('admin-user-table').innerHTML = `
+          <tr><td colspan="5" class="placeholder-text gen-dbd0ea">データの読み込みに失敗しました。</td></tr>
+        `;
+      }
+    }
+
+    function renderAdminTable() {
+      const tbody = document.getElementById('admin-user-table');
+      if (!usersData.length) {
+        tbody.innerHTML = `<tr><td colspan="5" class="placeholder-text gen-cfedb1">登録ユーザーが存在しません。</td></tr>`;
+        return;
+      }
+
+      tbody.innerHTML = usersData.map(u => {
+        const encodedEmail = encodeURIComponent(u.email);
+        const currentClass = u.userClass || 'A組';
+        const currentStatus = u.status || 'active';
+        
+        return `
+          <tr class="gen-886808">
+            <td class="gen-765905">
+              <img src="${escapeHtml(u.picture || 'https://placehold.co/32x32/333/fff?text=U')}" class="gen-44afae">
+              <div>
+                <div class="gen-16f6b7">${escapeHtml(u.name)}</div>
+                <div class="gen-dd5fdf">${escapeHtml(u.email)}</div>
+              </div>
+            </td>
+            <td class="gen-756cf3">
+              <select id="class-${encodedEmail}" class="gen-d51363">
+                <option value="管理者" ${currentClass === '管理者' ? 'selected' : ''}>管理者</option>
+                <option value="A組" ${currentClass === 'A組' ? 'selected' : ''}>A組</option>
+                <option value="B組" ${currentClass === 'B組' ? 'selected' : ''}>B組</option>
+                <option value="C組" ${currentClass === 'C組' ? 'selected' : ''}>C組</option>
+                <option value="D組" ${currentClass === 'D組' ? 'selected' : ''}>D組</option>
+              </select>
+            </td>
+            <td class="gen-756cf3">
+              <select id="role-${encodedEmail}" class="gen-d51363">
+                <option value="student" ${u.role === 'student' ? 'selected' : ''}>生徒</option>
+                <option value="admin" ${u.role === 'admin' ? 'selected' : ''}>管理者</option>
+              </select>
+            </td>
+            <td class="gen-756cf3">
+              <select id="status-${encodedEmail}" class="gen-d51363">
+                <option value="active" ${currentStatus === 'active' ? 'selected' : ''}>🟢 有効</option>
+                <option value="suspended" ${currentStatus === 'suspended' ? 'selected' : ''}>🔴 停止</option>
+              </select>
+            </td>
+            <td class="gen-22a4ad">
+              <button data-email="${encodedEmail}" class="button-primary save-user-btn gen-795a98">更新</button>
+            </td>
+          </tr>
+        `;
+      }).join('');
+    }
+
+    async function loadAdminLogs() {
+      const tbody = document.getElementById('admin-logs-table');
+      try {
+        tbody.innerHTML = '<tr><td colspan="5" class="placeholder-text gen-cfedb1">読み込み中...</td></tr>';
+        const res = await fetch('/api/admin/logs');
+        if (!res.ok) throw new Error('ログの取得に失敗しました');
+        const logs = await res.json();
+        
+        if (!logs.length) {
+          tbody.innerHTML = '<tr><td colspan="5" class="placeholder-text gen-cfedb1">ログデータがありません。</td></tr>';
+          return;
+        }
+
+        tbody.innerHTML = logs.map(l => {
+          const date = new Date(l.timestamp).toLocaleString('ja-JP');
+          return `
+            <tr class="gen-4ccb56">
+              <td class="gen-300fcd">${date}</td>
+              <td class="gen-6f9be4">
+                <span class="gen-891c24">
+                  ${escapeHtml(l.action)}
+                </span>
+              </td>
+              <td class="gen-c60936">${escapeHtml(l.email)}</td>
+              <td class="gen-fbd1b5">${escapeHtml(l.ip)}</td>
+              <td class="gen-916915">${escapeHtml(l.details || '-')}</td>
+            </tr>
+          `;
+        }).join('');
+      } catch (err) {
+        tbody.innerHTML = `<tr><td colspan="5" class="placeholder-text gen-dbd0ea">ログの読み込みに失敗しました。</td></tr>`;
+      }
+    }
+
+    async function loadSystemSettings() {
+      try {
+        const res = await fetch('/api/offline/config');
+        if (res.ok) {
+          const data = await res.json();
+          document.getElementById('maintenance-toggle').checked = !!data.maintenanceMode;
+          
+          if (data.config) {
+            document.getElementById('offline-title-input').value = data.config.title || '';
+            document.getElementById('offline-subtitle-input').value = data.config.subtitle || '';
+            document.getElementById('offline-message-input').value = data.config.message || '';
+            document.getElementById('offline-recovery-input').value = data.config.recoveryTime || '';
+          }
+        }
+      } catch (err) {
+        console.error('設定の読み込みに失敗しました', err);
+      }
+    }
+
+    async function toggleMaintenanceMode(enabled) {
+      if(!confirm(`メンテナンスモードを${enabled ? '有効' : '無効'}にしますか？`)) {
+        document.getElementById('maintenance-toggle').checked = !enabled;
+        return;
+      }
+      try {
+        const res = await fetch('/api/admin/settings/maintenance', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ enabled })
+        });
+        if (res.ok) {
+          alert('設定を更新しました。');
+        } else {
+          throw new Error('更新失敗');
+        }
+      } catch (err) {
+        alert('通信エラーが発生しました。');
+        document.getElementById('maintenance-toggle').checked = !enabled;
+      }
+    }
+
+    async function saveOfflineConfig(e) {
+      e.preventDefault();
+      const title = document.getElementById('offline-title-input').value;
+      const subtitle = document.getElementById('offline-subtitle-input').value;
+      const message = document.getElementById('offline-message-input').value;
+      const recoveryTime = document.getElementById('offline-recovery-input').value;
+
+      try {
+        const res = await fetch('/api/admin/settings/offline', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ title, subtitle, message, recoveryTime })
+        });
+        
+        if (res.ok) {
+          alert('offline.html の表示文言を更新しました！');
+        } else {
+          alert('更新に失敗しました。');
+        }
+      } catch (err) {
+        alert('通信エラーが発生しました。');
+      }
+    }
+
+    async function saveUser(encodedEmail) {
+      const newClass = document.getElementById(`class-${encodedEmail}`).value;
+      const newRole = document.getElementById(`role-${encodedEmail}`).value;
+      const newStatus = document.getElementById(`status-${encodedEmail}`).value;
+
+      try {
+        const res = await fetch(`/api/admin/user/${encodedEmail}`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ userClass: newClass, role: newRole, status: newStatus })
+        });
+        const data = await res.json();
+        if (res.ok && data.success) {
+          alert('設定を更新しました。');
+          loadAdminData();
+        } else {
+          alert('更新失敗: ' + (data.error || '不明なエラー'));
+        }
+      } catch (err) {
+        alert('通信エラーが発生しました。');
+      }
+    }
+
+    async function saveAllSettings() {
+      if (!confirm('全ユーザーの表示変更内容を保存しますか？')) return;
+      try {
+        for (const u of usersData) {
+          const encodedEmail = encodeURIComponent(u.email);
+          const newClass = document.getElementById(`class-${encodedEmail}`).value;
+          const newRole = document.getElementById(`role-${encodedEmail}`).value;
+          const newStatus = document.getElementById(`status-${encodedEmail}`).value;
+
+          await fetch(`/api/admin/user/${encodedEmail}`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ userClass: newClass, role: newRole, status: newStatus })
+          });
+        }
+        alert('すべてのユーザー設定を一括保存しました。');
+        loadAdminData();
+      } catch (err) {
+        alert('保存中にエラーが発生しました。');
+      }
+    }
+
+    async function handleNoticeSubmit(e) {
+      e.preventDefault();
+      const title = document.getElementById('notice-title').value;
+      const priority = document.getElementById('notice-priority').value;
+      const type = document.getElementById('notice-type').value;
+      const content = document.getElementById('notice-content').value;
+
+      try {
+        // [修正] 以前は /api/classroom（外部Webhook専用・{items:[...]}形式）に誤送信しており、
+        // 常に400エラーで失敗 & 保存先も notices.json とは別ファイルだったため一覧にも反映されなかった。
+        // 正しい /api/notices エンドポイントに、正しい形式で送信するよう修正。
+        const res = await fetch('/api/notices', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ title, priority, type, content, date: new Date().toISOString().split('T')[0] })
+        });
+        if (res.ok) {
+          alert('お知らせを配信しました！');
+          document.getElementById('notice-title').value = '';
+          document.getElementById('notice-content').value = '';
+          loadAdminNotices();
+        } else {
+          const errData = await res.json().catch(() => ({}));
+          alert(`配信失敗: ${errData.error || '不明なエラー'}`);
+        }
+      } catch (err) {
+        alert('送信エラー');
+      }
+    }
+
+    async function loadAdminNotices() {
+      try {
+        const res = await fetch('/api/notices');
+        const data = await res.json();
+        const list = document.getElementById('admin-notices-list');
+        if (!data.length) {
+          list.innerHTML = '<div class="placeholder-text gen-cfedb1">配信済みのお知らせはありません</div>';
+          return;
+        }
+        list.innerHTML = data.map(n => `
+          <div class="notice-card gen-15c61f">
+            <div>
+              <div class="gen-a369a6">${escapeHtml(n.date)} [${escapeHtml(n.priority)}]</div>
+              <div class="gen-ef046d">${escapeHtml(n.title)}</div>
+            </div>
+            <button data-id="${escapeHtml(n.id)}" class="delete-notice-btn gen-ef0939">削除</button>
+          </div>
+        `).join('');
+      } catch (err) {
+        console.error(err);
+      }
+    }
+
+    async function deleteNotice(id) {
+      if(!confirm('このお知らせを削除しますか？')) return;
+      try {
+        await fetch(`/api/notices/${id}`, { method: 'DELETE' });
+        loadAdminNotices();
+      } catch (e) {
+        alert('削除エラー');
+      }
+    }
+
+    async function triggerAdminClassroomSync() {
+      const log = document.getElementById('admin-sync-log');
+      log.textContent = '同期リクエスト実行中...';
+      try {
+        const res = await fetch('/api/notices');
+        const data = await res.json();
+        log.textContent = JSON.stringify({ status: "200 OK", timestamp: new Date().toISOString(), fetchedItems: data.length }, null, 2);
+      } catch(e) {
+        log.textContent = 'エラーが発生しました: ' + e.message;
+      }
+    }
+
+    function escapeHtml(str) {
+      if (!str) return '';
+      return String(str).replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;").replace(/'/g, "&#039;");
+    }
+  </script>
+</body>
+</html>
