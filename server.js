@@ -706,10 +706,53 @@ app.get(
   })
 );
 
-app.get('/api/classroom', ensureAuth, (req, res) => res.json(safeReadJSON(PATHS.CLASSROOM, [])));
-app.get('/api/calendar', ensureAuth, (req, res) => res.json(safeReadJSON(PATHS.EVENTS, [])));
-app.get('/api/schedule', ensureAuth, (req, res) => res.json(safeReadJSON(PATHS.SCHEDULE, {})));
-app.get('/api/links', ensureAuth, (req, res) => res.json(safeReadJSON(PATHS.LINKS, [])));
+app.get(
+  '/api/classroom',
+  ensureAuth,
+  asyncHandler(async (req, res) => {
+    if (isGithubConfigured()) {
+      const data = await getFileFromGithub('classroom.json', []);
+      return res.json(data);
+    }
+    res.json(safeReadJSON(PATHS.CLASSROOM, []));
+  })
+);
+
+app.get(
+  '/api/calendar',
+  ensureAuth,
+  asyncHandler(async (req, res) => {
+    if (isGithubConfigured()) {
+      const data = await getFileFromGithub('events.json', []);
+      return res.json(data);
+    }
+    res.json(safeReadJSON(PATHS.EVENTS, []));
+  })
+);
+
+app.get(
+  '/api/schedule',
+  ensureAuth,
+  asyncHandler(async (req, res) => {
+    if (isGithubConfigured()) {
+      const data = await getFileFromGithub('schedule.json', {});
+      return res.json(data);
+    }
+    res.json(safeReadJSON(PATHS.SCHEDULE, {}));
+  })
+);
+
+app.get(
+  '/api/links',
+  ensureAuth,
+  asyncHandler(async (req, res) => {
+    if (isGithubConfigured()) {
+      const data = await getFileFromGithub('links.json', []);
+      return res.json(data);
+    }
+    res.json(safeReadJSON(PATHS.LINKS, []));
+  })
+);
 
 app.post(
   '/api/classroom',
