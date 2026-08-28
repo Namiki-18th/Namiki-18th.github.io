@@ -25,18 +25,20 @@ try {
   console.log('[System] unlock.js は見つかりませんでした。標準設定で動作します。');
 }
 
-// GitHub Storage モジュールのフォールバック設計
+// GitHub Storage モジュールのフォールバック設計 (強制的に内部ストレージを使用)
 let githubStorage = {
   isGithubConfigured: () => false,
   getFileFromGithub: async (f, fallback) => fallback,
   uploadJsonToGithub: async () => {},
   appendLogToGithub: async () => {}
 };
+/* ここをコメントアウトしてGitHub連携モジュールを読み込まないようにする
 try {
   githubStorage = require('./githubStorage');
 } catch (e) {
   console.log('[System] githubStorage.js は見つかりませんでした。ローカルファイルストレージを使用します。');
 }
+*/
 const { isGithubConfigured, getFileFromGithub, uploadJsonToGithub, appendLogToGithub } = githubStorage;
 
 // 非同期ハンドラーラッパー
