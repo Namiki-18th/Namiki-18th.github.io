@@ -25,20 +25,18 @@ try {
   console.log('[System] unlock.js は見つかりませんでした。標準設定で動作します。');
 }
 
-// GitHub Storage モジュールのフォールバック設計 (強制的に内部ストレージを使用)
+// GitHub Storage モジュールのフォールバック設計
 let githubStorage = {
   isGithubConfigured: () => false,
   getFileFromGithub: async (f, fallback) => fallback,
   uploadJsonToGithub: async () => {},
   appendLogToGithub: async () => {}
 };
-/* ここをコメントアウトしてGitHub連携モジュールを読み込まないようにする
 try {
   githubStorage = require('./githubStorage');
 } catch (e) {
   console.log('[System] githubStorage.js は見つかりませんでした。ローカルファイルストレージを使用します。');
 }
-*/
 const { isGithubConfigured, getFileFromGithub, uploadJsonToGithub, appendLogToGithub } = githubStorage;
 
 // 非同期ハンドラーラッパー
@@ -297,10 +295,12 @@ let systemSettings = safeReadJSON(PATHS.SETTINGS, {
 
 let systemLogs = safeReadJSON(PATHS.LOGS, []);
 
-(async () => {
-  if (isGithubConfigured()) {
-    console.log('[GitHub Storage] Synchronizing initial data from GitHub...');
-    
+// --- [GitHub 同期処理 (起動時のみ)] ---
+async function syncWithGithub() {
+  if (!isGithubConfigured()) return;
+  console.log('[GitHub Storage] Synchronizing data from GitHub...');
+  
+  try {
     // システムログの同期
     const remoteLogs = await getFileFromGithub('logs.json', null);
     if (remoteLogs && Array.isArray(remoteLogs)) {
@@ -338,8 +338,15 @@ let systemLogs = safeReadJSON(PATHS.LOGS, []);
     }
     
     console.log('[GitHub Storage] Synchronization complete.');
+  } catch (error) {
+    console.error('[GitHub Storage] Synchronization failed:', error.message);
   }
-})();
+}
+
+// 起動時に初回同期を実行
+if (isGithubConfigured()) {
+  syncWithGithub();
+}
 
 // --- [ログ同期（Firebase バッファ -> GitHub アーカイブ）処理] ---
 async function flushLogsToGithub() {
@@ -696,65 +703,12 @@ app.get(['/offline', '/offline.html'], (req, res) => sendHtmlWithNonce(res, path
 // --- [API: 一般機能 & データ取得] ---
 app.get('/api/profile', ensureAuth, (req, res) => res.json(usersDB[req.user.email] || req.user));
 
-app.get(
-  '/api/notices',
-  ensureAuth,
-  asyncHandler(async (req, res) => {
-    if (isGithubConfigured()) {
-      const notices = await getFileFromGithub('notices.json', []);
-      return res.json(notices);
-    }
-    res.json(safeReadJSON(PATHS.NOTICES, []));
-  })
-);
-
-app.get(
-  '/api/classroom',
-  ensureAuth,
-  asyncHandler(async (req, res) => {
-    if (isGithubConfigured()) {
-      const data = await getFileFromGithub('classroom.json', []);
-      return res.json(data);
-    }
-    res.json(safeReadJSON(PATHS.CLASSROOM, []));
-  })
-);
-
-app.get(
-  '/api/calendar',
-  ensureAuth,
-  asyncHandler(async (req, res) => {
-    if (isGithubConfigured()) {
-      const data = await getFileFromGithub('events.json', []);
-      return res.json(data);
-    }
-    res.json(safeReadJSON(PATHS.EVENTS, []));
-  })
-);
-
-app.get(
-  '/api/schedule',
-  ensureAuth,
-  asyncHandler(async (req, res) => {
-    if (isGithubConfigured()) {
-      const data = await getFileFromGithub('schedule.json', {});
-      return res.json(data);
-    }
-    res.json(safeReadJSON(PATHS.SCHEDULE, {}));
-  })
-);
-
-app.get(
-  '/api/links',
-  ensureAuth,
-  asyncHandler(async (req, res) => {
-    if (isGithubConfigured()) {
-      const data = await getFileFromGithub('links.json', []);
-      return res.json(data);
-    }
-    res.json(safeReadJSON(PATHS.LINKS, []));
-  })
-);
+// 常にローカルストレージから応答させる形へ修正
+app.get('/api/notices', ensureAuth, (req, res) => res.json(safeReadJSON(PATHS.NOTICES, [])));
+app.get('/api/classroom', ensureAuth, (req, res) => res.json(safeReadJSON(PATHS.CLASSROOM, [])));
+app.get('/api/calendar', ensureAuth, (req, res) => res.json(safeReadJSON(PATHS.EVENTS, [])));
+app.get('/api/schedule', ensureAuth, (req, res) => res.json(safeReadJSON(PATHS.SCHEDULE, {})));
+app.get('/api/links', ensureAuth, (req, res) => res.json(safeReadJSON(PATHS.LINKS, [])));
 
 app.post(
   '/api/classroom',
@@ -801,9 +755,7 @@ app.post(
     const safePriority = ALLOWED_NOTICE_PRIORITIES.includes(priority) ? priority : 'normal';
     const safeDate = typeof date === 'string' && date.trim() ? date.trim() : new Date().toISOString().split('T')[0];
 
-    const notices = isGithubConfigured()
-      ? await getFileFromGithub('notices.json', [])
-      : safeReadJSON(PATHS.NOTICES, []);
+    const notices = safeReadJSON(PATHS.NOTICES, []);
 
     const newNotice = {
       id: Date.now().toString(),
@@ -830,9 +782,7 @@ app.delete(
   ensureAdmin,
   asyncHandler(async (req, res) => {
     const { id } = req.params;
-    const notices = isGithubConfigured()
-      ? await getFileFromGithub('notices.json', [])
-      : safeReadJSON(PATHS.NOTICES, []);
+    const notices = safeReadJSON(PATHS.NOTICES, []);
 
     const nextNotices = notices.filter((n) => String(n.id) !== String(id));
     if (nextNotices.length === notices.length) {
@@ -875,9 +825,7 @@ app.post(
       return res.status(400).json({ error: '送信内容が長すぎます。' });
     }
 
-    const reports = isGithubConfigured()
-      ? await getFileFromGithub('reports.json', [])
-      : safeReadJSON(PATHS.REPORTS, []);
+    const reports = safeReadJSON(PATHS.REPORTS, []);
 
     const newReport = {
       id: Date.now().toString(),
@@ -1204,30 +1152,14 @@ app.post(
 // --- [管理者向け API] ---
 app.get('/api/admin/users', ensureAdmin, (req, res) => res.json(Object.values(usersDB)));
 
-app.get(
-  '/api/admin/reports',
-  ensureAdmin,
-  asyncHandler(async (req, res) => {
-    if (isGithubConfigured()) {
-      const reports = await getFileFromGithub('reports.json', []);
-      return res.json(reports);
-    }
-    const reports = safeReadJSON(PATHS.REPORTS, []);
-    res.json(reports);
-  })
-);
+app.get('/api/admin/reports', ensureAdmin, (req, res) => {
+  const reports = safeReadJSON(PATHS.REPORTS, []);
+  res.json(reports);
+});
 
-app.get(
-  '/api/admin/logs',
-  ensureAdmin,
-  asyncHandler(async (req, res) => {
-    if (isGithubConfigured()) {
-      const logs = await getFileFromGithub('logs.json', systemLogs);
-      return res.json(logs);
-    }
-    res.json(systemLogs);
-  })
-);
+app.get('/api/admin/logs', ensureAdmin, (req, res) => {
+  res.json(systemLogs);
+});
 
 app.post(
   '/api/admin/settings/maintenance',

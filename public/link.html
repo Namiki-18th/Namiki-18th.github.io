@@ -25,6 +25,22 @@
     .sidebar-avatar-image, .mobile-avatar-image { object-fit: cover; border-radius: 9999px; }
     .auto-link { color: var(--color-accent-blue-light, #60a5fa); text-decoration: underline; word-break: break-all; }
     .auto-link:hover { opacity: 0.8; }
+    /* リンクカードのFaviconレイアウト用 */
+    .link-card-name-wrapper {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem; /* アイコンとテキストの間隔 */
+    }
+
+    .link-favicon {
+    width: 1.5rem; /* 約24pxの表示サイズ */
+    height: 1.5rem;
+    object-fit: contain;
+    border-radius: 4px;
+    flex-shrink: 0; /* タイトルが長い場合でもアイコンが潰れないようにする */
+    /* 必要に応じて背景色を指定（透明なアイコンがダークモードで見えなくなる対策） */
+    /* background-color: #ffffff; */ 
+    }
   </style>
 
   <script nonce="%%CSP_NONCE%%">
@@ -312,16 +328,32 @@
         if (popupAvatar) popupAvatar.src = userAvatar;
       }
 
+      
       const linksContainer = document.getElementById('links-grid-full');
       if (globalData.links.length === 0) {
          linksContainer.innerHTML = '<div class="empty-state-text grid-full-width">リンクがありません</div>';
       } else {
-        linksContainer.innerHTML = globalData.links.map(l => `
+        linksContainer.innerHTML = globalData.links.map(l => {
+          let faviconTag = '';
+          try {
+            const urlObj = new URL(l.url);
+            // sz=128 で高解像度のFaviconを取得
+            const faviconUrl = `https://www.google.com/s2/favicons?domain=${urlObj.hostname}&sz=128`;
+            // loading="lazy" を追加して、画面外の画像読み込みを遅延させる（パフォーマンス向上）
+            faviconTag = `<img src="${faviconUrl}" alt="" class="link-favicon" loading="lazy">`;
+          } catch (e) {
+            // URLが不正な場合などは無視
+          }
+
+          return `
           <a href="${escapeHtml(l.url)}" target="_blank" class="link-card">
-            <div class="link-card-name">${escapeHtml(l.name)}</div>
+            <div class="link-card-name link-card-name-wrapper">
+              ${faviconTag}
+              <span class="truncate">${escapeHtml(l.name)}</span>
+            </div>
             <div class="link-card-desc">${escapeHtml(l.description || '')}</div>
           </a>
-        `).join('');
+        `}).join('');
       }
     }
 
