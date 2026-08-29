@@ -692,7 +692,7 @@ app.get('/logout', (req, res, next) => {
   });
 });
 
-['index', 'terms', 'privacy', 'report', 'link', 'calendar', 'schedule', 'chat', 'notice', 'classroom'].forEach((p) => {
+['index', 'terms', 'privacy', 'report', 'link', 'calendar', 'schedule', 'chat', 'notice', 'classroom', 'setting'].forEach((p) => {
   app.get([`/${p}`, `/${p}.html`], ensureAuth, (req, res) => sendHtmlWithNonce(res, path.join(__dirname, 'public', `${p}.html`)));
 });
 ['admin'].forEach((p) => {
