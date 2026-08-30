@@ -119,6 +119,38 @@
   box-shadow: 0 4px 6px -1px rgba(239, 68, 68, 0.2);
 }
 .custom-modal-btn-ok:hover { background: #dc2626; }
+/* --- モダンなコピーボタン用スタイル --- */
+.btn-copy-modern {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 12px;
+  font-size: 0.85rem;
+  font-weight: 500;
+  color: var(--color-text-secondary, #4b5563);
+  background-color: var(--color-bg-secondary, #f3f4f6);
+  border: 1px solid var(--color-border, #e5e7eb);
+  border-radius: 6px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.btn-copy-modern:hover {
+  background-color: var(--color-bg-hover, #e5e7eb);
+  color: var(--color-text-primary, #111827);
+}
+
+/* クリック時に少しへこむエフェクト */
+.btn-copy-modern:active {
+  transform: scale(0.95);
+}
+
+/* コピー成功時のスタイル */
+.btn-copy-modern.success {
+  background-color: #dcfce7;
+  color: #166534;
+  border-color: #bbf7d0;
+}
   </style>
   <script src="/socket.io/socket.io.js" nonce="%%CSP_NONCE%%"></script>
   
@@ -168,6 +200,11 @@
       <button id="sidebar-nav-system" class="sidebar-nav-button admin-tab-btn" data-tab="system" title="システム状態">
         <svg class="icon-nav" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z" /></svg>
         <span class="sidebar-nav-text">システム連携</span>
+      </button>
+      <!-- 追加: 各種APIデータボタン -->
+      <button id="sidebar-nav-apidata" class="sidebar-nav-button admin-tab-btn" data-tab="apidata" title="各種APIデータ">
+        <svg class="icon-nav" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 7v10c0 2.21 3.582 4 8 4s8-1.79 8-4V7M4 7c0 2.21 3.582 4 8 4s8-1.79 8-4M4 7c0-2.21 3.582-4 8-4s8 1.79 8 4m0 5c0 2.21-3.582 4-8 4s-8-1.79-8-4" /></svg>
+        <span class="sidebar-nav-text">各種APIデータ</span>
       </button>
       <button id="sidebar-nav-logs" class="sidebar-nav-button admin-tab-btn" data-tab="logs" title="アクセスログ">
         <svg class="icon-nav" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" /></svg>
@@ -373,7 +410,44 @@
           </form>
         </div>
       </div>
+      <!-- 6. 各種APIデータ セクション -->
+      <div id="page-apidata" class="page-section hidden fade-in space-y-6">
+        <div class="app-card content-card">
+          <h2 class="content-card-title">📡 各種APIデータ確認</h2>
+          <p class="content-card-subtitle">システム内で提供されているAPIの生データ（JSON）を確認できます。</p>
+          
+          <div class="gen-a8f441" style="grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); margin-bottom: 1rem;">
+            <button class="button-primary api-fetch-btn" data-url="/api/transit">🚇 運行情報</button>
+            <button class="button-primary api-fetch-btn" data-url="/api/road">🚗 道路交通情報</button>
+            <button class="button-primary api-fetch-btn" data-url="/api/notices">📢 お知らせ</button>
+            <button class="button-primary api-fetch-btn" data-url="/api/classroom">📚 Classroom</button>
+            <button class="button-primary api-fetch-btn" data-url="/api/calendar">📅 カレンダー</button>
+            <button class="button-primary api-fetch-btn" data-url="/api/schedule">⏰ 時間割</button>
+            <button class="button-primary api-fetch-btn" data-url="/api/links">🔗 リンク集</button>
+            <button class="button-primary api-fetch-btn" data-url="/api/admin/reports">⚠️ レポート</button>
+          </div>
 
+          <div class="status-card">
+            <!-- タイトルとコピーボタンを横並びにするフレックスボックス -->
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.5rem;">
+              <h3 class="gen-0e0434" style="margin-bottom: 0; color: var(--color-text-secondary);">
+                取得先: <span id="api-result-title" style="color: var(--color-text-primary);">---</span>
+              </h3>
+              <!-- コピーボタン（最初は非表示にしておく） -->
+              <!-- 修正: モダンなコピーボタン -->
+              <button id="copy-json-btn" class="btn-copy-modern" style="display: none;">
+                <svg class="copy-icon" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" viewBox="0 0 24 24">
+                  <rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect>
+                  <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path>
+                </svg>
+                <span class="copy-text">コピー</span>
+              </button>
+            </div>
+            
+            <pre id="api-result-display" class="gen-07ea9a" style="min-height: 250px; max-height: 600px; overflow-y: auto;">上のボタンをクリックしてデータを取得してください。</pre>
+          </div>
+        </div>
+      </div>
       <!-- 5. アクセスログセクション -->
       <div id="page-logs" class="page-section hidden fade-in space-y-6">
         <div class="app-card content-card">
@@ -521,6 +595,27 @@
       if (tabId === 'notices') loadAdminNotices();
       if (tabId === 'logs') loadAdminLogs();
     }
+    // --- 追加: APIデータ取得ボタンのイベントリスナー ---
+      document.querySelectorAll('.api-fetch-btn').forEach(btn => {
+        btn.addEventListener('click', async (e) => {
+          const url = e.target.getAttribute('data-url');
+          const displayEl = document.getElementById('api-result-display');
+          const titleEl = document.getElementById('api-result-title');
+          
+          titleEl.textContent = url;
+          displayEl.textContent = 'データを読み込み中...';
+          
+          try {
+            const res = await fetch(url);
+            if (!res.ok) throw new Error(`HTTPエラー: ${res.status}`);
+            const data = await res.json();
+            // JSONを整形して表示
+            displayEl.textContent = JSON.stringify(data, null, 2);
+          } catch (err) {
+            displayEl.textContent = 'データの取得に失敗しました:\n' + err.message;
+          }
+        });
+      });
 
     function toggleAccountMenu(event) {
       if (event) event.stopPropagation();
@@ -542,7 +637,38 @@
         toggleSwitch?.classList.add('on');
       }
     }
+    // --- コピー機能の実装（モダン版） ---
+      const copyBtn = document.getElementById('copy-json-btn');
+      const displayEl = document.getElementById('api-result-display');
 
+      copyBtn.addEventListener('click', async () => {
+        const textToCopy = displayEl.textContent;
+        
+        try {
+          await navigator.clipboard.writeText(textToCopy);
+          
+          // UIを成功状態に変更
+          const iconEl = copyBtn.querySelector('svg');
+          const textEl = copyBtn.querySelector('.copy-text');
+          
+          // アイコンを一時保存し、チェックマークに変更
+          const originalIconHTML = iconEl.innerHTML;
+          iconEl.innerHTML = '<polyline points="20 6 9 17 4 12"></polyline>';
+          textEl.textContent = 'コピーしました';
+          copyBtn.classList.add('success');
+          
+          // 2秒後に元に戻す
+          setTimeout(() => {
+            iconEl.innerHTML = originalIconHTML;
+            textEl.textContent = 'コピー';
+            copyBtn.classList.remove('success');
+          }, 2000);
+          
+        } catch (err) {
+          console.error('クリップボードへのコピーに失敗しました:', err);
+          alert('コピーに失敗しました。');
+        }
+      });
     async function checkAdminAuthAndLoad() {
       try {
         const res = await fetch('/api/profile');
