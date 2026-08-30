@@ -423,13 +423,11 @@ function saveUsersDB() {
 }
 
 // --- [暗号化ユーティリティ (AES-256-GCM)] ---
-let ENCRYPTION_KEY;
-if (process.env.CHAT_ENCRYPTION_KEY) {
-  ENCRYPTION_KEY = Buffer.from(process.env.CHAT_ENCRYPTION_KEY, 'hex');
-} else {
-  console.error('[SECURITY WARNING] CHAT_ENCRYPTION_KEY が未設定です。一時的な鍵を生成しました。');
-  ENCRYPTION_KEY = crypto.randomBytes(32);
+if (!process.env.CHAT_ENCRYPTION_KEY) {
+  console.error('[FATAL ERROR] CHAT_ENCRYPTION_KEY が設定されていません。セキュリティのためサーバーを停止します。');
+  process.exit(1);
 }
+const ENCRYPTION_KEY = Buffer.from(process.env.CHAT_ENCRYPTION_KEY, 'hex');
 
 function encrypt(text) {
   const iv = crypto.randomBytes(12);
@@ -542,8 +540,13 @@ if (firebaseDb) {
   console.warn('[SECURITY WARNING] Firebase未接続のため MemoryStore を使用します。');
 }
 
+if (!process.env.SESSION_SECRET) {
+  console.error('[FATAL ERROR] SESSION_SECRET が設定されていません。セキュリティのためサーバーを停止します。');
+  process.exit(1);
+}
+
 const sessionMiddleware = session({
-  secret: process.env.SESSION_SECRET || crypto.randomBytes(32).toString('hex'),
+  secret: process.env.SESSION_SECRET,
   store: sessionStore,
   resave: false,
   saveUninitialized: false,

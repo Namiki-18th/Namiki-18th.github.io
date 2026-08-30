@@ -66,6 +66,59 @@
     .gen-a369a6 { font-size:0.75rem; color:var(--color-text-muted); }
     .gen-ef046d { font-weight:600; color:var(--color-text-primary); font-size:0.95rem; }
     .gen-ef0939 { color:var(--color-accent-red); background:none; border:none; cursor:pointer; font-size:0.875rem; }
+    /* カスタムモーダル用のデザイン */
+.custom-modal-overlay {
+  position: fixed; top: 0; left: 0; width: 100vw; height: 100vh;
+  background: rgba(0, 0, 0, 0.6); backdrop-filter: blur(4px);
+  display: flex; align-items: center; justify-content: center;
+  z-index: 9999; opacity: 0; transition: opacity 0.3s ease;
+}
+.custom-modal {
+  background: var(--color-bg, #ffffff);
+  color: var(--color-text-primary, #333333);
+  padding: 2rem; border-radius: 12px; width: 90%; max-width: 420px;
+  box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.3);
+  border: 1px solid var(--color-border, #e5e7eb);
+  transform: translateY(20px) scale(0.95);
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  font-family: sans-serif;
+}
+.custom-modal-header {
+  display: flex; align-items: center; gap: 12px; margin-bottom: 16px; color: #ef4444;
+}
+.custom-modal-header h3 {
+  margin: 0; font-size: 1.25rem; font-weight: 700;
+}
+.custom-modal-desc {
+  font-size: 0.9rem; color: var(--color-text-secondary, #666); margin-bottom: 20px; line-height: 1.6;
+}
+.custom-modal-email {
+  background: var(--color-bg, #ffffff); border: 1px dashed var(--color-border, #cccccc);
+  padding: 10px; border-radius: 6px; margin-bottom: 16px; text-align: center;
+  font-family: monospace; font-size: 1rem; font-weight: 600; color: var(--color-text-primary, #333333);
+}
+.custom-modal-input {
+  width: 100%; box-sizing: border-box; padding: 12px; margin-bottom: 24px;
+  background: var(--color-bg, #ffffff); border: 1px solid var(--color-border, #cccccc);
+  border-radius: 6px; color: var(--color-text-primary, #333333); font-size: 0.95rem;
+  outline: none; transition: border-color 0.2s;
+}
+.custom-modal-input:focus { border-color: #ef4444; }
+.custom-modal-actions {
+  display: flex; justify-content: flex-end; gap: 12px;
+}
+.custom-modal-btn-cancel {
+  padding: 10px 16px; background: transparent; border: 1px solid var(--color-border, #cccccc);
+  border-radius: 6px; color: var(--color-text-primary, #333333); cursor: pointer;
+  font-size: 0.9rem; font-weight: 600; transition: background 0.2s;
+}
+.custom-modal-btn-cancel:hover { background: rgba(0,0,0,0.05); }
+.custom-modal-btn-ok {
+  padding: 10px 16px; background: #ef4444; color: white; border: none;
+  border-radius: 6px; cursor: pointer; font-size: 0.9rem; font-weight: 600;
+  box-shadow: 0 4px 6px -1px rgba(239, 68, 68, 0.2);
+}
+.custom-modal-btn-ok:hover { background: #dc2626; }
   </style>
   <script src="/socket.io/socket.io.js" nonce="%%CSP_NONCE%%"></script>
   
@@ -708,59 +761,40 @@
 
     // ユーザー削除機能（カスタムプロンプト版）
     // ユーザー削除機能（モダンCSS適用版）
+// ユーザー削除機能（外部CSSファイル利用版）
 async function deleteUser(encodedEmail) {
   const decodedEmail = decodeURIComponent(encodedEmail);
   
-  // 背景のオーバーレイ（ぼかし効果付き）
+  // 背景のオーバーレイ
   const overlay = document.createElement('div');
-  overlay.style.cssText = `
-    position: fixed; top: 0; left: 0; width: 100vw; height: 100vh;
-    background: rgba(0, 0, 0, 0.6); backdrop-filter: blur(4px);
-    display: flex; align-items: center; justify-content: center;
-    z-index: 9999; opacity: 0; transition: opacity 0.3s ease;
-  `;
+  overlay.className = 'custom-modal-overlay';
   
   // モーダルウィンドウ本体
   const modal = document.createElement('div');
-  modal.style.cssText = `
-    background: var(--color-bg, #ffffff);
-    color: var(--color-text-primary, #333333);
-    padding: 2rem; border-radius: 12px; width: 90%; max-width: 420px;
-    box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.3);
-    border: 1px solid var(--color-border, #e5e7eb);
-    transform: translateY(20px) scale(0.95);
-    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-  `;
+  modal.className = 'custom-modal';
   
-  // モーダル内のHTML構造
   modal.innerHTML = `
-    <div style="display: flex; align-items: center; gap: 12px; margin-bottom: 16px; color: #ef4444;">
+    <div class="custom-modal-header">
       <svg width="28" height="28" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
         <path stroke-linecap="round" stroke-linejoin="round" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"/>
       </svg>
-      <h3 style="margin: 0; font-size: 1.25rem; font-weight: 700;">ユーザーの完全削除</h3>
+      <h3>ユーザーの完全削除</h3>
     </div>
-    
-    <p style="font-size: 0.9rem; color: var(--color-text-secondary, #666); margin-bottom: 20px; line-height: 1.6;">
+    <p class="custom-modal-desc">
       この操作は取り消せません。<br>確認のため、以下のメールアドレスを入力してください。
     </p>
-    
-    <div style="background: var(--color-bg); border: 1px dashed var(--color-border); padding: 10px; border-radius: 6px; margin-bottom: 16px; text-align: center; font-family: monospace; font-size: 1rem; font-weight: 600; color: var(--color-text-primary);">
-      ${decodedEmail}
-    </div>
-    
-    <input type="text" id="custom-prompt-input" style="width: 100%; box-sizing: border-box; padding: 12px; margin-bottom: 24px; background: var(--color-bg); border: 1px solid var(--color-border); border-radius: 6px; color: var(--color-text-primary); font-size: 0.95rem; outline: none; transition: border-color 0.2s;" placeholder="正確に入力してください">
-    
-    <div style="display: flex; justify-content: flex-end; gap: 12px;">
-      <button id="custom-prompt-cancel" style="padding: 10px 16px; background: transparent; border: 1px solid var(--color-border); border-radius: 6px; color: var(--color-text-primary); cursor: pointer; font-size: 0.9rem; font-weight: 600; transition: background 0.2s;">キャンセル</button>
-      <button id="custom-prompt-ok" style="padding: 10px 16px; background: #ef4444; color: white; border: none; border-radius: 6px; cursor: pointer; font-size: 0.9rem; font-weight: 600; box-shadow: 0 4px 6px -1px rgba(239, 68, 68, 0.2);">削除を実行</button>
+    <div class="custom-modal-email">${decodedEmail}</div>
+    <input type="text" id="custom-prompt-input" class="custom-modal-input" placeholder="正確に入力してください">
+    <div class="custom-modal-actions">
+      <button id="custom-prompt-cancel" class="custom-modal-btn-cancel">キャンセル</button>
+      <button id="custom-prompt-ok" class="custom-modal-btn-ok">削除を実行</button>
     </div>
   `;
   
   overlay.appendChild(modal);
   document.body.appendChild(overlay);
   
-  // フワッと浮かび上がるアニメーションのトリガー
+  // アニメーション発火
   requestAnimationFrame(() => {
     overlay.style.opacity = '1';
     modal.style.transform = 'translateY(0) scale(1)';
@@ -773,28 +807,18 @@ async function deleteUser(encodedEmail) {
     setTimeout(() => { if (overlay.parentNode) overlay.remove(); }, 300);
   };
   
-  // インプット枠のフォーカスエフェクト
-  const inputEl = document.getElementById('custom-prompt-input');
-  inputEl.addEventListener('focus', () => inputEl.style.borderColor = '#ef4444');
-  inputEl.addEventListener('blur', () => inputEl.style.borderColor = 'var(--color-border)');
-  
   // ボタンイベント
   document.getElementById('custom-prompt-cancel').onclick = closeModal;
-  
   document.getElementById('custom-prompt-ok').onclick = async () => {
+    const inputEl = document.getElementById('custom-prompt-input');
     if (inputEl.value.trim() !== decodedEmail) {
       alert('入力されたメールアドレスが一致しません。');
       return; 
     }
     
     closeModal();
-
     try {
-      const res = await fetch(`/api/admin/user/${encodedEmail}`, {
-        method: 'DELETE',
-        headers: { 'Content-Type': 'application/json' }
-      });
-      
+      const res = await fetch(`/api/admin/user/${encodedEmail}`, { method: 'DELETE', headers: { 'Content-Type': 'application/json' }});
       const data = await res.json();
       if (res.ok && data.success) {
         alert('アカウントを正常に削除しました。');
