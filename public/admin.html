@@ -411,9 +411,17 @@
       const adminUserTable = document.getElementById('admin-user-table');
       if (adminUserTable) {
         adminUserTable.addEventListener('click', (e) => {
-          if (e.target.classList.contains('save-user-btn')) {
-            const email = e.target.getAttribute('data-email');
+          // closestを使用してボタン要素を確実に取得
+          if (e.target.closest('.save-user-btn')) {
+            const btn = e.target.closest('.save-user-btn');
+            const email = btn.getAttribute('data-email');
             saveUser(email);
+          }
+          // 削除ボタンがクリックされた時の処理
+          else if (e.target.closest('.delete-user-btn')) {
+            const btn = e.target.closest('.delete-user-btn');
+            const email = btn.getAttribute('data-email');
+            deleteUser(email);
           }
         });
       }
@@ -422,8 +430,10 @@
       const adminNoticesList = document.getElementById('admin-notices-list');
       if (adminNoticesList) {
         adminNoticesList.addEventListener('click', (e) => {
-          if (e.target.classList.contains('delete-notice-btn')) {
-            const id = e.target.getAttribute('data-id');
+          // closestを使用してボタン要素を確実に取得
+          if (e.target.closest('.delete-notice-btn')) {
+            const btn = e.target.closest('.delete-notice-btn');
+            const id = btn.getAttribute('data-id');
             deleteNotice(id);
           }
         });
@@ -560,8 +570,14 @@
                 <option value="suspended" ${currentStatus === 'suspended' ? 'selected' : ''}>🔴 停止</option>
               </select>
             </td>
-            <td class="gen-22a4ad">
+            <td class="gen-22a4ad" style="white-space: nowrap;">
               <button data-email="${encodedEmail}" class="button-primary save-user-btn gen-795a98">更新</button>
+              <button data-email="${encodedEmail}" class="delete-user-btn gen-ef0939" style="margin-left: 0.25rem; padding: 0.35rem 0.5rem; border: 1px solid #dc2626; border-radius: 4px; display: inline-flex; align-items: center; justify-content: center; background: transparent; cursor: pointer; color: #dc2626;" title="削除">
+                <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#dc2626" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="display: block; min-width: 18px; min-height: 18px;">
+                  <polyline points="3 6 5 6 21 6"></polyline>
+                  <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path>
+                </svg>
+              </button>
             </td>
           </tr>
         `;
@@ -690,6 +706,107 @@
       }
     }
 
+    // ユーザー削除機能（カスタムプロンプト版）
+    // ユーザー削除機能（モダンCSS適用版）
+async function deleteUser(encodedEmail) {
+  const decodedEmail = decodeURIComponent(encodedEmail);
+  
+  // 背景のオーバーレイ（ぼかし効果付き）
+  const overlay = document.createElement('div');
+  overlay.style.cssText = `
+    position: fixed; top: 0; left: 0; width: 100vw; height: 100vh;
+    background: rgba(0, 0, 0, 0.6); backdrop-filter: blur(4px);
+    display: flex; align-items: center; justify-content: center;
+    z-index: 9999; opacity: 0; transition: opacity 0.3s ease;
+  `;
+  
+  // モーダルウィンドウ本体
+  const modal = document.createElement('div');
+  modal.style.cssText = `
+    background: var(--color-bg, #ffffff);
+    color: var(--color-text-primary, #333333);
+    padding: 2rem; border-radius: 12px; width: 90%; max-width: 420px;
+    box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.3);
+    border: 1px solid var(--color-border, #e5e7eb);
+    transform: translateY(20px) scale(0.95);
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  `;
+  
+  // モーダル内のHTML構造
+  modal.innerHTML = `
+    <div style="display: flex; align-items: center; gap: 12px; margin-bottom: 16px; color: #ef4444;">
+      <svg width="28" height="28" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+        <path stroke-linecap="round" stroke-linejoin="round" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"/>
+      </svg>
+      <h3 style="margin: 0; font-size: 1.25rem; font-weight: 700;">ユーザーの完全削除</h3>
+    </div>
+    
+    <p style="font-size: 0.9rem; color: var(--color-text-secondary, #666); margin-bottom: 20px; line-height: 1.6;">
+      この操作は取り消せません。<br>確認のため、以下のメールアドレスを入力してください。
+    </p>
+    
+    <div style="background: var(--color-bg); border: 1px dashed var(--color-border); padding: 10px; border-radius: 6px; margin-bottom: 16px; text-align: center; font-family: monospace; font-size: 1rem; font-weight: 600; color: var(--color-text-primary);">
+      ${decodedEmail}
+    </div>
+    
+    <input type="text" id="custom-prompt-input" style="width: 100%; box-sizing: border-box; padding: 12px; margin-bottom: 24px; background: var(--color-bg); border: 1px solid var(--color-border); border-radius: 6px; color: var(--color-text-primary); font-size: 0.95rem; outline: none; transition: border-color 0.2s;" placeholder="正確に入力してください">
+    
+    <div style="display: flex; justify-content: flex-end; gap: 12px;">
+      <button id="custom-prompt-cancel" style="padding: 10px 16px; background: transparent; border: 1px solid var(--color-border); border-radius: 6px; color: var(--color-text-primary); cursor: pointer; font-size: 0.9rem; font-weight: 600; transition: background 0.2s;">キャンセル</button>
+      <button id="custom-prompt-ok" style="padding: 10px 16px; background: #ef4444; color: white; border: none; border-radius: 6px; cursor: pointer; font-size: 0.9rem; font-weight: 600; box-shadow: 0 4px 6px -1px rgba(239, 68, 68, 0.2);">削除を実行</button>
+    </div>
+  `;
+  
+  overlay.appendChild(modal);
+  document.body.appendChild(overlay);
+  
+  // フワッと浮かび上がるアニメーションのトリガー
+  requestAnimationFrame(() => {
+    overlay.style.opacity = '1';
+    modal.style.transform = 'translateY(0) scale(1)';
+  });
+  
+  // 閉じる処理
+  const closeModal = () => {
+    overlay.style.opacity = '0';
+    modal.style.transform = 'translateY(20px) scale(0.95)';
+    setTimeout(() => { if (overlay.parentNode) overlay.remove(); }, 300);
+  };
+  
+  // インプット枠のフォーカスエフェクト
+  const inputEl = document.getElementById('custom-prompt-input');
+  inputEl.addEventListener('focus', () => inputEl.style.borderColor = '#ef4444');
+  inputEl.addEventListener('blur', () => inputEl.style.borderColor = 'var(--color-border)');
+  
+  // ボタンイベント
+  document.getElementById('custom-prompt-cancel').onclick = closeModal;
+  
+  document.getElementById('custom-prompt-ok').onclick = async () => {
+    if (inputEl.value.trim() !== decodedEmail) {
+      alert('入力されたメールアドレスが一致しません。');
+      return; 
+    }
+    
+    closeModal();
+
+    try {
+      const res = await fetch(`/api/admin/user/${encodedEmail}`, {
+        method: 'DELETE',
+        headers: { 'Content-Type': 'application/json' }
+      });
+      
+      const data = await res.json();
+      if (res.ok && data.success) {
+        alert('アカウントを正常に削除しました。');
+        loadAdminData(); 
+      } else {
+        alert('削除失敗: ' + (data.error || '不明なエラー'));
+      }
+    } catch (err) {
+      alert('通信エラーが発生しました。');
+    }
+  };
+}
     async function saveAllSettings() {
       if (!confirm('全ユーザーの表示変更内容を保存しますか？')) return;
       try {
@@ -720,9 +837,6 @@
       const content = document.getElementById('notice-content').value;
 
       try {
-        // [修正] 以前は /api/classroom（外部Webhook専用・{items:[...]}形式）に誤送信しており、
-        // 常に400エラーで失敗 & 保存先も notices.json とは別ファイルだったため一覧にも反映されなかった。
-        // 正しい /api/notices エンドポイントに、正しい形式で送信するよう修正。
         const res = await fetch('/api/notices', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },

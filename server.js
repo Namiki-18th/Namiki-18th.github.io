@@ -301,28 +301,24 @@ async function syncWithGithub() {
   console.log('[GitHub Storage] Synchronizing data from GitHub...');
   
   try {
-    // システムログの同期
     const remoteLogs = await getFileFromGithub('logs.json', null);
     if (remoteLogs && Array.isArray(remoteLogs)) {
       systemLogs = remoteLogs;
       safeWriteJSON(PATHS.LOGS, systemLogs);
     }
 
-    // ユーザーデータベースの同期
     const remoteUsers = await getFileFromGithub('users.json', null);
     if (remoteUsers && typeof remoteUsers === 'object' && !Array.isArray(remoteUsers)) {
       usersDB = remoteUsers;
       safeWriteJSON(PATHS.USERS, usersDB);
     }
 
-    // システム設定の同期
     const remoteSettings = await getFileFromGithub('settings.json', null);
     if (remoteSettings && typeof remoteSettings === 'object' && !Array.isArray(remoteSettings)) {
       systemSettings = remoteSettings;
       safeWriteJSON(PATHS.SETTINGS, systemSettings);
     }
 
-    // 各種データファイルの同期
     const syncFiles = [
       { name: 'notices.json', path: PATHS.NOTICES },
       { name: 'classroom.json', path: PATHS.CLASSROOM },
@@ -343,7 +339,6 @@ async function syncWithGithub() {
   }
 }
 
-// 起動時に初回同期を実行
 if (isGithubConfigured()) {
   syncWithGithub();
 }
@@ -703,7 +698,6 @@ app.get(['/offline', '/offline.html'], (req, res) => sendHtmlWithNonce(res, path
 // --- [API: 一般機能 & データ取得] ---
 app.get('/api/profile', ensureAuth, (req, res) => res.json(usersDB[req.user.email] || req.user));
 
-// 常にローカルストレージから応答させる形へ修正
 app.get('/api/notices', ensureAuth, (req, res) => res.json(safeReadJSON(PATHS.NOTICES, [])));
 app.get('/api/classroom', ensureAuth, (req, res) => res.json(safeReadJSON(PATHS.CLASSROOM, [])));
 app.get('/api/calendar', ensureAuth, (req, res) => res.json(safeReadJSON(PATHS.EVENTS, [])));
@@ -1232,6 +1226,30 @@ app.post('/api/admin/user/:email', ensureAdmin, (req, res) => {
   }
   saveUsersDB();
   addLog(req, 'user_update', req.user.email, `Updated target: ${email}`);
+  res.json({ success: true });
+});
+
+// --- [アカウント削除 API] ---
+app.delete('/api/admin/user/:email', ensureAdmin, (req, res) => {
+  const email = decodeURIComponent(req.params.email);
+
+  // ユーザーが存在するか、あるいは不正なキーでないか確認
+  if (FORBIDDEN_USER_KEYS.has(email) || !hasUser(email)) {
+    return res.status(404).json({ error: 'User not found' });
+  }
+
+  // 環境変数等で設定された特権管理者（マスター管理者）は削除不可とする
+  if (isPrivilegedAdminEmail(email)) {
+    return res.status(400).json({ error: 'Cannot delete a privileged admin account' });
+  }
+
+  // DBからユーザーを削除して保存
+  delete usersDB[email];
+  saveUsersDB();
+  
+  // ログに記録
+  addLog(req, 'user_delete', req.user.email, `Deleted target: ${email}`);
+  
   res.json({ success: true });
 });
 
