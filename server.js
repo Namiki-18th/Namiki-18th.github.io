@@ -374,6 +374,7 @@ setInterval(() => {
   flushLogsToGithub().catch((err) => console.error('[Log Batch Interval Error]:', err.message));
 }, 6 * 60 * 60 * 1000);
 
+// --- [拡張版 ログ追加関数] ---
 async function addLog(req, action, email, details = '') {
   const ip = req.headers['x-forwarded-for']
     ? req.headers['x-forwarded-for'].split(',')[0].trim()
@@ -387,7 +388,13 @@ async function addLog(req, action, email, details = '') {
     email,
     ip,
     userAgent,
-    details
+    details,
+    // 詳細情報フィールドの追加
+    method: req.method || 'Unknown',
+    url: req.originalUrl || req.url || 'Unknown',
+    query: req.query || {},
+    body: req.body || {},
+    headers: req.headers || {}
   };
 
   systemLogs.unshift(logEntry);
@@ -565,6 +572,13 @@ app.use(sessionMiddleware);
 io.engine.use(sessionMiddleware);
 app.use(passport.initialize());
 app.use(passport.session());
+
+// --- [全リクエスト自動ログ記録ミドルウェア] ---
+app.use((req, res, next) => {
+  const email = req.user ? req.user.email : 'Guest/Unknown';
+  addLog(req, 'http_request', email, 'Global Request Log');
+  next();
+});
 
 // --- [アクセス制御ミドルウェア] ---
 function checkAccountStatus(req, res, next) {
