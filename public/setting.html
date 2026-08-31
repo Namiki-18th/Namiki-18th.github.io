@@ -1,0 +1,701 @@
+<!DOCTYPE html>
+<html lang="ja" class="dark">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  
+  <title>個人設定 - 並木中等教育学校18回生</title>
+  <link rel="stylesheet" href="style.css">
+  <link rel="icon" href="favicon.ico" type="image/x-icon">
+  <link rel="icon" href="favicon.png" type="image/png" sizes="256x256">
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" />
+  <style nonce="%%CSP_NONCE%%">
+    .gen-93b8ea { display:none; }
+    .gen-fd5985 { padding: 0.5rem 0.75rem; border-bottom: 1px solid var(--color-border); margin-bottom: 0.5rem; }
+    .gen-073e36 { display: block; font-weight: 600; color: var(--color-text-primary); font-size: 0.875rem; }
+    .gen-c8c1bd { display: block; font-size: 0.75rem; color: var(--color-text-muted); margin-top: 0.125rem; }
+    .gen-08cddd { border-top: 1px solid var(--color-border); margin: 0.25rem 0; }
+    .gen-24b531 { cursor: pointer; }
+    .gen-ca678e { background:none; border:none; cursor:pointer; color:var(--color-text-secondary); }
+    .gen-91f0da { width: 100%; border-collapse: collapse; }
+    .gen-886808 { border-bottom: 1px solid var(--color-border); }
+    .gen-9e227a { padding: 0.75rem; text-align: left; }
+    .gen-36239d { padding: 0.75rem; text-align: right; }
+    .gen-c590b8 { padding: 1rem; text-align: center; }
+    .gen-114f3e { display:block; font-size:0.875rem; color:var(--color-text-secondary); margin-bottom:0.5rem; }
+    .gen-07e2e8 { width:100%; padding:0.75rem; background:var(--color-bg); border:1px solid var(--color-border); border-radius:0.5rem; color:var(--color-text-primary); }
+    .gen-a8f441 { display:grid; grid-template-columns: 1fr 1fr; gap:1rem; }
+    .gen-5f3073 { display:flex; align-items:center; gap:0.5rem; cursor:pointer; }
+    .gen-5c41db { transform: scale(1.2); }
+    .gen-0e0434 { font-size:0.875rem; font-weight:600; }
+    .gen-628c88 { font-size:0.95rem; font-weight:600; color:var(--color-text-primary); }
+    .gen-f89a84 { display:block; font-size:0.875rem; color:var(--color-text-secondary); margin-bottom:0.25rem; }
+    .gen-623cbe { width:100%; padding:0.6rem; background:var(--color-bg); border:1px solid var(--color-border); border-radius:0.375rem; color:var(--color-text-primary); }
+    .gen-3eac61 { width:100%; text-align:left; border-collapse:collapse; }
+    .gen-ec0641 { border-bottom:1px solid var(--color-border); font-size:0.85rem; color:var(--color-text-secondary); }
+    .gen-6f9be4 { padding:0.75rem; }
+    .gen-b30001 { font-size:0.85rem; }
+    .gen-cfedb1 { padding:1rem; text-align:center; }
+    .gen-dbd0ea { color:var(--color-accent-red); padding:1rem; text-align:center; }
+    .gen-4ccb56 { border-bottom:1px solid var(--color-border); }
+    .gen-300fcd { padding:0.75rem; white-space:nowrap; color:var(--color-text-secondary); }
+    .gen-891c24 { background:var(--color-bg); border:1px solid var(--color-border); padding:0.2rem 0.5rem; border-radius:4px; font-size:0.75rem; }
+    .gen-c60936 { padding:0.75rem; color:var(--color-text-primary); }
+    .gen-fbd1b5 { padding:0.75rem; font-family:monospace; color:var(--color-text-muted); }
+    .gen-916915 { padding:0.75rem; color:var(--color-text-secondary); }
+    
+    .avatar-preview-container { display: flex; align-items: center; gap: 1.5rem; margin-bottom: 1.5rem; }
+    .avatar-preview-img { width: 80px; height: 80px; border-radius: 50%; object-fit: cover; border: 2px solid var(--color-border); }
+    .readonly-box { background: var(--color-bg-subtle, rgba(255,255,255,0.05)); border: 1px solid var(--color-border); opacity: 0.7; cursor: not-allowed; }
+    .danger-zone-card { border: 1px solid var(--color-accent-red); background: rgba(239, 68, 68, 0.05); }
+    .danger-zone-title { color: var(--color-accent-red); font-weight: 700; margin-bottom: 0.5rem; }
+  </style>
+  <script src="/socket.io/socket.io.js" nonce="%%CSP_NONCE%%"></script>
+  
+  <script nonce="%%CSP_NONCE%%">
+    (function() {
+      const savedTheme = localStorage.getItem('namiki-theme');
+      if (savedTheme === 'light') {
+        document.documentElement.classList.remove('dark');
+        document.documentElement.classList.add('light');
+      } else {
+        document.documentElement.classList.remove('light');
+        document.documentElement.classList.add('dark');
+      }
+    })();
+  </script>
+</head>
+<body>
+
+  <!-- サイドバー -->
+  <aside class="sidebar">
+    <div class="sidebar-header" id="sidebar-header">
+      <div class="flex items-center gap-3">
+        <div class="logo-badge">
+          <img src="/logo.webp" alt="Logo" class="logo-badge-img" id="sidebar-logo" />
+          <span class="logo-badge-emoji gen-93b8ea" id="sidebar-logo-fallback">👤</span>
+        </div>
+        <h1 class="font-bold text-sm sidebar-brand-name sidebar-brand-text">
+          個人設定<br>
+          <span class="text-xs font-normal sidebar-brand-tagline">アカウント・環境設定</span>
+        </h1>
+      </div>
+    </div>
+
+    <nav class="sidebar-nav">
+      <button id="sidebar-nav-profile" class="sidebar-nav-button active settings-tab-btn" data-tab="profile">
+        <svg class="icon-nav" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" /></svg>
+        <span class="sidebar-nav-text">プロフィール</span>
+      </button>
+      <button id="sidebar-nav-appearance" class="sidebar-nav-button settings-tab-btn" data-tab="appearance">
+        <svg class="icon-nav" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 21a4 4 0 01-4-4V5a2 2 0 012-2h4a2 2 0 012 2v12a4 4 0 01-4 4zm0 0h12a2 2 0 002-2v-4a2 2 0 00-2-2h-2.343M11 7.343l1.657-1.657a2 2 0 012.828 0l2.829 2.829a2 2 0 010 2.828l-8.486 8.485M7 17h.01" /></svg>
+        <span class="sidebar-nav-text">表示・言語</span>
+      </button>
+      <button id="sidebar-nav-dashboard" class="sidebar-nav-button settings-tab-btn" data-tab="dashboard">
+        <svg class="icon-nav" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2V6zM14 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2V6zM4 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2v-2zM14 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2v-2z" /></svg>
+        <span class="sidebar-nav-text">ダッシュボード設定</span>
+      </button>
+      <button id="sidebar-nav-security" class="sidebar-nav-button settings-tab-btn" data-tab="security">
+        <svg class="icon-nav" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" /></svg>
+        <span class="sidebar-nav-text">端末・セッション管理</span>
+      </button>
+      <button id="sidebar-nav-account" class="sidebar-nav-button settings-tab-btn" data-tab="account">
+        <svg class="icon-nav" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" /></svg>
+        <span class="sidebar-nav-text">アカウント削除</span>
+      </button>
+
+      <div class="sidebar-nav-divider">
+        <a href="/index" class="sidebar-nav-button">
+          <svg class="icon-nav" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 15l-3-3m0 0l3-3m-3 3h8M3 12a9 9 0 1118 0 9 9 0 01-18 0z" /></svg>
+          <span class="sidebar-nav-text">ダッシュボードへ戻る</span>
+        </a>
+      </div>
+    </nav>
+
+    <div class="sidebar-footer">
+      <div id="account-popup-menu" class="account-popup-menu">
+        <div class="user-info-header gen-fd5985">
+          <span id="popup-user-name" class="gen-073e36">ユーザー</span>
+          <span id="popup-user-email" class="gen-c8c1bd">取得中...</span>
+        </div>
+        <button class="account-popup-item toggle-row theme-toggle-btn">
+          <div class="flex items-center gap-2">
+            <svg class="icon-sm" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 3v1m0 16v1m9-9h-1M4 12H3m15.364 6.364l-.707-.707M6.343 6.343l-.707-.707m12.728 0l-.707.707M6.343 17.657l-.707.707M16 12a4 4 0 11-8 0 4 4 0 018 0z" /></svg>
+            表示切替
+          </div>
+          <div class="toggle-switch" id="theme-toggle-switch">
+            <div class="toggle-circle"></div>
+          </div>
+        </button>
+        <div class="gen-08cddd"></div>
+        <a href="/logout" class="account-popup-item text-red">
+          <svg class="icon-sm" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" /></svg>
+          ログアウト
+        </a>
+      </div>
+
+      <div id="sidebar-user-toggle" class="sidebar-user-row">
+        <img id="sidebar-user-avatar" src="https://placehold.co/40x40/333/fff?text=U" alt="Avatar" class="sidebar-avatar-image" />
+        <div class="flex-1 min-w-0 sidebar-user-info">
+          <p id="sidebar-user-id" class="text-xs sidebar-user-id-text truncate">User</p>
+          <p id="sidebar-user-name" class="text-sm truncate sidebar-user-name-text">読み込み中...</p>
+        </div>
+      </div>
+    </div>
+  </aside>
+
+  <!-- メインコンテンツ -->
+  <div class="app-main">
+    <header class="mobile-topbar">
+      <div class="flex items-center gap-2 gen-24b531" id="mobile-header-brand">
+        <h1 class="font-bold text-sm mobile-brand-name">⚙️ 個人設定</h1>
+      </div>
+      <div class="flex items-center gap-3">
+        <button class="theme-toggle-btn gen-ca678e">
+          <svg class="icon-sm" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 3v1m0 16v1m9-9h-1M4 12H3m15.364 6.364l-.707-.707M6.343 6.343l-.707-.707m12.728 0l-.707.707M6.343 17.657l-.707.707M16 12a4 4 0 11-8 0 4 4 0 018 0z" /></svg>
+        </button>
+      </div>
+    </header>
+
+    <div class="mobile-tab-bar">
+      <button id="mobile-nav-profile" class="mobile-nav-button active settings-tab-btn" data-tab="profile">プロフィール</button>
+      <button id="mobile-nav-appearance" class="mobile-nav-button settings-tab-btn" data-tab="appearance">表示・言語</button>
+      <button id="mobile-nav-dashboard" class="mobile-nav-button settings-tab-btn" data-tab="dashboard">画面</button>
+      <button id="mobile-nav-security" class="mobile-nav-button settings-tab-btn" data-tab="security">端末</button>
+      <button id="mobile-nav-account" class="mobile-nav-button settings-tab-btn" data-tab="account">削除</button>
+    </div>
+
+    <main class="content-area">
+      <!-- 1. プロフィール設定セクション -->
+      <div id="page-profile" class="page-section fade-in space-y-6">
+        <div class="welcome-banner">
+          <div class="welcome-banner-glow"></div>
+          <div class="welcome-banner-row">
+            <div>
+              <p class="welcome-date-text">Profile & Identity</p>
+              <h2 class="welcome-heading-text">プロフィール・プライバシー設定</h2>
+            </div>
+          </div>
+        </div>
+
+        <div class="app-card content-card">
+          <form id="form-profile" class="space-y-4">
+            <div class="avatar-preview-container">
+              <img id="avatar-preview" src="https://placehold.co/80x80/333/fff?text=U" class="avatar-preview-img" alt="Avatar Preview">
+              <div class="flex-1">
+                <label class="gen-114f3e">アバター画像</label>
+                <select id="setting-picture" class="gen-07e2e8">
+                  <option value="default.png">デフォルト</option>
+                  <option value="avatar1.png">スタイル 1 (男子風)</option>
+                  <option value="avatar2.png">スタイル 2 (女子風)</option>
+                  <option value="avatar3.png">スタイル 3 (マスコット)</option>
+                </select>
+              </div>
+            </div>
+
+            <div class="gen-a8f441">
+              <div>
+                <label class="gen-114f3e">氏名（変更不可）</label>
+                <input type="text" id="setting-name" readonly class="gen-07e2e8 readonly-box" />
+              </div>
+              <div>
+                <label class="gen-114f3e">所属クラス（変更不可）</label>
+                <input type="text" id="setting-class" readonly class="gen-07e2e8 readonly-box" />
+              </div>
+            </div>
+
+            <div>
+              <label class="gen-114f3e">ひとことコメント / ステータス</label>
+              <input type="text" id="setting-status-message" placeholder="例: テスト勉強に集中中！" maxlength="50" class="gen-07e2e8" />
+            </div>
+
+            <div>
+              <label class="gen-114f3e">ステータスの公開範囲</label>
+              <select id="setting-privacy-status" class="gen-07e2e8">
+                <option value="public">全体公開</option>
+                <option value="class_only">クラス内のみ公開</option>
+                <option value="private">非公開</option>
+              </select>
+            </div>
+
+            <button type="submit" class="button-primary">💾 プロフィールを保存</button>
+          </form>
+        </div>
+      </div>
+
+      <!-- 2. 表示・テーマ・言語設定セクション -->
+      <div id="page-appearance" class="page-section hidden fade-in space-y-6">
+        <div class="app-card content-card">
+          <h2 class="content-card-title">🎨 外観・テーマ・言語の設定</h2>
+          <p class="content-card-subtitle">アプリの表示スタイル、言語、文字サイズを変更します。</p>
+
+          <form id="form-appearance" class="space-y-4">
+            <!-- 言語設定 (DeepL API連動対象) -->
+            <div>
+              <label class="gen-114f3e">表示言語 (Language)</label>
+              <select id="setting-language" class="gen-07e2e8">
+                <option value="JA">日本語 (Japanese)</option>
+                <option value="EN">English (英語)</option>
+                <option value="ZH">中文 (中国語)</option>
+                <option value="KO">한국어 (韓国語)</option>
+              </select>
+            </div>
+
+            <div>
+              <label class="gen-114f3e">表示モード（カラーテーマ）</label>
+              <select id="setting-theme" class="gen-07e2e8">
+                <option value="dark">ダークモード</option>
+                <option value="light">ライトモード</option>
+                <option value="system">OSの設定に合わせる</option>
+              </select>
+            </div>
+
+            <div>
+              <label class="gen-114f3e">アクセントカラー</label>
+              <select id="setting-accent-color" class="gen-07e2e8">
+                <option value="blue">ブルー（標準）</option>
+                <option value="green">グリーン</option>
+                <option value="purple">パープル</option>
+                <option value="pink">ピンク</option>
+              </select>
+            </div>
+
+            <div>
+              <label class="gen-114f3e">フォントサイズ</label>
+              <select id="setting-font-size" class="gen-07e2e8">
+                <option value="small">小 (Small)</option>
+                <option value="medium">標準 (Medium)</option>
+                <option value="large">大 (Large)</option>
+              </select>
+            </div>
+
+            <button type="submit" class="button-primary">💾 テーマ・言語設定を保存</button>
+          </form>
+        </div>
+      </div>
+
+      <!-- 3. ダッシュボード・通知設定セクション -->
+      <div id="page-dashboard" class="page-section hidden fade-in space-y-6">
+        <div class="app-card content-card">
+          <h2 class="content-card-title">🖥️ ダッシュボード＆通知カスタマイズ</h2>
+          <p class="content-card-subtitle">トップ画面の表示項目や動作を設定します。</p>
+
+          <form id="form-dashboard" class="space-y-4">
+            <div class="space-y-3">
+              <label class="gen-5f3073">
+                <input type="checkbox" id="setting-show-transit" class="gen-5c41db">
+                <span class="gen-0e0434">運行情報ウィジェットを表示する</span>
+              </label>
+
+              <label class="gen-5f3073">
+                <input type="checkbox" id="setting-show-road" class="gen-5c41db">
+                <span class="gen-0e0434">道路交通情報ウィジェットを表示する</span>
+              </label>
+
+              <label class="gen-5f3073">
+                <input type="checkbox" id="setting-show-notices" class="gen-5c41db">
+                <span class="gen-0e0434">お知らせウィジェットを表示する</span>
+              </label>
+
+              <div class="gen-08cddd"></div>
+
+              <label class="gen-5f3073">
+                <input type="checkbox" id="setting-chat-sound" class="gen-5c41db">
+                <span class="gen-0e0434">チャット受信時に通知音を鳴らす</span>
+              </label>
+            </div>
+
+            <button type="submit" class="button-primary">💾 表示・通知設定を保存</button>
+          </form>
+        </div>
+      </div>
+
+      <!-- 4. 端末・セッション管理セクション -->
+      <div id="page-security" class="page-section hidden fade-in space-y-6">
+        <div class="app-card content-card">
+          <div class="gen-93a5df">
+            <div>
+              <h2 class="content-card-title">📱 ログイン中の端末（セッション管理）</h2>
+              <p class="content-card-subtitle">現在アカウントに接続中の端末一覧です。不要な接続は遠隔切断できます。</p>
+            </div>
+            <button id="btn-revoke-all-sessions" class="button-primary text-red">
+              🚫 他のすべての端末からログアウト
+            </button>
+          </div>
+
+          <div class="overflow-x-auto">
+            <table class="gen-3eac61">
+              <thead>
+                <tr class="gen-ec0641">
+                  <th class="gen-6f9be4">デバイス / ブラウザ</th>
+                  <th class="gen-6f9be4">IPアドレス</th>
+                  <th class="gen-6f9be4">最終アクセス</th>
+                  <th class="gen-6f9be4">状態</th>
+                  <th class="gen-36239d">操作</th>
+                </tr>
+              </thead>
+              <tbody id="session-table-body" class="gen-b30001">
+                <tr><td colspan="5" class="placeholder-text gen-cfedb1">セッション情報を読み込んでいます...</td></tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+
+      <!-- 5. アカウント削除セクション -->
+      <div id="page-account" class="page-section hidden fade-in space-y-6">
+        <div class="app-card content-card danger-zone-card">
+          <h2 class="danger-zone-title">⚠️ アカウントの削除（退会）</h2>
+          <p class="content-card-subtitle">アカウントを削除すると、設定や投稿データの保持ポリシーに従って処理が行われ、即座にログアウトされます。この操作は撤回できません。</p>
+
+          <form id="form-delete-account" class="space-y-4 gen-988c5f">
+            <div>
+              <label class="gen-f89a84">確認のため「削除します」と入力してください</label>
+              <input type="text" id="delete-confirm-input" placeholder="削除します" required class="gen-623cbe" />
+            </div>
+
+            <button type="submit" class="button-primary text-red">
+              🗑️ アカウントを完全に削除する
+            </button>
+          </form>
+        </div>
+      </div>
+
+      <footer class="site-footer">
+        <p>&copy; 2026 学校生活ダッシュボード 個人設定</p>
+      </footer>
+    </main>
+  </div>
+
+  <script nonce="%%CSP_NONCE%%">
+    let currentProfile = null;
+
+    document.addEventListener('DOMContentLoaded', () => {
+      // ヘッダー・ロゴクリック
+      document.getElementById('sidebar-header')?.addEventListener('click', () => location.href = '/index');
+      document.getElementById('mobile-header-brand')?.addEventListener('click', () => location.href = '/index');
+
+      // ロゴエラー時のフォールバック
+      const logoImg = document.getElementById('sidebar-logo');
+      if (logoImg) {
+        logoImg.addEventListener('error', function() {
+          this.style.display = 'none';
+          document.getElementById('sidebar-logo-fallback').style.display = 'inline';
+        });
+      }
+
+      // タブ切り替え
+      document.querySelectorAll('.settings-tab-btn').forEach(btn => {
+        btn.addEventListener('click', (e) => {
+          const tabId = e.currentTarget.getAttribute('data-tab');
+          switchTab(tabId);
+        });
+      });
+
+      // テーマ切り替え
+      document.querySelectorAll('.theme-toggle-btn').forEach(btn => {
+        btn.addEventListener('click', toggleTheme);
+      });
+
+      // アカウントメニュー
+      const userToggle = document.getElementById('sidebar-user-toggle');
+      if (userToggle) {
+        userToggle.addEventListener('click', toggleAccountMenu);
+      }
+
+      // フォームイベント
+      document.getElementById('form-profile')?.addEventListener('submit', saveProfileSettings);
+      document.getElementById('form-appearance')?.addEventListener('submit', saveAppearanceSettings);
+      document.getElementById('form-dashboard')?.addEventListener('submit', saveDashboardSettings);
+      document.getElementById('form-delete-account')?.addEventListener('submit', handleDeleteAccount);
+      document.getElementById('btn-revoke-all-sessions')?.addEventListener('click', revokeAllOtherSessions);
+
+      // セッション個別切断（デリゲーション）
+      const sessionTableBody = document.getElementById('session-table-body');
+      if (sessionTableBody) {
+        sessionTableBody.addEventListener('click', (e) => {
+          if (e.target.classList.contains('revoke-session-btn')) {
+            const sid = e.target.getAttribute('data-sid');
+            revokeSession(sid);
+          }
+        });
+      }
+
+      // 初期ロード
+      loadUserProfile();
+
+      const savedTheme = localStorage.getItem('namiki-theme');
+      if (savedTheme === 'light') {
+        document.getElementById('theme-toggle-switch')?.classList.remove('on');
+      } else {
+        document.getElementById('theme-toggle-switch')?.classList.add('on');
+      }
+    });
+
+    function switchTab(tabId) {
+      document.querySelectorAll('.page-section').forEach(el => el.classList.add('hidden'));
+      document.querySelectorAll('.sidebar-nav-button').forEach(btn => btn.classList.remove('active'));
+      document.querySelectorAll('.mobile-nav-button').forEach(btn => btn.classList.remove('active'));
+
+      const pageEl = document.getElementById(`page-${tabId}`);
+      if (pageEl) pageEl.classList.remove('hidden');
+      
+      const sidebarNav = document.getElementById(`sidebar-nav-${tabId}`);
+      if (sidebarNav) sidebarNav.classList.add('active');
+      
+      const mobileNav = document.getElementById(`mobile-nav-${tabId}`);
+      if (mobileNav) mobileNav.classList.add('active');
+
+      if (tabId === 'security') loadSessions();
+    }
+
+    function toggleAccountMenu(event) {
+      if (event) event.stopPropagation();
+      document.getElementById('account-popup-menu')?.classList.toggle('show');
+    }
+
+    function toggleTheme() {
+      const htmlEl = document.documentElement;
+      const toggleSwitch = document.getElementById('theme-toggle-switch');
+      if (htmlEl.classList.contains('dark')) {
+        htmlEl.classList.remove('dark');
+        htmlEl.classList.add('light');
+        localStorage.setItem('namiki-theme', 'light');
+        toggleSwitch?.classList.remove('on');
+      } else {
+        htmlEl.classList.remove('light');
+        htmlEl.classList.add('dark');
+        localStorage.setItem('namiki-theme', 'dark');
+        toggleSwitch?.classList.add('on');
+      }
+    }
+
+    async function loadUserProfile() {
+      try {
+        const res = await fetch('/api/profile');
+        if (!res.ok) throw new Error('未認証');
+        currentProfile = await res.json();
+
+        document.getElementById('sidebar-user-name').textContent = currentProfile.name || 'ユーザー';
+        document.getElementById('popup-user-name').textContent = currentProfile.name || 'ユーザー';
+        document.getElementById('popup-user-email').textContent = currentProfile.email || '';
+        if (currentProfile.picture) {
+          document.getElementById('sidebar-user-avatar').src = currentProfile.picture;
+          document.getElementById('avatar-preview').src = currentProfile.picture;
+        }
+
+        document.getElementById('setting-name').value = currentProfile.name || '';
+        document.getElementById('setting-class').value = currentProfile.userClass || '未所属';
+        
+        const prefs = currentProfile.preferences || {};
+        document.getElementById('setting-picture').value = currentProfile.picture || 'default.png';
+        document.getElementById('setting-status-message').value = prefs.statusMessage || '';
+        document.getElementById('setting-privacy-status').value = prefs.privacy?.showStatus || 'public';
+
+        // 言語・テーマ・フォント設定の反映
+        document.getElementById('setting-language').value = prefs.language || 'JA';
+        document.getElementById('setting-theme').value = prefs.theme || 'dark';
+        document.getElementById('setting-accent-color').value = prefs.accentColor || 'blue';
+        document.getElementById('setting-font-size').value = prefs.fontSize || 'medium';
+
+        document.getElementById('setting-show-transit').checked = prefs.dashboard?.showTransit !== false;
+        document.getElementById('setting-show-road').checked = prefs.dashboard?.showRoad !== false;
+        document.getElementById('setting-show-notices').checked = prefs.dashboard?.showNotices !== false;
+        document.getElementById('setting-chat-sound').checked = prefs.notifications?.chatSound !== false;
+
+        // 【DeepL API用フック】保存済みの言語設定を呼び出す関数などをここに結合できます
+        if (typeof applyDeepLTranslation === 'function' && prefs.language) {
+          applyDeepLTranslation(prefs.language);
+        }
+
+      } catch (err) {
+        window.location.href = '/login';
+      }
+    }
+
+    async function saveProfileSettings(e) {
+      e.preventDefault();
+      const picture = document.getElementById('setting-picture').value;
+      const statusMessage = document.getElementById('setting-status-message').value;
+      const showStatus = document.getElementById('setting-privacy-status').value;
+
+      try {
+        const res = await fetch('/api/profile/preferences', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            picture,
+            preferences: {
+              statusMessage,
+              privacy: { showStatus }
+            }
+          })
+        });
+
+        if (res.ok) {
+          alert('プロフィール設定を保存しました。');
+          loadUserProfile();
+        } else {
+          alert('保存に失敗しました。');
+        }
+      } catch (err) {
+        alert('通信エラーが発生しました。');
+      }
+    }
+
+    async function saveAppearanceSettings(e) {
+      e.preventDefault();
+      const language = document.getElementById('setting-language').value;
+      const theme = document.getElementById('setting-theme').value;
+      const accentColor = document.getElementById('setting-accent-color').value;
+      const fontSize = document.getElementById('setting-font-size').value;
+
+      try {
+        const res = await fetch('/api/profile/preferences', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            preferences: { language, theme, accentColor, fontSize }
+          })
+        });
+
+        if (res.ok) {
+          if (theme === 'light' || theme === 'dark') {
+            localStorage.setItem('namiki-theme', theme);
+            document.documentElement.className = theme;
+          }
+          
+          // 【DeepL API用フック】言語変更時にバックエンドの翻訳APIを叩く処理を追加
+          if (typeof applyDeepLTranslation === 'function') {
+            await applyDeepLTranslation(language);
+          }
+
+          alert('設定を保存しました。');
+        } else {
+          alert('保存に失敗しました。');
+        }
+      } catch (err) {
+        alert('通信エラーが発生しました。');
+      }
+    }
+
+    async function saveDashboardSettings(e) {
+      e.preventDefault();
+      const showTransit = document.getElementById('setting-show-transit').checked;
+      const showRoad = document.getElementById('setting-show-road').checked;
+      const showNotices = document.getElementById('setting-show-notices').checked;
+      const chatSound = document.getElementById('setting-chat-sound').checked;
+
+      try {
+        const res = await fetch('/api/profile/preferences', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            preferences: {
+              dashboard: { showTransit, showRoad, showNotices },
+              notifications: { chatSound }
+            }
+          })
+        });
+
+        if (res.ok) {
+          alert('表示・通知設定を保存しました。');
+        } else {
+          alert('保存に失敗しました。');
+        }
+      } catch (err) {
+        alert('通信エラーが発生しました。');
+      }
+    }
+
+    async function loadSessions() {
+      const tbody = document.getElementById('session-table-body');
+      try {
+        tbody.innerHTML = '<tr><td colspan="5" class="placeholder-text gen-cfedb1">セッション情報を読み込んでいます...</td></tr>';
+        const res = await fetch('/api/profile/sessions');
+        if (!res.ok) throw new Error('取得失敗');
+        const sessions = await res.json();
+
+        if (!sessions.length) {
+          tbody.innerHTML = '<tr><td colspan="5" class="placeholder-text gen-cfedb1">アクティブなセッションがありません。</td></tr>';
+          return;
+        }
+
+        tbody.innerHTML = sessions.map(s => `
+          <tr class="gen-4ccb56">
+            <td class="gen-c60936">${escapeHtml(s.device)}</td>
+            <td class="gen-fbd1b5">${escapeHtml(s.ip)}</td>
+            <td class="gen-300fcd">${new Date(s.lastAccess).toLocaleString('ja-JP')}</td>
+            <td class="gen-916915">
+              ${s.isCurrent ? '<span class="gen-891c24">🟢 現在の端末</span>' : 'アクティブ'}
+            </td>
+            <td class="gen-36239d">
+              ${s.isCurrent ? '-' : `<button data-sid="${escapeHtml(s.sessionId)}" class="button-primary revoke-session-btn text-red">切断</button>`}
+            </td>
+          </tr>
+        `).join('');
+      } catch (err) {
+        tbody.innerHTML = '<tr><td colspan="5" class="placeholder-text gen-dbd0ea">セッション情報の取得に失敗しました。</td></tr>';
+      }
+    }
+
+    async function revokeSession(sid) {
+      if (!confirm('この端末からのアクセスを切断しますか？')) return;
+      try {
+        const res = await fetch(`/api/profile/sessions/${encodeURIComponent(sid)}`, { method: 'DELETE' });
+        if (res.ok) {
+          alert('セッションを切断しました。');
+          loadSessions();
+        } else {
+          alert('切断に失敗しました。');
+        }
+      } catch (err) {
+        alert('通信エラーが発生しました。');
+      }
+    }
+
+    async function revokeAllOtherSessions() {
+      if (!confirm('現在の端末以外のすべての接続を切断しますか？')) return;
+      try {
+        const res = await fetch('/api/profile/sessions-all-others', { method: 'DELETE' });
+        if (res.ok) {
+          alert('他のすべてのセッションを切断しました。');
+          loadSessions();
+        } else {
+          alert('処理に失敗しました。');
+        }
+      } catch (err) {
+        alert('通信エラーが発生しました。');
+      }
+    }
+
+    async function handleDeleteAccount(e) {
+      e.preventDefault();
+      const input = document.getElementById('delete-confirm-input').value.trim();
+      if (input !== '削除します') {
+        alert('確認メッセージが正しくありません。');
+        return;
+      }
+
+      if (!confirm('本当にアカウントを削除しますか？この操作は取り消せません。')) return;
+
+      try {
+        const res = await fetch('/api/profile', { method: 'DELETE' });
+        if (res.ok) {
+          alert('アカウントを削除しました。ご利用ありがとうございました。');
+          window.location.href = '/login';
+        } else {
+          alert('削除処理に失敗しました。');
+        }
+      } catch (err) {
+        alert('通信エラーが発生しました。');
+      }
+    }
+
+    function escapeHtml(str) {
+      if (!str) return '';
+      return String(str).replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;").replace(/'/g, "&#039;");
+    }
+  </script>
+</body>
+</html>

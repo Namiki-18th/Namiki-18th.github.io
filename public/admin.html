@@ -66,6 +66,91 @@
     .gen-a369a6 { font-size:0.75rem; color:var(--color-text-muted); }
     .gen-ef046d { font-weight:600; color:var(--color-text-primary); font-size:0.95rem; }
     .gen-ef0939 { color:var(--color-accent-red); background:none; border:none; cursor:pointer; font-size:0.875rem; }
+    /* カスタムモーダル用のデザイン */
+.custom-modal-overlay {
+  position: fixed; top: 0; left: 0; width: 100vw; height: 100vh;
+  background: rgba(0, 0, 0, 0.6); backdrop-filter: blur(4px);
+  display: flex; align-items: center; justify-content: center;
+  z-index: 9999; opacity: 0; transition: opacity 0.3s ease;
+}
+.custom-modal {
+  background: var(--color-bg, #ffffff);
+  color: var(--color-text-primary, #333333);
+  padding: 2rem; border-radius: 12px; width: 90%; max-width: 420px;
+  box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.3);
+  border: 1px solid var(--color-border, #e5e7eb);
+  transform: translateY(20px) scale(0.95);
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  font-family: sans-serif;
+}
+.custom-modal-header {
+  display: flex; align-items: center; gap: 12px; margin-bottom: 16px; color: #ef4444;
+}
+.custom-modal-header h3 {
+  margin: 0; font-size: 1.25rem; font-weight: 700;
+}
+.custom-modal-desc {
+  font-size: 0.9rem; color: var(--color-text-secondary, #666); margin-bottom: 20px; line-height: 1.6;
+}
+.custom-modal-email {
+  background: var(--color-bg, #ffffff); border: 1px dashed var(--color-border, #cccccc);
+  padding: 10px; border-radius: 6px; margin-bottom: 16px; text-align: center;
+  font-family: monospace; font-size: 1rem; font-weight: 600; color: var(--color-text-primary, #333333);
+}
+.custom-modal-input {
+  width: 100%; box-sizing: border-box; padding: 12px; margin-bottom: 24px;
+  background: var(--color-bg, #ffffff); border: 1px solid var(--color-border, #cccccc);
+  border-radius: 6px; color: var(--color-text-primary, #333333); font-size: 0.95rem;
+  outline: none; transition: border-color 0.2s;
+}
+.custom-modal-input:focus { border-color: #ef4444; }
+.custom-modal-actions {
+  display: flex; justify-content: flex-end; gap: 12px;
+}
+.custom-modal-btn-cancel {
+  padding: 10px 16px; background: transparent; border: 1px solid var(--color-border, #cccccc);
+  border-radius: 6px; color: var(--color-text-primary, #333333); cursor: pointer;
+  font-size: 0.9rem; font-weight: 600; transition: background 0.2s;
+}
+.custom-modal-btn-cancel:hover { background: rgba(0,0,0,0.05); }
+.custom-modal-btn-ok {
+  padding: 10px 16px; background: #ef4444; color: white; border: none;
+  border-radius: 6px; cursor: pointer; font-size: 0.9rem; font-weight: 600;
+  box-shadow: 0 4px 6px -1px rgba(239, 68, 68, 0.2);
+}
+.custom-modal-btn-ok:hover { background: #dc2626; }
+/* --- モダンなコピーボタン用スタイル --- */
+.btn-copy-modern {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 12px;
+  font-size: 0.85rem;
+  font-weight: 500;
+  color: var(--color-text-secondary, #4b5563);
+  background-color: var(--color-bg-secondary, #f3f4f6);
+  border: 1px solid var(--color-border, #e5e7eb);
+  border-radius: 6px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.btn-copy-modern:hover {
+  background-color: var(--color-bg-hover, #e5e7eb);
+  color: var(--color-text-primary, #111827);
+}
+
+/* クリック時に少しへこむエフェクト */
+.btn-copy-modern:active {
+  transform: scale(0.95);
+}
+
+/* コピー成功時のスタイル */
+.btn-copy-modern.success {
+  background-color: #dcfce7;
+  color: #166534;
+  border-color: #bbf7d0;
+}
   </style>
   <script src="/socket.io/socket.io.js" nonce="%%CSP_NONCE%%"></script>
   
@@ -115,6 +200,11 @@
       <button id="sidebar-nav-system" class="sidebar-nav-button admin-tab-btn" data-tab="system" title="システム状態">
         <svg class="icon-nav" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z" /></svg>
         <span class="sidebar-nav-text">システム連携</span>
+      </button>
+      <!-- 追加: 各種APIデータボタン -->
+      <button id="sidebar-nav-apidata" class="sidebar-nav-button admin-tab-btn" data-tab="apidata" title="各種APIデータ">
+        <svg class="icon-nav" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 7v10c0 2.21 3.582 4 8 4s8-1.79 8-4V7M4 7c0 2.21 3.582 4 8 4s8-1.79 8-4M4 7c0-2.21 3.582-4 8-4s8 1.79 8 4m0 5c0 2.21-3.582 4-8 4s-8-1.79-8-4" /></svg>
+        <span class="sidebar-nav-text">各種APIデータ</span>
       </button>
       <button id="sidebar-nav-logs" class="sidebar-nav-button admin-tab-btn" data-tab="logs" title="アクセスログ">
         <svg class="icon-nav" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" /></svg>
@@ -320,7 +410,44 @@
           </form>
         </div>
       </div>
+      <!-- 6. 各種APIデータ セクション -->
+      <div id="page-apidata" class="page-section hidden fade-in space-y-6">
+        <div class="app-card content-card">
+          <h2 class="content-card-title">📡 各種APIデータ確認</h2>
+          <p class="content-card-subtitle">システム内で提供されているAPIの生データ（JSON）を確認できます。</p>
+          
+          <div class="gen-a8f441" style="grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); margin-bottom: 1rem;">
+            <button class="button-primary api-fetch-btn" data-url="/api/transit">🚇 運行情報</button>
+            <button class="button-primary api-fetch-btn" data-url="/api/road">🚗 道路交通情報</button>
+            <button class="button-primary api-fetch-btn" data-url="/api/notices">📢 お知らせ</button>
+            <button class="button-primary api-fetch-btn" data-url="/api/classroom">📚 Classroom</button>
+            <button class="button-primary api-fetch-btn" data-url="/api/calendar">📅 カレンダー</button>
+            <button class="button-primary api-fetch-btn" data-url="/api/schedule">⏰ 時間割</button>
+            <button class="button-primary api-fetch-btn" data-url="/api/links">🔗 リンク集</button>
+            <button class="button-primary api-fetch-btn" data-url="/api/admin/reports">⚠️ レポート</button>
+          </div>
 
+          <div class="status-card">
+            <!-- タイトルとコピーボタンを横並びにするフレックスボックス -->
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.5rem;">
+              <h3 class="gen-0e0434" style="margin-bottom: 0; color: var(--color-text-secondary);">
+                取得先: <span id="api-result-title" style="color: var(--color-text-primary);">---</span>
+              </h3>
+              <!-- コピーボタン（最初は非表示にしておく） -->
+              <!-- 修正: モダンなコピーボタン -->
+              <button id="copy-json-btn" class="btn-copy-modern" style="display: none;">
+                <svg class="copy-icon" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" viewBox="0 0 24 24">
+                  <rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect>
+                  <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path>
+                </svg>
+                <span class="copy-text">コピー</span>
+              </button>
+            </div>
+            
+            <pre id="api-result-display" class="gen-07ea9a" style="min-height: 250px; max-height: 600px; overflow-y: auto;">上のボタンをクリックしてデータを取得してください。</pre>
+          </div>
+        </div>
+      </div>
       <!-- 5. アクセスログセクション -->
       <div id="page-logs" class="page-section hidden fade-in space-y-6">
         <div class="app-card content-card">
@@ -411,9 +538,17 @@
       const adminUserTable = document.getElementById('admin-user-table');
       if (adminUserTable) {
         adminUserTable.addEventListener('click', (e) => {
-          if (e.target.classList.contains('save-user-btn')) {
-            const email = e.target.getAttribute('data-email');
+          // closestを使用してボタン要素を確実に取得
+          if (e.target.closest('.save-user-btn')) {
+            const btn = e.target.closest('.save-user-btn');
+            const email = btn.getAttribute('data-email');
             saveUser(email);
+          }
+          // 削除ボタンがクリックされた時の処理
+          else if (e.target.closest('.delete-user-btn')) {
+            const btn = e.target.closest('.delete-user-btn');
+            const email = btn.getAttribute('data-email');
+            deleteUser(email);
           }
         });
       }
@@ -422,8 +557,10 @@
       const adminNoticesList = document.getElementById('admin-notices-list');
       if (adminNoticesList) {
         adminNoticesList.addEventListener('click', (e) => {
-          if (e.target.classList.contains('delete-notice-btn')) {
-            const id = e.target.getAttribute('data-id');
+          // closestを使用してボタン要素を確実に取得
+          if (e.target.closest('.delete-notice-btn')) {
+            const btn = e.target.closest('.delete-notice-btn');
+            const id = btn.getAttribute('data-id');
             deleteNotice(id);
           }
         });
@@ -458,6 +595,27 @@
       if (tabId === 'notices') loadAdminNotices();
       if (tabId === 'logs') loadAdminLogs();
     }
+    // --- 追加: APIデータ取得ボタンのイベントリスナー ---
+      document.querySelectorAll('.api-fetch-btn').forEach(btn => {
+        btn.addEventListener('click', async (e) => {
+          const url = e.target.getAttribute('data-url');
+          const displayEl = document.getElementById('api-result-display');
+          const titleEl = document.getElementById('api-result-title');
+          
+          titleEl.textContent = url;
+          displayEl.textContent = 'データを読み込み中...';
+          
+          try {
+            const res = await fetch(url);
+            if (!res.ok) throw new Error(`HTTPエラー: ${res.status}`);
+            const data = await res.json();
+            // JSONを整形して表示
+            displayEl.textContent = JSON.stringify(data, null, 2);
+          } catch (err) {
+            displayEl.textContent = 'データの取得に失敗しました:\n' + err.message;
+          }
+        });
+      });
 
     function toggleAccountMenu(event) {
       if (event) event.stopPropagation();
@@ -479,7 +637,38 @@
         toggleSwitch?.classList.add('on');
       }
     }
+    // --- コピー機能の実装（モダン版） ---
+      const copyBtn = document.getElementById('copy-json-btn');
+      const displayEl = document.getElementById('api-result-display');
 
+      copyBtn.addEventListener('click', async () => {
+        const textToCopy = displayEl.textContent;
+        
+        try {
+          await navigator.clipboard.writeText(textToCopy);
+          
+          // UIを成功状態に変更
+          const iconEl = copyBtn.querySelector('svg');
+          const textEl = copyBtn.querySelector('.copy-text');
+          
+          // アイコンを一時保存し、チェックマークに変更
+          const originalIconHTML = iconEl.innerHTML;
+          iconEl.innerHTML = '<polyline points="20 6 9 17 4 12"></polyline>';
+          textEl.textContent = 'コピーしました';
+          copyBtn.classList.add('success');
+          
+          // 2秒後に元に戻す
+          setTimeout(() => {
+            iconEl.innerHTML = originalIconHTML;
+            textEl.textContent = 'コピー';
+            copyBtn.classList.remove('success');
+          }, 2000);
+          
+        } catch (err) {
+          console.error('クリップボードへのコピーに失敗しました:', err);
+          alert('コピーに失敗しました。');
+        }
+      });
     async function checkAdminAuthAndLoad() {
       try {
         const res = await fetch('/api/profile');
@@ -560,8 +749,14 @@
                 <option value="suspended" ${currentStatus === 'suspended' ? 'selected' : ''}>🔴 停止</option>
               </select>
             </td>
-            <td class="gen-22a4ad">
+            <td class="gen-22a4ad" style="white-space: nowrap;">
               <button data-email="${encodedEmail}" class="button-primary save-user-btn gen-795a98">更新</button>
+              <button data-email="${encodedEmail}" class="delete-user-btn gen-ef0939" style="margin-left: 0.25rem; padding: 0.35rem 0.5rem; border: 1px solid #dc2626; border-radius: 4px; display: inline-flex; align-items: center; justify-content: center; background: transparent; cursor: pointer; color: #dc2626;" title="削除">
+                <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#dc2626" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="display: block; min-width: 18px; min-height: 18px;">
+                  <polyline points="3 6 5 6 21 6"></polyline>
+                  <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path>
+                </svg>
+              </button>
             </td>
           </tr>
         `;
@@ -690,6 +885,78 @@
       }
     }
 
+    // ユーザー削除機能（カスタムプロンプト版）
+    // ユーザー削除機能（モダンCSS適用版）
+// ユーザー削除機能（外部CSSファイル利用版）
+async function deleteUser(encodedEmail) {
+  const decodedEmail = decodeURIComponent(encodedEmail);
+  
+  // 背景のオーバーレイ
+  const overlay = document.createElement('div');
+  overlay.className = 'custom-modal-overlay';
+  
+  // モーダルウィンドウ本体
+  const modal = document.createElement('div');
+  modal.className = 'custom-modal';
+  
+  modal.innerHTML = `
+    <div class="custom-modal-header">
+      <svg width="28" height="28" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+        <path stroke-linecap="round" stroke-linejoin="round" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"/>
+      </svg>
+      <h3>ユーザーの完全削除</h3>
+    </div>
+    <p class="custom-modal-desc">
+      この操作は取り消せません。<br>確認のため、以下のメールアドレスを入力してください。
+    </p>
+    <div class="custom-modal-email">${decodedEmail}</div>
+    <input type="text" id="custom-prompt-input" class="custom-modal-input" placeholder="正確に入力してください">
+    <div class="custom-modal-actions">
+      <button id="custom-prompt-cancel" class="custom-modal-btn-cancel">キャンセル</button>
+      <button id="custom-prompt-ok" class="custom-modal-btn-ok">削除を実行</button>
+    </div>
+  `;
+  
+  overlay.appendChild(modal);
+  document.body.appendChild(overlay);
+  
+  // アニメーション発火
+  requestAnimationFrame(() => {
+    overlay.style.opacity = '1';
+    modal.style.transform = 'translateY(0) scale(1)';
+  });
+  
+  // 閉じる処理
+  const closeModal = () => {
+    overlay.style.opacity = '0';
+    modal.style.transform = 'translateY(20px) scale(0.95)';
+    setTimeout(() => { if (overlay.parentNode) overlay.remove(); }, 300);
+  };
+  
+  // ボタンイベント
+  document.getElementById('custom-prompt-cancel').onclick = closeModal;
+  document.getElementById('custom-prompt-ok').onclick = async () => {
+    const inputEl = document.getElementById('custom-prompt-input');
+    if (inputEl.value.trim() !== decodedEmail) {
+      alert('入力されたメールアドレスが一致しません。');
+      return; 
+    }
+    
+    closeModal();
+    try {
+      const res = await fetch(`/api/admin/user/${encodedEmail}`, { method: 'DELETE', headers: { 'Content-Type': 'application/json' }});
+      const data = await res.json();
+      if (res.ok && data.success) {
+        alert('アカウントを正常に削除しました。');
+        loadAdminData(); 
+      } else {
+        alert('削除失敗: ' + (data.error || '不明なエラー'));
+      }
+    } catch (err) {
+      alert('通信エラーが発生しました。');
+    }
+  };
+}
     async function saveAllSettings() {
       if (!confirm('全ユーザーの表示変更内容を保存しますか？')) return;
       try {
@@ -720,9 +987,6 @@
       const content = document.getElementById('notice-content').value;
 
       try {
-        // [修正] 以前は /api/classroom（外部Webhook専用・{items:[...]}形式）に誤送信しており、
-        // 常に400エラーで失敗 & 保存先も notices.json とは別ファイルだったため一覧にも反映されなかった。
-        // 正しい /api/notices エンドポイントに、正しい形式で送信するよう修正。
         const res = await fetch('/api/notices', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },

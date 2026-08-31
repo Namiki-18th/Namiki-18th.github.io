@@ -136,6 +136,21 @@
     .calendar-cell:hover {
       background: var(--color-bg-tertiary, var(--modal-close-hover)) !important;
     }
+
+    /* Tailwind代替用のカスタムクラス */
+    .sidebar-header-inner { display: flex; align-items: center; gap: 0.75rem; }
+    .sidebar-brand-name { font-weight: 700; font-size: 0.875rem; }
+    .sidebar-brand-tagline { font-weight: 400; font-size: 0.75rem; }
+    .theme-toggle-label { display: flex; align-items: center; gap: 0.5rem; }
+    .logout-link { color: #ef4444; }
+    .sidebar-user-info { flex: 1 1 0%; min-width: 0; }
+    .sidebar-user-id-text { font-size: 0.75rem; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+    .sidebar-user-name-text { font-size: 0.875rem; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+    .mobile-brand-container { display: flex; align-items: center; gap: 0.5rem; }
+    .mobile-brand-name { font-weight: 700; font-size: 0.875rem; }
+    .mobile-header-actions { display: flex; align-items: center; gap: 0.75rem; }
+    .page-section-calendar { display: flex; flex-direction: column; gap: 1.5rem; }
+    .text-truncate { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
   </style>
 
   <script nonce="%%CSP_NONCE%%">
@@ -155,14 +170,14 @@
   <!-- サイドバー等のナビゲーション -->
   <aside class="sidebar">
     <div class="sidebar-header nav-link gen-24b531" data-href="/index">
-      <div class="flex items-center gap-3">
+      <div class="sidebar-header-inner">
         <div class="logo-badge">
           <img src="/logo.webp" alt="Logo" class="logo-badge-img fallback-logo-img" />
           <span class="logo-badge-emoji fallback-logo-emoji gen-93b8ea">🏫</span>
         </div>
-        <h1 class="font-bold text-sm sidebar-brand-name sidebar-brand-text">
+        <h1 class="sidebar-brand-name sidebar-brand-text">
           並木中等教育学校18回生<br>
-          <span class="text-xs font-normal sidebar-brand-tagline">ダッシュボード</span>
+          <span class="sidebar-brand-tagline">ダッシュボード</span>
         </h1>
       </div>
     </div>
@@ -221,8 +236,8 @@
         <div class="user-info-header gen-fd5985">
           <img id="popup-user-avatar" src="https://via.placeholder.com/40?text=U" alt="User Avatar" class="popup-user-avatar" />
           <div class="user-info-text">
-            <span id="popup-user-name" class="truncate gen-073e36">読み込み中...</span>
-            <span id="popup-user-email" class="truncate gen-c8c1bd">読み込み中...</span>
+            <span id="popup-user-name" class="text-truncate gen-073e36">読み込み中...</span>
+            <span id="popup-user-email" class="text-truncate gen-c8c1bd">読み込み中...</span>
           </div>
         </div>
 
@@ -236,7 +251,7 @@
         </button>
         
         <button id="btn-theme-toggle" class="account-popup-item toggle-row">
-          <div class="flex items-center gap-2">
+          <div class="theme-toggle-label">
             <svg class="icon-sm" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 3v1m0 16v1m9-9h-1M4 12H3m15.364 6.364l-.707-.707M6.343 6.343l-.707-.707m12.728 0l-.707.707M6.343 17.657l-.707.707M16 12a4 4 0 11-8 0 4 4 0 018 0z" /></svg>
             表示切替
           </div>
@@ -246,7 +261,7 @@
         </button>
 
         <div class="gen-08cddd"></div>
-        <a href="/logout" class="account-popup-item text-red">
+        <a href="/logout" class="account-popup-item logout-link">
           <svg class="icon-sm" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" /></svg>
           ログアウト
         </a>
@@ -254,9 +269,9 @@
 
       <div id="sidebar-user-toggle" class="sidebar-user-row" title="ユーザーメニュー">
         <img id="sidebar-user-avatar" src="https://via.placeholder.com/40?text=U" alt="Avatar" class="sidebar-avatar-image" />
-        <div class="flex-1 min-w-0 sidebar-user-info">
-          <p id="sidebar-user-id" class="text-xs sidebar-user-id-text truncate">読み込み中...</p>
-          <p id="sidebar-user-name" class="text-sm truncate sidebar-user-name-text">読み込み中...</p>
+        <div class="sidebar-user-info">
+          <p id="sidebar-user-id" class="sidebar-user-id-text">読み込み中...</p>
+          <p id="sidebar-user-name" class="sidebar-user-name-text">読み込み中...</p>
         </div>
       </div>
     </div>
@@ -264,14 +279,14 @@
 
   <div class="app-main">
     <header class="mobile-topbar">
-      <div class="flex items-center gap-2 nav-link gen-24b531" data-href="/index">
+      <div class="mobile-brand-container nav-link gen-24b531" data-href="/index">
         <div class="logo-badge logo-badge--mobile">
           <img src="/logo.webp" alt="Logo" class="logo-badge-img fallback-logo-img" />
           <span class="logo-badge-emoji fallback-logo-emoji gen-93b8ea">🏫</span>
         </div>
-        <h1 class="font-bold text-sm mobile-brand-name">並木中等教育学校18回生</h1>
+        <h1 class="mobile-brand-name">並木中等教育学校18回生</h1>
       </div>
-      <div class="flex items-center gap-3">
+      <div class="mobile-header-actions">
         <button id="btn-mobile-theme-toggle" title="モード切替" class="gen-ca678e">
           <svg class="icon-sm" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 3v1m0 16v1m9-9h-1M4 12H3m15.364 6.364l-.707-.707M6.343 6.343l-.707-.707m12.728 0l-.707.707M6.343 17.657l-.707.707M16 12a4 4 0 11-8 0 4 4 0 018 0z" /></svg>
         </button>
@@ -291,7 +306,7 @@
     </div>
 
     <main class="content-area">
-      <div id="page-calendar" class="page-section fade-in space-y-6">
+      <div id="page-calendar" class="page-section fade-in page-section-calendar">
         <div class="app-card content-card">
           <h2 class="content-card-title">年間行事カレンダー</h2>
           <p class="content-card-subtitle">今年度の学校行事やテスト日程、ラーケーション取得不可日の一覧です。</p>
