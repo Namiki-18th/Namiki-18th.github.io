@@ -1,6 +1,7 @@
 const express = require('express');
 const path = require('path');
 const fs = require('fs');
+const fsPromises = fs.promises;
 const http = require('http');
 const { Server } = require('socket.io');
 const passport = require('passport');
@@ -139,8 +140,7 @@ app.use(
         ],
         styleSrc: [
           "'self'",
-          "'unsafe-inline'",
-          (req, res) => `'nonce-${res.locals.cspNonce}'`,
+          "'unsafe-inline'", // nonce 記述を削除して unsafe-inline を正常動作させる
           'https://fonts.googleapis.com'
         ],
         fontSrc: ["'self'", 'https://fonts.gstatic.com'],
@@ -155,17 +155,17 @@ app.use(
   })
 );
 
-function sendHtmlWithNonce(res, filePath) {
-  fs.readFile(filePath, 'utf8', (err, html) => {
-    if (err) {
-      if (err.code === 'ENOENT') return res.status(404).end('Not Found');
-      return res.status(500).end('Internal Server Error');
-    }
+async function sendHtmlWithNonce(res, filePath) {
+  try {
+    const html = await fsPromises.readFile(filePath, 'utf8');
     const nonce = res.locals.cspNonce;
     const injected = html.replace(/%%CSP_NONCE%%/g, nonce);
     res.set('Content-Type', 'text/html; charset=utf-8');
     res.send(injected);
-  });
+  } catch (err) {
+    if (err.code === 'ENOENT') return res.status(404).end('Not Found');
+    return res.status(500).end('Internal Server Error');
+  }
 }
 
 // レート制限の設定
@@ -214,26 +214,12 @@ app.use((req, res, next) => {
 });
 
 // 認証不要ルート
-app.get(['/privacy-noauth', '/privacy-noauth.html'], (req, res) => sendHtmlWithNonce(res, path.join(__dirname, 'public', 'privacy.html')));
-app.get(['/terms-noauth', '/terms-noauth.html'], (req, res) => sendHtmlWithNonce(res, path.join(__dirname, 'public', 'terms.html')));
-
-app.use(
-  express.static(path.join(__dirname, 'public'), {
-    index: false,
-    setHeaders: (res, filePath) => {
-      if (filePath.endsWith('.html')) {
-        res.setHeader('Cache-Control', 'no-store');
-      }
-    }
-  })
-);
+app.get(['/privacy-noauth', '/privacy-noauth.html'], asyncHandler(async (req, res) => await sendHtmlWithNonce(res, path.join(__dirname, 'public', 'privacy.html'))));
+app.get(['/terms-noauth', '/terms-noauth.html'], asyncHandler(async (req, res) => await sendHtmlWithNonce(res, path.join(__dirname, 'public', 'terms.html'))));
 
 // --- [パス定義 & ストレージ管理] ---
 const DATA_DIR = path.join(__dirname, 'data');
 const CHAT_DIR = path.join(DATA_DIR, 'chat');
-
-if (!fs.existsSync(DATA_DIR)) fs.mkdirSync(DATA_DIR, { recursive: true });
-if (!fs.existsSync(CHAT_DIR)) fs.mkdirSync(CHAT_DIR, { recursive: true });
 
 const PATHS = {
   USERS: path.join(DATA_DIR, 'users.json'),
@@ -248,20 +234,23 @@ const PATHS = {
   CHAT_DIR: CHAT_DIR
 };
 
-function safeWriteJSON(filePath, data) {
-  const tempPath = `${filePath}.tmp`;
+async function safeWriteJSON(filePath, data) {
+  const tempPath = `${filePath}.${Date.now()}.${Math.random().toString(36).substring(2)}.tmp`;
   try {
-    fs.writeFileSync(tempPath, JSON.stringify(data, null, 2), 'utf8');
-    fs.renameSync(tempPath, filePath);
+    await fsPromises.writeFile(tempPath, JSON.stringify(data, null, 2), 'utf8');
+    await fsPromises.rename(tempPath, filePath);
   } catch (err) {
-    if (fs.existsSync(tempPath)) fs.unlinkSync(tempPath);
+    try {
+      await fsPromises.unlink(tempPath);
+    } catch (_) {}
     throw err;
   }
 }
 
-function safeReadJSON(filePath, fallback = {}) {
+async function safeReadJSON(filePath, fallback = {}) {
   try {
-    return fs.existsSync(filePath) ? JSON.parse(fs.readFileSync(filePath, 'utf8')) : fallback;
+    const data = await fsPromises.readFile(filePath, 'utf8');
+    return JSON.parse(data);
   } catch (e) {
     return fallback;
   }
@@ -281,42 +270,34 @@ if (PRIVILEGED_ADMINS.length > 0) {
     picture: 'admin.png'
   };
 }
-let usersDB = safeReadJSON(PATHS.USERS, defaultUsers);
 
-let systemSettings = safeReadJSON(PATHS.SETTINGS, {
-  maintenanceMode: false,
-  offlineConfig: {
-    title: 'Maintenance',
-    subtitle: '只今システムメンテナンス中です',
-    message: 'サービス向上およびシステム保守のため、一時的に<strong>ログイン後の全機能</strong>を停止しております。<br>ご不便をおかけいたしますが、復旧までしばらくお待ちください。',
-    recoveryTime: ''
-  }
-});
+let usersDB = {};
+let systemSettings = {};
+let systemLogs = [];
+const MAX_LOGS_LIMIT = 1000; // メモリおよびディスク肥大化防止のログ件数上限
 
-let systemLogs = safeReadJSON(PATHS.LOGS, []);
-
-// --- [GitHub 同期処理 (起動時のみ)] ---
+// --- [GitHub 同期処理] ---
 async function syncWithGithub() {
   if (!isGithubConfigured()) return;
   console.log('[GitHub Storage] Synchronizing data from GitHub...');
-  
+
   try {
     const remoteLogs = await getFileFromGithub('logs.json', null);
     if (remoteLogs && Array.isArray(remoteLogs)) {
-      systemLogs = remoteLogs;
-      safeWriteJSON(PATHS.LOGS, systemLogs);
+      systemLogs = remoteLogs.slice(0, MAX_LOGS_LIMIT);
+      await safeWriteJSON(PATHS.LOGS, systemLogs);
     }
 
     const remoteUsers = await getFileFromGithub('users.json', null);
     if (remoteUsers && typeof remoteUsers === 'object' && !Array.isArray(remoteUsers)) {
       usersDB = remoteUsers;
-      safeWriteJSON(PATHS.USERS, usersDB);
+      await safeWriteJSON(PATHS.USERS, usersDB);
     }
 
     const remoteSettings = await getFileFromGithub('settings.json', null);
     if (remoteSettings && typeof remoteSettings === 'object' && !Array.isArray(remoteSettings)) {
       systemSettings = remoteSettings;
-      safeWriteJSON(PATHS.SETTINGS, systemSettings);
+      await safeWriteJSON(PATHS.SETTINGS, systemSettings);
     }
 
     const syncFiles = [
@@ -330,17 +311,13 @@ async function syncWithGithub() {
 
     for (const file of syncFiles) {
       const data = await getFileFromGithub(file.name, null);
-      if (data) safeWriteJSON(file.path, data);
+      if (data) await safeWriteJSON(file.path, data);
     }
-    
+
     console.log('[GitHub Storage] Synchronization complete.');
   } catch (error) {
     console.error('[GitHub Storage] Synchronization failed:', error.message);
   }
-}
-
-if (isGithubConfigured()) {
-  syncWithGithub();
 }
 
 // --- [ログ同期（Firebase バッファ -> GitHub アーカイブ）処理] ---
@@ -355,7 +332,7 @@ async function flushLogsToGithub() {
     if (pendingLogs.length === 0) return;
 
     const existingLogs = await getFileFromGithub('logs.json', []);
-    const updatedLogs = [...pendingLogs.reverse(), ...existingLogs];
+    const updatedLogs = [...pendingLogs.reverse(), ...existingLogs].slice(0, MAX_LOGS_LIMIT);
 
     await uploadJsonToGithub('logs.json', updatedLogs, `Batch sync ${pendingLogs.length} logs from Firebase buffer`);
     await firebaseDb.ref('pending_logs').remove();
@@ -369,7 +346,18 @@ setInterval(() => {
   flushLogsToGithub().catch((err) => console.error('[Log Batch Interval Error]:', err.message));
 }, 6 * 60 * 60 * 1000);
 
-// --- [拡張版 ログ追加関数] ---
+// --- [最適化されたログ追加関数 (デバウンス・上限付き)] ---
+let logSaveTimeout = null;
+function scheduleLogSave() {
+  if (logSaveTimeout) return;
+  logSaveTimeout = setTimeout(() => {
+    logSaveTimeout = null;
+    safeWriteJSON(PATHS.LOGS, systemLogs).catch((err) => {
+      console.error('[Log Disk Save Error]:', err.message);
+    });
+  }, 2000); // ログ書き込みを2秒間統合してディスクI/Oを激減させる
+}
+
 async function addLog(req, action, email, details = '') {
   const ip = req.headers['x-forwarded-for']
     ? req.headers['x-forwarded-for'].split(',')[0].trim()
@@ -384,16 +372,17 @@ async function addLog(req, action, email, details = '') {
     ip,
     userAgent,
     details,
-    // 詳細情報フィールドの追加
     method: req.method || 'Unknown',
-    url: req.originalUrl || req.url || 'Unknown',
-    query: req.query || {},
-    body: req.body || {},
-    headers: req.headers || {}
+    url: req.originalUrl || req.url || 'Unknown'
   };
 
   systemLogs.unshift(logEntry);
-  safeWriteJSON(PATHS.LOGS, systemLogs);
+  if (systemLogs.length > MAX_LOGS_LIMIT) {
+    systemLogs = systemLogs.slice(0, MAX_LOGS_LIMIT);
+  }
+
+  // ディスク保存は一括書き込み（デバウンス）処理でI/Oパンクを防ぐ
+  scheduleLogSave();
 
   if (firebaseDb) {
     try {
@@ -416,14 +405,14 @@ async function addLog(req, action, email, details = '') {
   }
 }
 
-function saveUsersDB() {
+async function saveUsersDB() {
   PRIVILEGED_ADMINS.forEach((adminEmail) => {
     if (usersDB[adminEmail]) {
       usersDB[adminEmail].role = 'admin';
       usersDB[adminEmail].status = 'active';
     }
   });
-  safeWriteJSON(PATHS.USERS, usersDB);
+  await safeWriteJSON(PATHS.USERS, usersDB);
   if (isGithubConfigured()) {
     uploadJsonToGithub('users.json', usersDB, 'Update users DB').catch(() => {});
   }
@@ -484,7 +473,7 @@ if (process.env.GOOGLE_CLIENT_ID && process.env.GOOGLE_CLIENT_SECRET) {
         clientSecret: process.env.GOOGLE_CLIENT_SECRET,
         callbackURL: googleCallbackURL
       },
-      (accessToken, refreshToken, profile, done) => {
+      async (accessToken, refreshToken, profile, done) => {
         try {
           const email = profile.emails?.[0]?.value || '';
           const isPrivilegedAdmin = isPrivilegedAdminEmail(email);
@@ -515,7 +504,7 @@ if (process.env.GOOGLE_CLIENT_ID && process.env.GOOGLE_CLIENT_SECRET) {
           };
 
           usersDB[email] = user;
-          saveUsersDB();
+          await saveUsersDB();
           return done(null, user);
         } catch (err) {
           return done(err, null);
@@ -571,12 +560,7 @@ io.engine.use(sessionMiddleware);
 app.use(passport.initialize());
 app.use(passport.session());
 
-// --- [全リクエスト自動ログ記録ミドルウェア] ---
-app.use((req, res, next) => {
-  const email = req.user ? req.user.email : 'Guest/Unknown';
-  addLog(req, 'http_request', email, 'Global Request Log');
-  next();
-});
+// --- [全リクエストログのディスク書き込みミドルウェアを撤去し、軽快なアクセス制御へ] ---
 
 // --- [アクセス制御ミドルウェア] ---
 function checkAccountStatus(req, res, next) {
@@ -658,7 +642,7 @@ const ensureApiKeyOrAdmin = (req, res, next) => {
 
 // --- [ルーティング: 認証 & 画面表示] ---
 app.get('/', (req, res) => res.redirect(req.isAuthenticated() ? '/index' : '/login'));
-app.get('/login', (req, res) => (req.isAuthenticated() ? res.redirect('/index') : sendHtmlWithNonce(res, path.join(__dirname, 'public', 'login.html'))));
+app.get('/login', asyncHandler(async (req, res) => (req.isAuthenticated() ? res.redirect('/index') : await sendHtmlWithNonce(res, path.join(__dirname, 'public', 'login.html')))));
 
 app.get('/auth/google', authLimiter, (req, res, next) => {
   if (!process.env.GOOGLE_CLIENT_ID || !process.env.GOOGLE_CLIENT_SECRET) {
@@ -676,7 +660,7 @@ app.get('/auth/google/callback', authLimiter, (req, res, next) => {
       if (loginErr) return next(loginErr);
       req.session.save((saveErr) => {
         if (saveErr) return next(saveErr);
-        addLog(req, 'login', user.email, 'Google OAuth Login');
+        addLog(req, 'login', user.email, 'Google OAuth Login').catch((e) => console.error(e));
         return res.redirect('/index');
       });
     });
@@ -705,21 +689,34 @@ app.get('/logout', (req, res, next) => {
 });
 
 ['index', 'terms', 'privacy', 'report', 'link', 'calendar', 'schedule', 'chat', 'notice', 'classroom', 'setting'].forEach((p) => {
-  app.get([`/${p}`, `/${p}.html`], ensureAuth, (req, res) => sendHtmlWithNonce(res, path.join(__dirname, 'public', `${p}.html`)));
+  app.get([`/${p}`, `/${p}.html`], ensureAuth, asyncHandler(async (req, res) => await sendHtmlWithNonce(res, path.join(__dirname, 'public', `${p}.html`))));
 });
 ['admin'].forEach((p) => {
-  app.get([`/${p}`, `/${p}.html`], ensureAdmin, (req, res) => sendHtmlWithNonce(res, path.join(__dirname, 'public', `${p}.html`)));
+  app.get([`/${p}`, `/${p}.html`], ensureAdmin, asyncHandler(async (req, res) => await sendHtmlWithNonce(res, path.join(__dirname, 'public', `${p}.html`))));
 });
-app.get(['/offline', '/offline.html'], (req, res) => sendHtmlWithNonce(res, path.join(__dirname, 'public', 'offline.html')));
+app.get(['/offline', '/offline.html'], asyncHandler(async (req, res) => await sendHtmlWithNonce(res, path.join(__dirname, 'public', 'offline.html'))));
+
+// --- [静的ファイル配信 (画面ルーティングの後ろに配置)] ---
+app.use(
+  express.static(path.join(__dirname, 'public'), {
+    index: false,
+    extensions: ['html'],
+    setHeaders: (res, filePath) => {
+      if (filePath.endsWith('.html')) {
+        res.setHeader('Cache-Control', 'no-store');
+      }
+    }
+  })
+);
 
 // --- [API: 一般機能 & データ取得] ---
 app.get('/api/profile', ensureAuth, (req, res) => res.json(usersDB[req.user.email] || req.user));
 
-app.get('/api/notices', ensureAuth, (req, res) => res.json(safeReadJSON(PATHS.NOTICES, [])));
-app.get('/api/classroom', ensureAuth, (req, res) => res.json(safeReadJSON(PATHS.CLASSROOM, [])));
-app.get('/api/calendar', ensureAuth, (req, res) => res.json(safeReadJSON(PATHS.EVENTS, [])));
-app.get('/api/schedule', ensureAuth, (req, res) => res.json(safeReadJSON(PATHS.SCHEDULE, {})));
-app.get('/api/links', ensureAuth, (req, res) => res.json(safeReadJSON(PATHS.LINKS, [])));
+app.get('/api/notices', ensureAuth, asyncHandler(async (req, res) => res.json(await safeReadJSON(PATHS.NOTICES, []))));
+app.get('/api/classroom', ensureAuth, asyncHandler(async (req, res) => res.json(await safeReadJSON(PATHS.CLASSROOM, []))));
+app.get('/api/calendar', ensureAuth, asyncHandler(async (req, res) => res.json(await safeReadJSON(PATHS.EVENTS, []))));
+app.get('/api/schedule', ensureAuth, asyncHandler(async (req, res) => res.json(await safeReadJSON(PATHS.SCHEDULE, {}))));
+app.get('/api/links', ensureAuth, asyncHandler(async (req, res) => res.json(await safeReadJSON(PATHS.LINKS, []))));
 
 app.post(
   '/api/classroom',
@@ -732,12 +729,12 @@ app.post(
     if (!items.every((it) => it && typeof it === 'object' && !Array.isArray(it))) {
       return res.status(400).json({ error: 'Each item must be an object' });
     }
-    safeWriteJSON(PATHS.CLASSROOM, items);
+    await safeWriteJSON(PATHS.CLASSROOM, items);
     if (isGithubConfigured()) {
       await uploadJsonToGithub('classroom.json', items, 'Update classroom items');
     }
     io.emit('classroomUpdated', items);
-    addLog(req, 'notice_post', req.user ? req.user.email : 'System/API', `Items: ${items.length}`);
+    await addLog(req, 'notice_post', req.user ? req.user.email : 'System/API', `Items: ${items.length}`);
     res.json({ success: true, count: items.length });
   })
 );
@@ -766,7 +763,7 @@ app.post(
     const safePriority = ALLOWED_NOTICE_PRIORITIES.includes(priority) ? priority : 'normal';
     const safeDate = typeof date === 'string' && date.trim() ? date.trim() : new Date().toISOString().split('T')[0];
 
-    const notices = safeReadJSON(PATHS.NOTICES, []);
+    const notices = await safeReadJSON(PATHS.NOTICES, []);
 
     const newNotice = {
       id: Date.now().toString(),
@@ -778,12 +775,12 @@ app.post(
     };
 
     notices.unshift(newNotice);
-    safeWriteJSON(PATHS.NOTICES, notices);
+    await safeWriteJSON(PATHS.NOTICES, notices);
     if (isGithubConfigured()) {
       await uploadJsonToGithub('notices.json', notices, `Notice posted by ${req.user.email}`);
     }
     io.emit('noticesUpdated', notices);
-    addLog(req, 'notice_post', req.user.email, `Notice ID: ${newNotice.id}`);
+    await addLog(req, 'notice_post', req.user.email, `Notice ID: ${newNotice.id}`);
     res.json({ success: true, notice: newNotice });
   })
 );
@@ -793,19 +790,19 @@ app.delete(
   ensureAdmin,
   asyncHandler(async (req, res) => {
     const { id } = req.params;
-    const notices = safeReadJSON(PATHS.NOTICES, []);
+    const notices = await safeReadJSON(PATHS.NOTICES, []);
 
     const nextNotices = notices.filter((n) => String(n.id) !== String(id));
     if (nextNotices.length === notices.length) {
       return res.status(404).json({ error: 'Notice not found' });
     }
 
-    safeWriteJSON(PATHS.NOTICES, nextNotices);
+    await safeWriteJSON(PATHS.NOTICES, nextNotices);
     if (isGithubConfigured()) {
       await uploadJsonToGithub('notices.json', nextNotices, `Notice ${id} deleted by ${req.user.email}`);
     }
     io.emit('noticesUpdated', nextNotices);
-    addLog(req, 'notice_delete', req.user.email, `Notice ID: ${id}`);
+    await addLog(req, 'notice_delete', req.user.email, `Notice ID: ${id}`);
     res.json({ success: true });
   })
 );
@@ -836,7 +833,7 @@ app.post(
       return res.status(400).json({ error: '送信内容が長すぎます。' });
     }
 
-    const reports = safeReadJSON(PATHS.REPORTS, []);
+    const reports = await safeReadJSON(PATHS.REPORTS, []);
 
     const newReport = {
       id: Date.now().toString(),
@@ -851,19 +848,17 @@ app.post(
 
     reports.push(newReport);
 
-    safeWriteJSON(PATHS.REPORTS, reports);
+    await safeWriteJSON(PATHS.REPORTS, reports);
     if (isGithubConfigured()) {
       await uploadJsonToGithub('reports.json', reports, `Report submitted by ${req.user.email}`);
     }
 
-    addLog(req, 'form_submit', req.user.email, `Report ID: ${newReport.id}`);
+    await addLog(req, 'form_submit', req.user.email, `Report ID: ${newReport.id}`);
     res.json({ success: true, message: '送信が完了しました。' });
   })
 );
 
-// =====================================================================
 // --- [キャッシュ機能: 運行情報・道路交通情報] ---
-// =====================================================================
 let cachedTransitData = {
   jr: { status: '取得中', detail: '最新情報を取得しています...', isTrouble: false },
   tx: { status: '取得中', detail: '最新情報を取得しています...', isTrouble: false },
@@ -878,7 +873,6 @@ let cachedRoadData = {
 async function updateTransitCache() {
   const newTransitData = { ...cachedTransitData };
 
-  // 1. 常磐線 (Cloudflare Worker)
   const jobanUrl = process.env.JOBAN_LINE_WORKER_URL;
   if (jobanUrl) {
     try {
@@ -898,7 +892,6 @@ async function updateTransitCache() {
     }
   }
 
-  // 2. つくばエクスプレス (ODPT API)
   const odptKey = process.env.ODPT_CONSUMER_KEY;
   if (odptKey) {
     try {
@@ -939,7 +932,7 @@ async function updateRoadCache() {
     }
 
     const road = data.road || {};
-    
+
     const toHankakuNum = (str) => {
       if (!str) return '';
       return String(str).replace(/[０-９]/g, (s) => String.fromCharCode(s.charCodeAt(0) - 0xfee0));
@@ -977,35 +970,11 @@ async function updateRoadCache() {
   }
 }
 
-// タイマー設定 (1分ごとに実行)
 setInterval(updateTransitCache, 60 * 1000);
 setInterval(updateRoadCache, 60 * 1000);
 
-// サーバー起動時に即座に初回データを取得
-updateTransitCache();
-updateRoadCache();
-
-// =====================================================================
-// --- [運行情報取得 API (キャッシュ応答)] ---
-// =====================================================================
-app.get(
-  '/api/transit',
-  ensureAuth,
-  asyncHandler(async (req, res) => {
-    res.json(cachedTransitData);
-  })
-);
-
-// =====================================================================
-// --- [日本道路交通情報取得 API (キャッシュ応答)] ---
-// =====================================================================
-app.get(
-  '/api/road',
-  ensureAuth,
-  asyncHandler(async (req, res) => {
-    res.json(cachedRoadData);
-  })
-);
+app.get('/api/transit', ensureAuth, asyncHandler(async (req, res) => res.json(cachedTransitData)));
+app.get('/api/road', ensureAuth, asyncHandler(async (req, res) => res.json(cachedRoadData)));
 
 // --- [チャット機能 Utility & API] ---
 function getSafeChannelName(channel) {
@@ -1014,8 +983,8 @@ function getSafeChannelName(channel) {
 function getChannelFilePath(channel) {
   return path.join(PATHS.CHAT_DIR, `${getSafeChannelName(channel)}.json`);
 }
-function readChannelData(channel) {
-  return safeReadJSON(getChannelFilePath(channel), { channel: getSafeChannelName(channel), messages: [] });
+async function readChannelData(channel) {
+  return await safeReadJSON(getChannelFilePath(channel), { channel: getSafeChannelName(channel), messages: [] });
 }
 
 function resolveChannelKey(currentUser, rawChannel) {
@@ -1068,12 +1037,16 @@ app.get(
         return res.json(channels);
       }
 
-      const files = fs.readdirSync(PATHS.CHAT_DIR).filter((f) => f.endsWith('.json'));
+      const files = (await fsPromises.readdir(PATHS.CHAT_DIR)).filter((f) => f.endsWith('.json'));
       const visibleFiles = files.filter((f) => isChannelVisibleToUser(currentUser, f.replace('.json', '')));
-      const channels = visibleFiles.map((f) => {
-        const data = safeReadJSON(path.join(PATHS.CHAT_DIR, f), { messages: [] });
-        return { id: f.replace('.json', ''), name: f.replace('.json', ''), messageCount: data.messages.length };
-      });
+
+      const channels = await Promise.all(
+        visibleFiles.map(async (f) => {
+          const data = await safeReadJSON(path.join(PATHS.CHAT_DIR, f), { messages: [] });
+          return { id: f.replace('.json', ''), name: f.replace('.json', ''), messageCount: data.messages.length };
+        })
+      );
+
       if (!channels.some((c) => c.id === 'grade')) channels.push({ id: 'grade', name: 'grade', messageCount: 0 });
       res.json(channels);
     } catch (err) {
@@ -1105,7 +1078,7 @@ app.get(
       }
     }
 
-    const data = readChannelData(key);
+    const data = await readChannelData(key);
     const decrypted = data.messages.map((m) => ({
       ...m,
       content: decrypt(m.content),
@@ -1152,9 +1125,9 @@ app.post(
       }
     }
 
-    const data = readChannelData(key);
+    const data = await readChannelData(key);
     data.messages.push(newMessage);
-    safeWriteJSON(getChannelFilePath(key), data);
+    await safeWriteJSON(getChannelFilePath(key), data);
     io.to(key).emit('newMessage', { ...newMessage, content: trimmedContent });
     res.json({ success: true, message: { ...newMessage, content: trimmedContent } });
   })
@@ -1163,10 +1136,10 @@ app.post(
 // --- [管理者向け API] ---
 app.get('/api/admin/users', ensureAdmin, (req, res) => res.json(Object.values(usersDB)));
 
-app.get('/api/admin/reports', ensureAdmin, (req, res) => {
-  const reports = safeReadJSON(PATHS.REPORTS, []);
+app.get('/api/admin/reports', ensureAdmin, asyncHandler(async (req, res) => {
+  const reports = await safeReadJSON(PATHS.REPORTS, []);
   res.json(reports);
-});
+}));
 
 app.get('/api/admin/logs', ensureAdmin, (req, res) => {
   res.json(systemLogs);
@@ -1177,12 +1150,12 @@ app.post(
   ensureAdmin,
   asyncHandler(async (req, res) => {
     systemSettings.maintenanceMode = !!req.body.enabled;
-    safeWriteJSON(PATHS.SETTINGS, systemSettings);
+    await safeWriteJSON(PATHS.SETTINGS, systemSettings);
     if (isGithubConfigured()) {
       await uploadJsonToGithub('settings.json', systemSettings, 'Toggle maintenance mode');
     }
     io.emit('systemSettingsUpdated', systemSettings);
-    addLog(req, 'maintenance_toggle', req.user.email, `Status: ${req.body.enabled}`);
+    await addLog(req, 'maintenance_toggle', req.user.email, `Status: ${req.body.enabled}`);
     res.json({ success: true, maintenanceMode: systemSettings.maintenanceMode });
   })
 );
@@ -1199,12 +1172,12 @@ app.post(
     if (message !== undefined) systemSettings.offlineConfig.message = message;
     if (recoveryTime !== undefined) systemSettings.offlineConfig.recoveryTime = recoveryTime;
 
-    safeWriteJSON(PATHS.SETTINGS, systemSettings);
+    await safeWriteJSON(PATHS.SETTINGS, systemSettings);
     if (isGithubConfigured()) {
       await uploadJsonToGithub('settings.json', systemSettings, 'Update offline settings');
     }
     io.emit('systemSettingsUpdated', systemSettings);
-    addLog(req, 'offline_config_update', req.user.email, 'Updated offline message config');
+    await addLog(req, 'offline_config_update', req.user.email, 'Updated offline message config');
 
     res.json({ success: true, offlineConfig: systemSettings.offlineConfig });
   })
@@ -1215,7 +1188,7 @@ const ALLOWED_STATUSES = ['active', 'suspended'];
 const FORBIDDEN_USER_KEYS = new Set(['__proto__', 'constructor', 'prototype']);
 const hasUser = (email) => Object.prototype.hasOwnProperty.call(usersDB, email);
 
-app.post('/api/admin/user/:email', ensureAdmin, (req, res) => {
+app.post('/api/admin/user/:email', ensureAdmin, asyncHandler(async (req, res) => {
   const email = decodeURIComponent(req.params.email);
 
   if (FORBIDDEN_USER_KEYS.has(email) || !hasUser(email)) {
@@ -1241,34 +1214,29 @@ app.post('/api/admin/user/:email', ensureAdmin, (req, res) => {
     if (!ALLOWED_STATUSES.includes(status)) return res.status(400).json({ error: 'Invalid status' });
     usersDB[email].status = status;
   }
-  saveUsersDB();
-  addLog(req, 'user_update', req.user.email, `Updated target: ${email}`);
+  await saveUsersDB();
+  await addLog(req, 'user_update', req.user.email, `Updated target: ${email}`);
   res.json({ success: true });
-});
+}));
 
 // --- [アカウント削除 API] ---
-app.delete('/api/admin/user/:email', ensureAdmin, (req, res) => {
+app.delete('/api/admin/user/:email', ensureAdmin, asyncHandler(async (req, res) => {
   const email = decodeURIComponent(req.params.email);
 
-  // ユーザーが存在するか、あるいは不正なキーでないか確認
   if (FORBIDDEN_USER_KEYS.has(email) || !hasUser(email)) {
     return res.status(404).json({ error: 'User not found' });
   }
 
-  // 環境変数等で設定された特権管理者（マスター管理者）は削除不可とする
   if (isPrivilegedAdminEmail(email)) {
     return res.status(400).json({ error: 'Cannot delete a privileged admin account' });
   }
 
-  // DBからユーザーを削除して保存
   delete usersDB[email];
-  saveUsersDB();
-  
-  // ログに記録
-  addLog(req, 'user_delete', req.user.email, `Deleted target: ${email}`);
-  
+  await saveUsersDB();
+
+  await addLog(req, 'user_delete', req.user.email, `Deleted target: ${email}`);
   res.json({ success: true });
-});
+}));
 
 // --- [Socket.IO 接続リスナー] ---
 io.on('connection', (socket) => {
@@ -1308,7 +1276,39 @@ app.use((err, req, res, next) => {
   res.redirect('/offline.html');
 });
 
-// --- [サーバー起動] ---
-server.listen(PORT, () => {
-  console.log(`[Server] Running on port ${PORT}`);
-});
+// --- [サーバー非同期初期化 & 起動] ---
+async function initServer() {
+  try {
+    await fsPromises.mkdir(DATA_DIR, { recursive: true });
+    await fsPromises.mkdir(CHAT_DIR, { recursive: true });
+
+    usersDB = await safeReadJSON(PATHS.USERS, defaultUsers);
+    systemSettings = await safeReadJSON(PATHS.SETTINGS, {
+      maintenanceMode: false,
+      offlineConfig: {
+        title: 'Maintenance',
+        subtitle: '只今システムメンテナンス中です',
+        message: 'サービス向上およびシステム保守のため、一時的に<strong>ログイン後の全機能</strong>を停止しております。<br>ご不便をおかけいたしますが、復旧までしばらくお待ちください。',
+        recoveryTime: ''
+      }
+    });
+    const loadedLogs = await safeReadJSON(PATHS.LOGS, []);
+    systemLogs = Array.isArray(loadedLogs) ? loadedLogs.slice(0, MAX_LOGS_LIMIT) : [];
+
+    if (isGithubConfigured()) {
+      await syncWithGithub();
+    }
+
+    updateTransitCache();
+    updateRoadCache();
+
+    server.listen(PORT, () => {
+      console.log(`[Server] Running on port ${PORT}`);
+    });
+  } catch (err) {
+    console.error('[Server Init Error]:', err);
+    process.exit(1);
+  }
+}
+
+initServer();

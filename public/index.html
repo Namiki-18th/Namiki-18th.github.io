@@ -195,7 +195,7 @@
     <div class="sidebar-footer">
       <div id="account-popup-menu" class="account-popup-menu">
         <div class="user-info-header popup-user-info-header">
-          <img id="popup-user-avatar" src="https://via.placeholder.com/40?text=U" alt="User Avatar" class="popup-user-avatar" />
+          <img id="popup-user-avatar" src="data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='40' height='40' viewBox='0 0 40 40'><rect width='100%' height='100%' fill='%233b82f6'/><text x='50%' y='50%' dominant-baseline='central' text-anchor='middle' fill='%23ffffff' font-size='20' font-family='sans-serif'>U</text></svg>" alt="User Avatar" class="popup-user-avatar" />
           <div class="user-info-text">
             <span id="popup-user-name" class="popup-user-name truncate">読み込み中...</span>
             <span id="popup-user-email" class="popup-user-email truncate">読み込み中...</span>
@@ -229,7 +229,7 @@
       </div>
 
       <div id="sidebar-user-toggle" class="sidebar-user-row" title="ユーザーメニュー">
-        <img id="sidebar-user-avatar" src="https://via.placeholder.com/40?text=U" alt="Avatar" class="sidebar-avatar-image" />
+        <img id="sidebar-user-avatar" src="data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='40' height='40' viewBox='0 0 40 40'><rect width='100%' height='100%' fill='%233b82f6'/><text x='50%' y='50%' dominant-baseline='central' text-anchor='middle' fill='%23ffffff' font-size='20' font-family='sans-serif'>U</text></svg>" alt="Avatar" class="sidebar-avatar-image" />
         <div class="flex-1 min-w-0 sidebar-user-info">
           <p id="sidebar-user-id" class="text-xs sidebar-user-id-text truncate">読み込み中...</p>
           <p id="sidebar-user-name" class="text-sm truncate sidebar-user-name-text">読み込み中...</p>
@@ -251,14 +251,14 @@
           <svg class="icon-sm" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 3v1m0 16v1m9-9h-1M4 12H3m15.364 6.364l-.707-.707M6.343 6.343l-.707-.707m12.728 0l-.707.707M6.343 17.657l-.707.707M16 12a4 4 0 11-8 0 4 4 0 018 0z"/></svg>
         </button>
         <div id="mobile-user-avatar-btn" class="cursor-pointer">
-          <img id="mobile-user-avatar" src="https://via.placeholder.com/32?text=U" alt="Avatar" class="mobile-avatar-image" />
+          <img id="mobile-user-avatar" src="data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='32' height='32' viewBox='0 0 32 32'><rect width='100%' height='100%' fill='%233b82f6'/><text x='50%' y='50%' dominant-baseline='central' text-anchor='middle' fill='%23ffffff' font-size='16' font-family='sans-serif'>U</text></svg>" alt="Avatar" class="mobile-avatar-image" />
         </div>
       </div>
     </header>
 
     <div id="mobile-account-popup-menu" class="account-popup-menu" style="display: none;">
       <div class="user-info-header popup-user-info-header">
-        <img id="mobile-popup-user-avatar" src="https://via.placeholder.com/40?text=U" alt="User Avatar" class="popup-user-avatar" />
+        <img id="mobile-popup-user-avatar" src="data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='40' height='40' viewBox='0 0 40 40'><rect width='100%' height='100%' fill='%233b82f6'/><text x='50%' y='50%' dominant-baseline='central' text-anchor='middle' fill='%23ffffff' font-size='20' font-family='sans-serif'>U</text></svg>" alt="User Avatar" class="popup-user-avatar" />
         <div class="user-info-text">
           <span id="mobile-popup-user-name" class="popup-user-name truncate">読み込み中...</span>
           <span id="mobile-popup-user-email" class="popup-user-email truncate">読み込み中...</span>
@@ -467,7 +467,8 @@
     function initDateStr() {
       const now = new Date();
       const options = { year: 'numeric', month: 'long', day: 'numeric', weekday: 'long' };
-      document.getElementById('dashboard-date-display').textContent = now.toLocaleDateString('ja-JP', options);
+      const dateEl = document.getElementById('dashboard-date-display');
+      if (dateEl) dateEl.textContent = now.toLocaleDateString('ja-JP', options);
     }
 
     // データの読み込み
@@ -515,8 +516,8 @@
       // プロフィールの描画
       if (globalData.profile) {
         const p = globalData.profile;
-        document.getElementById('sidebar-user-id').textContent = (p.id && p.id !== 'Unknown') ? p.id : '学籍番号未設定';
-        document.getElementById('sidebar-user-name').textContent = p.name || 'ユーザー';
+        if (document.getElementById('sidebar-user-id')) document.getElementById('sidebar-user-id').textContent = (p.id && p.id !== 'Unknown') ? p.id : '学籍番号未設定';
+        if (document.getElementById('sidebar-user-name')) document.getElementById('sidebar-user-name').textContent = p.name || 'ユーザー';
         
         // PC版ポップアップ反映
         if (document.getElementById('popup-user-name')) document.getElementById('popup-user-name').textContent = p.name || 'ユーザー';
@@ -526,54 +527,65 @@
         if (document.getElementById('mobile-popup-user-name')) document.getElementById('mobile-popup-user-name').textContent = p.name || 'ユーザー';
         if (document.getElementById('mobile-popup-user-email')) document.getElementById('mobile-popup-user-email').textContent = p.email || '未設定';
 
-        const userAvatar = (p.picture && p.picture !== 'admin.png') ? p.picture : `https://via.placeholder.com/40/3b82f6/ffffff?text=${encodeURIComponent(p.name ? p.name.charAt(0) : 'U')}`;
+        // イニシャルSVGを生成する関数
+        function createAvatarDataUri(text) {
+          const initial = encodeURIComponent(text ? text.charAt(0) : 'U');
+          return `data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="40" height="40" viewBox="0 0 40 40"><rect width="100%" height="100%" fill="%233b82f6"/><text x="50%" y="50%" dominant-baseline="central" text-anchor="middle" fill="%23ffffff" font-size="20" font-family="sans-serif">${initial}</text></svg>`;
+        }
+
+        const userAvatar = (p.picture && p.picture !== 'admin.png') ? p.picture : createAvatarDataUri(p.name);
         
         if (document.getElementById('sidebar-user-avatar')) document.getElementById('sidebar-user-avatar').src = userAvatar;
         if (document.getElementById('mobile-user-avatar')) document.getElementById('mobile-user-avatar').src = userAvatar;
         if (document.getElementById('popup-user-avatar')) document.getElementById('popup-user-avatar').src = userAvatar;
         if (document.getElementById('mobile-popup-user-avatar')) document.getElementById('mobile-popup-user-avatar').src = userAvatar;
 
-        document.getElementById('dashboard-welcome-heading').textContent = `ようこそ、${p.name || 'ユーザー'} さん`;
-        document.getElementById('dashboard-user-class').textContent = p.userClass || '未設定';
+        if (document.getElementById('dashboard-welcome-heading')) document.getElementById('dashboard-welcome-heading').textContent = `ようこそ、${p.name || 'ユーザー'} さん`;
+        if (document.getElementById('dashboard-user-class')) document.getElementById('dashboard-user-class').textContent = p.userClass || '未設定';
       }
 
       // お知らせの描画
       const homeNotices = document.getElementById('dashboard-notices-list');
-      homeNotices.innerHTML = globalData.notices.slice(0, 3).map(n => `
-        <div class="notice-item">
-          <div class="notice-item-icon">${n.priority === 'high' ? '🔴' : '🔵'}</div>
-          <div>
-            <div class="notice-item-title">${escapeHtml(n.title)}</div>
-            <div class="notice-item-date">${escapeHtml(n.date)}</div>
-          </div>
-        </div>
-      `).join('');
-
-      // クイックリンクの描画
-      const homeLinks = document.getElementById('dashboard-quicklinks-list');
-      homeLinks.innerHTML = globalData.links.slice(0, 4).map(l => `
-        <a href="${escapeHtml(l.url)}" target="_blank" class="quicklink-item">
-          <span>${escapeHtml(l.name)}</span>
-          <svg class="quicklink-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14"/></svg>
-        </a>
-      `).join('');
-
-      // 今日の時間割（月曜日で仮固定）
-      const homeContainer = document.getElementById('dashboard-schedule-highlights');
-      const todaySchedule = globalData.schedule.filter(s => s.day === '月');
-      
-      if (todaySchedule.length === 0) {
-        homeContainer.innerHTML = `<div class="placeholder-text">データがありません</div>`;
-      } else {
-        homeContainer.innerHTML = todaySchedule.slice(0, 4).map(item => `
-          <div class="schedule-highlight-item">
-            <div class="schedule-highlight-period">${item.id}限</div>
-            <div class="min-w-0">
-              <div class="schedule-highlight-subject truncate">${escapeHtml(item.subject)}</div>
-              <div class="schedule-highlight-room truncate">${escapeHtml(item.room)} (${escapeHtml(item.time)})</div>
+      if (homeNotices) {
+        homeNotices.innerHTML = globalData.notices.slice(0, 3).map(n => `
+          <div class="notice-item">
+            <div class="notice-item-icon">${n.priority === 'high' ? '🔴' : '🔵'}</div>
+            <div>
+              <div class="notice-item-title">${escapeHtml(n.title)}</div>
+              <div class="notice-item-date">${escapeHtml(n.date)}</div>
             </div>
           </div>
         `).join('');
+      }
+
+      // クイックリンクの描画
+      const homeLinks = document.getElementById('dashboard-quicklinks-list');
+      if (homeLinks) {
+        homeLinks.innerHTML = globalData.links.slice(0, 4).map(l => `
+          <a href="${escapeHtml(l.url)}" target="_blank" class="quicklink-item">
+            <span>${escapeHtml(l.name)}</span>
+            <svg class="quicklink-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14"/></svg>
+          </a>
+        `).join('');
+      }
+
+      // 今日の時間割（月曜日で仮固定）
+      const homeContainer = document.getElementById('dashboard-schedule-highlights');
+      if (homeContainer) {
+        const todaySchedule = globalData.schedule.filter(s => s.day === '月');
+        if (todaySchedule.length === 0) {
+          homeContainer.innerHTML = `<div class="placeholder-text">データがありません</div>`;
+        } else {
+          homeContainer.innerHTML = todaySchedule.slice(0, 4).map(item => `
+            <div class="schedule-highlight-item">
+              <div class="schedule-highlight-period">${item.id}限</div>
+              <div class="min-w-0">
+                <div class="schedule-highlight-subject truncate">${escapeHtml(item.subject)}</div>
+                <div class="schedule-highlight-room truncate">${escapeHtml(item.room)} (${escapeHtml(item.time)})</div>
+              </div>
+            </div>
+          `).join('');
+        }
       }
     }
 
@@ -614,21 +626,24 @@
           return;
         }
       });
+    }); // ← 閉じ忘れを補正
 
-      // 画像エラー時の代替処理
-      document.addEventListener('error', (e) => {
-        if (e.target.tagName && e.target.tagName.toLowerCase() === 'img') {
-          if (e.target.classList.contains('logo-badge-img')) {
-            e.target.style.display = 'none';
-            if (e.target.nextElementSibling) {
-              e.target.nextElementSibling.style.display = 'inline';
-            }
-          } else {
-            e.target.src = 'https://via.placeholder.com/40?text=U';
+    // 画像エラー時の代替処理（無限ループ完全防止）
+    document.addEventListener('error', (e) => {
+      if (e.target.tagName && e.target.tagName.toLowerCase() === 'img') {
+        if (e.target.dataset.fallbackApplied) return;
+        e.target.dataset.fallbackApplied = 'true';
+
+        if (e.target.classList.contains('logo-badge-img')) {
+          e.target.style.display = 'none';
+          if (e.target.nextElementSibling) {
+            e.target.nextElementSibling.style.display = 'inline';
           }
+        } else {
+          e.target.src = 'data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="40" height="40" viewBox="0 0 40 40"><rect width="100%" height="100%" fill="%236b7280"/><text x="50%" y="50%" dominant-baseline="central" text-anchor="middle" fill="%23ffffff" font-size="20" font-family="sans-serif">U</text></svg>';
         }
-      }, true);
-    });
+      }
+    }, true);
   </script>
 </body>
 </html>
