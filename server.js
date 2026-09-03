@@ -12,7 +12,6 @@ const crypto = require('crypto');
 const cors = require('cors');
 const helmet = require('helmet');
 const rateLimit = require('express-rate-limit');
-const compression = require('compression'); // 【軽量化】レスポンス圧縮（要: npm install compression）
 const RssParser = require('rss-parser');
 const axios = require('axios');
 const { initializeApp, getApps, cert } = require('firebase-admin/app');
@@ -156,10 +155,6 @@ app.use(
   })
 );
 
-// 【軽量化】gzip/brotli相当の圧縮を有効化。JSON API・HTML・静的アセットの
-// 転送量とそれに伴うソケットバッファのメモリ消費を削減する。
-app.use(compression());
-
 async function sendHtmlWithNonce(res, filePath) {
   try {
     const html = await fsPromises.readFile(filePath, 'utf8');
@@ -259,26 +254,6 @@ async function safeReadJSON(filePath, fallback = {}) {
   } catch (e) {
     return fallback;
   }
-}
-
-// --- [高頻度読み取りJSONのインメモリキャッシュ] ---
-// 【軽量化】notices/classroom/calendar/schedule/links のような「よく読まれるが
-// 更新頻度は低い」データを、リクエストのたびに fs.readFile + JSON.parse していた。
-// アクセスが増えるほど I/O 待ちとパース処理による使い捨てオブジェクトが積み上がり
-// GC負荷とレイテンシの両方を悪化させていたため、書き込み時にのみ更新する
-// シンプルなキャッシュ層を挟む。
-const jsonCache = new Map();
-
-async function cachedReadJSON(filePath, fallback) {
-  if (jsonCache.has(filePath)) return jsonCache.get(filePath);
-  const data = await safeReadJSON(filePath, fallback);
-  jsonCache.set(filePath, data);
-  return data;
-}
-
-async function cachedWriteJSON(filePath, data) {
-  await safeWriteJSON(filePath, data);
-  jsonCache.set(filePath, data);
 }
 
 // --- [インメモリキャッシュ (既存のデータ用)] ---
@@ -470,42 +445,17 @@ function decrypt(data) {
 }
 
 // --- [Firebase リアルタイム同期リスナー（チャット用）] ---
-// 【メモリリーク対策】従来は chats 以下の全チャンネル（grade/クラス/DM...）に対して
-// 一度張ったら二度と解除されないリスナーを、新規チャンネルが増えるたびに追加していた。
-// DM チャンネルは会話ペアの数だけ増え続けるため、サーバーを再起動しない限り
-// リスナー数が単調増加し、これが継続的なメモリ増加の主要因になっていた。
-// 今回は「実際にそのチャンネルを開いている Socket.IO クライアントが1人以上いる間だけ」
-// リスナーを張り、誰もいなくなったら .off() で解除する参照カウント方式に変更する。
-const activeChannelListeners = new Map(); // channelKey -> { ref, handler, count }
-
-function attachChannelListener(channelKey) {
-  if (!firebaseDb || !channelKey) return;
-  const existing = activeChannelListeners.get(channelKey);
-  if (existing) {
-    existing.count += 1;
-    return;
-  }
-  const channelRef = firebaseDb.ref(`chats/${channelKey}`).limitToLast(1);
-  const handler = (msgSnapshot) => {
-    const msg = msgSnapshot.val();
-    if (msg && msg.content) {
-      const decryptedContent = decrypt(msg.content);
-      io.to(channelKey).emit('newMessage', { ...msg, content: decryptedContent });
-    }
-  };
-  channelRef.on('child_added', handler);
-  activeChannelListeners.set(channelKey, { ref: channelRef, handler, count: 1 });
-}
-
-function detachChannelListener(channelKey) {
-  if (!channelKey) return;
-  const existing = activeChannelListeners.get(channelKey);
-  if (!existing) return;
-  existing.count -= 1;
-  if (existing.count <= 0) {
-    existing.ref.off('child_added', existing.handler);
-    activeChannelListeners.delete(channelKey);
-  }
+if (firebaseDb) {
+  firebaseDb.ref('chats').on('child_added', (channelSnapshot) => {
+    const channelKey = channelSnapshot.key;
+    channelSnapshot.ref.limitToLast(1).on('child_added', (msgSnapshot) => {
+      const msg = msgSnapshot.val();
+      if (msg && msg.content) {
+        const decryptedContent = decrypt(msg.content);
+        io.to(channelKey).emit('newMessage', { ...msg, content: decryptedContent });
+      }
+    });
+  });
 }
 
 // --- [認証設定 (Passport Google OAuth 2.0)] ---
@@ -625,10 +575,6 @@ function checkAccountStatus(req, res, next) {
   next();
 }
 
-// 【軽量化】以前はリクエストのたびに正規表現リテラルを再生成していた（2箇所）。
-// 定数化して使い回すことでリクエストごとのオブジェクト生成・GC負荷をわずかに削減する。
-const STATIC_ASSET_REGEX = /\.(css|js|png|jpg|jpeg|gif|webp|ico|svg|woff|woff2|ttf|eot)$/i;
-
 function checkMaintenanceMode(req, res, next) {
   if (systemSettings.maintenanceMode) {
     const isAdmin = req.user?.role === 'admin';
@@ -642,7 +588,7 @@ function checkMaintenanceMode(req, res, next) {
       req.path.startsWith('/api/') ||
       req.path.startsWith('/auth/') ||
       req.path.startsWith('/public/') ||
-      STATIC_ASSET_REGEX.test(req.path);
+      req.path.match(/\.(css|js|png|jpg|jpeg|gif|webp|ico|svg|woff|woff2|ttf|eot)$/i);
 
     if (!isAdmin && !isExempt) return res.redirect('/offline.html');
   }
@@ -655,7 +601,7 @@ const publicApiPaths = ['/api/auth', '/api/offline/config'];
 function shouldRequireAuth(req) {
   if (publicPaths.includes(req.path)) return false;
   if (publicApiPaths.some((p) => req.path.startsWith(p))) return false;
-  if (STATIC_ASSET_REGEX.test(req.path)) return false;
+  if (req.path.match(/\.(css|js|png|jpg|jpeg|gif|webp|ico|svg|woff|woff2|ttf|eot)$/i)) return false;
   if (req.path.startsWith('/public/')) return false;
   return true;
 }
@@ -755,9 +701,6 @@ app.use(
   express.static(path.join(__dirname, 'public'), {
     index: false,
     extensions: ['html'],
-    // 【軽量化】CSS/JS/画像等の静的アセットにブラウザキャッシュを効かせ、
-    // 同一クライアントからの再取得リクエスト自体を減らす（HTMLは従来通りno-store）
-    maxAge: isProduction ? '1d' : 0,
     setHeaders: (res, filePath) => {
       if (filePath.endsWith('.html')) {
         res.setHeader('Cache-Control', 'no-store');
@@ -769,11 +712,11 @@ app.use(
 // --- [API: 一般機能 & データ取得] ---
 app.get('/api/profile', ensureAuth, (req, res) => res.json(usersDB[req.user.email] || req.user));
 
-app.get('/api/notices', ensureAuth, asyncHandler(async (req, res) => res.json(await cachedReadJSON(PATHS.NOTICES, []))));
-app.get('/api/classroom', ensureAuth, asyncHandler(async (req, res) => res.json(await cachedReadJSON(PATHS.CLASSROOM, []))));
-app.get('/api/calendar', ensureAuth, asyncHandler(async (req, res) => res.json(await cachedReadJSON(PATHS.EVENTS, []))));
-app.get('/api/schedule', ensureAuth, asyncHandler(async (req, res) => res.json(await cachedReadJSON(PATHS.SCHEDULE, {}))));
-app.get('/api/links', ensureAuth, asyncHandler(async (req, res) => res.json(await cachedReadJSON(PATHS.LINKS, []))));
+app.get('/api/notices', ensureAuth, asyncHandler(async (req, res) => res.json(await safeReadJSON(PATHS.NOTICES, []))));
+app.get('/api/classroom', ensureAuth, asyncHandler(async (req, res) => res.json(await safeReadJSON(PATHS.CLASSROOM, []))));
+app.get('/api/calendar', ensureAuth, asyncHandler(async (req, res) => res.json(await safeReadJSON(PATHS.EVENTS, []))));
+app.get('/api/schedule', ensureAuth, asyncHandler(async (req, res) => res.json(await safeReadJSON(PATHS.SCHEDULE, {}))));
+app.get('/api/links', ensureAuth, asyncHandler(async (req, res) => res.json(await safeReadJSON(PATHS.LINKS, []))));
 
 app.post(
   '/api/classroom',
@@ -786,7 +729,7 @@ app.post(
     if (!items.every((it) => it && typeof it === 'object' && !Array.isArray(it))) {
       return res.status(400).json({ error: 'Each item must be an object' });
     }
-    await cachedWriteJSON(PATHS.CLASSROOM, items);
+    await safeWriteJSON(PATHS.CLASSROOM, items);
     if (isGithubConfigured()) {
       await uploadJsonToGithub('classroom.json', items, 'Update classroom items');
     }
@@ -820,7 +763,7 @@ app.post(
     const safePriority = ALLOWED_NOTICE_PRIORITIES.includes(priority) ? priority : 'normal';
     const safeDate = typeof date === 'string' && date.trim() ? date.trim() : new Date().toISOString().split('T')[0];
 
-    const notices = await cachedReadJSON(PATHS.NOTICES, []);
+    const notices = await safeReadJSON(PATHS.NOTICES, []);
 
     const newNotice = {
       id: Date.now().toString(),
@@ -832,7 +775,7 @@ app.post(
     };
 
     notices.unshift(newNotice);
-    await cachedWriteJSON(PATHS.NOTICES, notices);
+    await safeWriteJSON(PATHS.NOTICES, notices);
     if (isGithubConfigured()) {
       await uploadJsonToGithub('notices.json', notices, `Notice posted by ${req.user.email}`);
     }
@@ -847,14 +790,14 @@ app.delete(
   ensureAdmin,
   asyncHandler(async (req, res) => {
     const { id } = req.params;
-    const notices = await cachedReadJSON(PATHS.NOTICES, []);
+    const notices = await safeReadJSON(PATHS.NOTICES, []);
 
     const nextNotices = notices.filter((n) => String(n.id) !== String(id));
     if (nextNotices.length === notices.length) {
       return res.status(404).json({ error: 'Notice not found' });
     }
 
-    await cachedWriteJSON(PATHS.NOTICES, nextNotices);
+    await safeWriteJSON(PATHS.NOTICES, nextNotices);
     if (isGithubConfigured()) {
       await uploadJsonToGithub('notices.json', nextNotices, `Notice ${id} deleted by ${req.user.email}`);
     }
@@ -1297,9 +1240,6 @@ app.delete('/api/admin/user/:email', ensureAdmin, asyncHandler(async (req, res) 
 
 // --- [Socket.IO 接続リスナー] ---
 io.on('connection', (socket) => {
-  // このソケットが現在購読しているチャンネル（Firebaseリスナーの参照カウント解除に使用）
-  let currentChannel = null;
-
   socket.on('joinChannel', (ch) => {
     const session = socket.request.session;
     const email = session?.passport?.user;
@@ -1313,21 +1253,6 @@ io.on('connection', (socket) => {
 
     socket.rooms.forEach((r) => r !== socket.id && socket.leave(r));
     socket.join(key);
-
-    // チャンネル切り替え時は古いチャンネルのFirebaseリスナー参照を1つ減らし、
-    // 新しいチャンネルの参照を1つ増やす（誰も見ていないチャンネルのリスナーは自動解除される）
-    if (currentChannel !== key) {
-      if (currentChannel) detachChannelListener(currentChannel);
-      attachChannelListener(key);
-      currentChannel = key;
-    }
-  });
-
-  socket.on('disconnect', () => {
-    if (currentChannel) {
-      detachChannelListener(currentChannel);
-      currentChannel = null;
-    }
   });
 });
 
