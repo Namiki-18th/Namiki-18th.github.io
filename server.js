@@ -7,7 +7,6 @@ const { Server } = require('socket.io');
 const passport = require('passport');
 const GoogleStrategy = require('passport-google-oauth20').Strategy;
 const session = require('express-session');
-const FirebaseStore = require('connect-session-firebase')(session);
 const crypto = require('crypto');
 const cors = require('cors');
 const helmet = require('helmet');
@@ -15,8 +14,6 @@ const rateLimit = require('express-rate-limit');
 const compression = require('compression');
 const RssParser = require('rss-parser');
 const axios = require('axios');
-const { initializeApp, getApps, cert } = require('firebase-admin/app');
-const { getDatabase } = require('firebase-admin/database');
 require('dotenv').config();
 
 // --- [オプショナルモジュールの読み込み] ---
@@ -51,36 +48,6 @@ process.on('unhandledRejection', (reason) => {
 process.on('uncaughtException', (err) => {
   console.error('[Uncaught Exception]', err);
 });
-
-// --- [Firebase Realtime Database 設定] ---
-const FIREBASE_DB_URL = process.env.FIREBASE_DATABASE_URL;
-let firebaseDb = null;
-
-if (FIREBASE_DB_URL) {
-  try {
-    let serviceAccount = null;
-    if (process.env.FIREBASE_SERVICE_ACCOUNT_KEY) {
-      serviceAccount = JSON.parse(process.env.FIREBASE_SERVICE_ACCOUNT_KEY);
-    } else if (fs.existsSync(path.join(__dirname, 'serviceAccountKey.json'))) {
-      serviceAccount = require('./serviceAccountKey.json');
-    }
-
-    if (serviceAccount) {
-      if (!getApps().length) {
-        initializeApp({
-          credential: cert(serviceAccount),
-          databaseURL: FIREBASE_DB_URL
-        });
-      }
-      firebaseDb = getDatabase();
-      console.log('[Firebase] Realtime Database initialized successfully.');
-    } else {
-      console.warn('[Firebase] Service account credential not found. Falling back to local storage.');
-    }
-  } catch (e) {
-    console.error('[Firebase Initialization Error]:', e.message);
-  }
-}
 
 // 管理者メールアドレスの読み込み
 const PRIVILEGED_ADMINS = (process.env.PRIVILEGED_ADMINS || '')
@@ -123,9 +90,7 @@ app.use((req, res, next) => {
 const connectSrcUrls = [
   "'self'",
   'https://api.odpt.org',
-  'https://api.allorigins.win',
-  'https://*.firebasedatabase.app',
-  'wss://*.firebaseio.com'
+  'https://api.allorigins.win'
 ];
 if (process.env.ROAD_INFO_WORKER_URL) connectSrcUrls.push(process.env.ROAD_INFO_WORKER_URL);
 if (process.env.JOBAN_LINE_WORKER_URL) connectSrcUrls.push(process.env.JOBAN_LINE_WORKER_URL);
@@ -223,6 +188,7 @@ app.get(['/terms-noauth', '/terms-noauth.html'], asyncHandler(async (req, res) =
 // --- [パス定義 & ストレージ管理] ---
 const DATA_DIR = path.join(__dirname, 'data');
 const CHAT_DIR = path.join(DATA_DIR, 'chat');
+const SESSIONS_DIR = path.join(DATA_DIR, 'sessions');
 
 const PATHS = {
   USERS: path.join(DATA_DIR, 'users.json'),
@@ -234,7 +200,8 @@ const PATHS = {
   LOGS: path.join(DATA_DIR, 'logs.json'),
   REPORTS: path.join(DATA_DIR, 'reports.json'),
   LINKS: path.join(DATA_DIR, 'links.json'),
-  CHAT_DIR: CHAT_DIR
+  CHAT_DIR: CHAT_DIR,
+  SESSIONS_DIR: SESSIONS_DIR
 };
 
 async function safeWriteJSON(filePath, data) {
@@ -256,6 +223,45 @@ async function safeReadJSON(filePath, fallback = {}) {
     return JSON.parse(data);
   } catch (e) {
     return fallback;
+  }
+}
+
+class LocalFileStore extends session.Store {
+  constructor(directory) {
+    super();
+    this.directory = directory;
+  }
+
+  filePath(sessionId) {
+    return path.join(this.directory, `${encodeURIComponent(sessionId)}.json`);
+  }
+
+  get(sessionId, callback) {
+    safeReadJSON(this.filePath(sessionId), null).then((data) => callback(null, data)).catch(callback);
+  }
+
+  set(sessionId, sessionData, callback) {
+    safeWriteJSON(this.filePath(sessionId), sessionData).then(() => callback()).catch(callback);
+  }
+
+  destroy(sessionId, callback) {
+    fsPromises.unlink(this.filePath(sessionId)).catch((err) => {
+      if (err.code !== 'ENOENT') throw err;
+    }).then(() => callback()).catch(callback);
+  }
+
+  touch(sessionId, sessionData, callback) {
+    this.set(sessionId, sessionData, callback);
+  }
+
+  all(callback) {
+    fsPromises.readdir(this.directory)
+      .then((files) => Promise.all(files.filter((file) => file.endsWith('.json')).map(async (file) => {
+        const data = await safeReadJSON(path.join(this.directory, file), null);
+        return data ? { id: decodeURIComponent(file.slice(0, -5)), data } : null;
+      })))
+      .then((entries) => callback(null, Object.fromEntries(entries.filter(Boolean).map(({ id, data }) => [id, data]))))
+      .catch(callback);
   }
 }
 
@@ -324,31 +330,6 @@ async function syncWithGithub() {
 }
 
 // --- [ログ同期（Firebase バッファ -> GitHub アーカイブ）処理] ---
-async function flushLogsToGithub() {
-  if (!firebaseDb || !isGithubConfigured()) return;
-  try {
-    const snapshot = await firebaseDb.ref('pending_logs').once('value');
-    const pendingObj = snapshot.val();
-    if (!pendingObj) return;
-
-    const pendingLogs = Object.values(pendingObj);
-    if (pendingLogs.length === 0) return;
-
-    const existingLogs = await getFileFromGithub('logs.json', []);
-    const updatedLogs = [...pendingLogs.reverse(), ...existingLogs].slice(0, MAX_LOGS_LIMIT);
-
-    await uploadJsonToGithub('logs.json', updatedLogs, `Batch sync ${pendingLogs.length} logs from Firebase buffer`);
-    await firebaseDb.ref('pending_logs').remove();
-    console.log(`[Log Sync] Successfully transferred ${pendingLogs.length} logs to GitHub.`);
-  } catch (err) {
-    console.error('[Log Sync Error]:', err.message);
-  }
-}
-
-setInterval(() => {
-  flushLogsToGithub().catch((err) => console.error('[Log Batch Interval Error]:', err.message));
-}, 6 * 60 * 60 * 1000);
-
 // --- [最適化されたログ追加関数 (デバウンス・上限付き)] ---
 let logSaveTimeout = null;
 function scheduleLogSave() {
@@ -508,20 +489,7 @@ const googleCallbackURL =
 if (process.env.GOOGLE_CLIENT_ID && process.env.GOOGLE_CLIENT_SECRET) {
   passport.use(
     new GoogleStrategy(
-      {
-        clientID: process.env.GOOGLE_CLIENT_ID,
-        clientSecret: process.env.GOOGLE_CLIENT_SECRET,
-        callbackURL: googleCallbackURL
-      },
-      async (accessToken, refreshToken, profile, done) => {
-        try {
-          const email = profile.emails?.[0]?.value || '';
-          const isPrivilegedAdmin = isPrivilegedAdminEmail(email);
-
-          if (!email.endsWith('@namiki-cs.ibk.ed.jp') && !isPrivilegedAdmin) {
-            return done(null, false);
-          }
-
+    if (isGithubConfigured()) {
           const existingUser = usersDB[email];
           const isAdmin = isPrivilegedAdmin || (existingUser && existingUser.role === 'admin');
 
