@@ -329,7 +329,7 @@ async function syncWithGithub() {
   }
 }
 
-// --- [ログ同期（Firebase バッファ -> GitHub アーカイブ）処理] ---
+// --- [最適化されたログ追加関数 (デバウンス・上限付き)] ---
 // --- [最適化されたログ追加関数 (デバウンス・上限付き)] ---
 let logSaveTimeout = null;
 function scheduleLogSave() {
@@ -368,21 +368,7 @@ async function addLog(req, action, email, details = '') {
   // ディスク保存は一括書き込み（デバウンス）処理でI/Oパンクを防ぐ
   scheduleLogSave();
 
-  if (firebaseDb) {
-    try {
-      const newRef = firebaseDb.ref('pending_logs').push();
-      await newRef.set(logEntry);
-
-      const snapshot = await firebaseDb.ref('pending_logs').limitToFirst(500).once('value');
-      const count = snapshot.numChildren();
-
-      if (count >= 500) {
-        await flushLogsToGithub();
-      }
-    } catch (err) {
-      console.error('[Firebase Log Buffer Error]:', err.message);
-    }
-  } else if (isGithubConfigured()) {
+  if (isGithubConfigured()) {
     appendLogToGithub('logs.json', logEntry, `Log: ${action} by ${email}`).catch((err) => {
       console.error('[GitHub Storage] addLog sync failed:', err.message);
     });
@@ -428,57 +414,6 @@ function decrypt(data) {
   }
 }
 
-// --- [Firebase リアルタイム同期リスナー（チャット用）] ---
-if (firebaseDb) {
-  const chatsRef = firebaseDb.ref('chats');
-  const channelListeners = new Map();
-
-  const handleChannelAdded = (channelSnapshot) => {
-    const channelKey = channelSnapshot.key;
-    if (!channelKey || channelListeners.has(channelKey)) return;
-
-    const messageQuery = channelSnapshot.ref.limitToLast(1);
-    const handleMessageAdded = (msgSnapshot) => {
-      const msg = msgSnapshot.val();
-      if (msg && msg.content) {
-        const decryptedContent = decrypt(msg.content);
-        io.to(channelKey).emit('newMessage', { ...msg, content: decryptedContent });
-      }
-    };
-
-    messageQuery.on('child_added', handleMessageAdded);
-    channelListeners.set(channelKey, { messageQuery, handleMessageAdded });
-  };
-
-  const handleChannelRemoved = (channelSnapshot) => {
-    const listener = channelListeners.get(channelSnapshot.key);
-    if (!listener) return;
-
-    listener.messageQuery.off('child_added', listener.handleMessageAdded);
-    channelListeners.delete(channelSnapshot.key);
-  };
-
-  chatsRef.on('child_added', handleChannelAdded);
-  chatsRef.on('child_removed', handleChannelRemoved);
-
-  const cleanupChatListeners = () => {
-    chatsRef.off('child_added', handleChannelAdded);
-    chatsRef.off('child_removed', handleChannelRemoved);
-    for (const { messageQuery, handleMessageAdded } of channelListeners.values()) {
-      messageQuery.off('child_added', handleMessageAdded);
-    }
-    channelListeners.clear();
-  };
-
-  const handleShutdown = (signal) => {
-    cleanupChatListeners();
-    process.exit(signal === 'SIGINT' ? 130 : 143);
-  };
-
-  process.once('SIGINT', () => handleShutdown('SIGINT'));
-  process.once('SIGTERM', () => handleShutdown('SIGTERM'));
-}
-
 // --- [認証設定 (Passport Google OAuth 2.0)] ---
 const googleCallbackURL =
   process.env.GOOGLE_CALLBACK_URL ||
@@ -489,7 +424,20 @@ const googleCallbackURL =
 if (process.env.GOOGLE_CLIENT_ID && process.env.GOOGLE_CLIENT_SECRET) {
   passport.use(
     new GoogleStrategy(
-    if (isGithubConfigured()) {
+      {
+        clientID: process.env.GOOGLE_CLIENT_ID,
+        clientSecret: process.env.GOOGLE_CLIENT_SECRET,
+        callbackURL: googleCallbackURL
+      },
+      async (accessToken, refreshToken, profile, done) => {
+        try {
+          const email = profile.emails?.[0]?.value || '';
+          const isPrivilegedAdmin = isPrivilegedAdminEmail(email);
+
+          if (!email.endsWith('@namiki-cs.ibk.ed.jp') && !isPrivilegedAdmin) {
+            return done(null, false);
+          }
+
           const existingUser = usersDB[email];
           const isAdmin = isPrivilegedAdmin || (existingUser && existingUser.role === 'admin');
 
@@ -533,16 +481,9 @@ passport.deserializeUser((email, done) => {
 
 const isProduction = process.env.NODE_ENV === 'production' || !!process.env.RENDER;
 
-// セッションストア
-let sessionStore;
-if (firebaseDb) {
-  sessionStore = new FirebaseStore({
-    database: firebaseDb
-  });
-  console.log('[Session] Firebase をセッションストアとして使用します。');
-} else {
-  console.warn('[SECURITY WARNING] Firebase未接続のため MemoryStore を使用します。');
-}
+// セッションストアはサーバー再起動後も維持できるローカル JSON ファイルを使用する。
+const sessionStore = new LocalFileStore(PATHS.SESSIONS_DIR);
+console.log(`[Session] Local file store: ${PATHS.SESSIONS_DIR}`);
 
 if (!process.env.SESSION_SECRET) {
   console.error('[FATAL ERROR] SESSION_SECRET が設定されていません。セキュリティのためサーバーを停止します。');
@@ -567,6 +508,16 @@ app.use(sessionMiddleware);
 io.engine.use(sessionMiddleware);
 app.use(passport.initialize());
 app.use(passport.session());
+
+app.use((req, res, next) => {
+  if (!req.isAuthenticated() || req.session.__metadata) return next();
+  req.session.__metadata = {
+    ip: req.headers['x-forwarded-for']?.split(',')[0].trim() || req.socket.remoteAddress || '不明',
+    device: req.headers['user-agent'] || '不明な端末',
+    lastAccess: new Date().toISOString()
+  };
+  req.session.save(next);
+});
 
 // --- [全リクエストログのディスク書き込みミドルウェアを撤去し、軽快なアクセス制御へ] ---
 
@@ -719,6 +670,51 @@ app.use(
 
 // --- [API: 一般機能 & データ取得] ---
 app.get('/api/profile', ensureAuth, (req, res) => res.json(usersDB[req.user.email] || req.user));
+
+function getSessionOwner(sessionData) {
+  return sessionData?.passport?.user;
+}
+
+app.get('/api/profile/sessions', ensureAuth, (req, res, next) => {
+  sessionStore.all((err, sessions) => {
+    if (err) return next(err);
+    const result = Object.entries(sessions)
+      .filter(([, data]) => getSessionOwner(data) === req.user.email)
+      .map(([sessionId, data]) => ({
+        sessionId,
+        device: data.__metadata?.device || '不明な端末',
+        ip: data.__metadata?.ip || '不明',
+        lastAccess: data.cookie?.expires || data.__metadata?.lastAccess || new Date().toISOString(),
+        isCurrent: sessionId === req.sessionID
+      }));
+    res.json(result);
+  });
+});
+
+app.delete('/api/profile/sessions/:sessionId', ensureAuth, (req, res, next) => {
+  const { sessionId } = req.params;
+  if (sessionId === req.sessionID) return res.status(400).json({ error: 'Cannot revoke current session' });
+  sessionStore.get(sessionId, (getErr, sessionData) => {
+    if (getErr) return next(getErr);
+    if (!sessionData || getSessionOwner(sessionData) !== req.user.email) return res.status(404).json({ error: 'Session not found' });
+    sessionStore.destroy(sessionId, (destroyErr) => {
+      if (destroyErr) return next(destroyErr);
+      res.json({ success: true });
+    });
+  });
+});
+
+app.delete('/api/profile/sessions-all-others', ensureAuth, (req, res, next) => {
+  sessionStore.all((err, sessions) => {
+    if (err) return next(err);
+    const otherSessionIds = Object.entries(sessions)
+      .filter(([sessionId, data]) => sessionId !== req.sessionID && getSessionOwner(data) === req.user.email)
+      .map(([sessionId]) => sessionId);
+    Promise.all(otherSessionIds.map((sessionId) => new Promise((resolve, reject) => {
+      sessionStore.destroy(sessionId, (destroyErr) => destroyErr ? reject(destroyErr) : resolve());
+    }))).then(() => res.json({ success: true })).catch(next);
+  });
+});
 
 app.get('/api/notices', ensureAuth, asyncHandler(async (req, res) => res.json(await safeReadJSON(PATHS.NOTICES, []))));
 app.get('/api/classroom', ensureAuth, asyncHandler(async (req, res) => res.json(await safeReadJSON(PATHS.CLASSROOM, []))));
@@ -1030,21 +1026,6 @@ app.get(
     try {
       const currentUser = usersDB[req.user.email] || req.user;
 
-      if (firebaseDb) {
-        const snapshot = await firebaseDb.ref('chats').once('value');
-        const chats = snapshot.val() || {};
-        const channelIds = Object.keys(chats).filter((id) => isChannelVisibleToUser(currentUser, id));
-
-        const channels = channelIds.map((id) => ({
-          id,
-          name: id,
-          messageCount: Object.keys(chats[id] || {}).length
-        }));
-
-        if (!channels.some((c) => c.id === 'grade')) channels.push({ id: 'grade', name: 'grade', messageCount: 0 });
-        return res.json(channels);
-      }
-
       const files = (await fsPromises.readdir(PATHS.CHAT_DIR)).filter((f) => f.endsWith('.json'));
       const visibleFiles = files.filter((f) => isChannelVisibleToUser(currentUser, f.replace('.json', '')));
 
@@ -1070,21 +1051,6 @@ app.get(
     const currentUser = usersDB[req.user.email] || req.user;
     const key = resolveChannelKey(currentUser, req.query.channel);
     if (!key) return res.status(403).json({ error: 'Forbidden' });
-
-    if (firebaseDb) {
-      try {
-        const snapshot = await firebaseDb.ref(`chats/${key}`).once('value');
-        const rawMsgs = snapshot.val() || {};
-        const decrypted = Object.values(rawMsgs).map((m) => ({
-          ...m,
-          content: decrypt(m.content),
-          isEdited: !!m.isEdited
-        }));
-        return res.json(decrypted);
-      } catch (err) {
-        console.error('[Firebase Chat Get Error]', err.message);
-      }
-    }
 
     const data = await readChannelData(key);
     const decrypted = data.messages.map((m) => ({
@@ -1123,15 +1089,6 @@ app.post(
       content: encryptedData,
       timestamp: new Date().toISOString()
     };
-
-    if (firebaseDb) {
-      try {
-        await firebaseDb.ref(`chats/${key}/${newMessage.id}`).set(newMessage);
-        return res.json({ success: true, message: { ...newMessage, content: trimmedContent } });
-      } catch (err) {
-        console.error('[Firebase Chat Write Error]', err.message);
-      }
-    }
 
     const data = await readChannelData(key);
     data.messages.push(newMessage);
@@ -1289,6 +1246,7 @@ async function initServer() {
   try {
     await fsPromises.mkdir(DATA_DIR, { recursive: true });
     await fsPromises.mkdir(CHAT_DIR, { recursive: true });
+    await fsPromises.mkdir(SESSIONS_DIR, { recursive: true });
 
     usersDB = await safeReadJSON(PATHS.USERS, defaultUsers);
     systemSettings = await safeReadJSON(PATHS.SETTINGS, {
