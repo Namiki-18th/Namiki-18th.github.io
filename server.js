@@ -12,6 +12,7 @@ const crypto = require('crypto');
 const cors = require('cors');
 const helmet = require('helmet');
 const rateLimit = require('express-rate-limit');
+const compression = require('compression');
 const RssParser = require('rss-parser');
 const axios = require('axios');
 const { initializeApp, getApps, cert } = require('firebase-admin/app');
@@ -92,6 +93,8 @@ const isPrivilegedAdminEmail = (email) => PRIVILEGED_ADMINS.includes(email);
 const app = express();
 const server = http.createServer(app);
 const rssParser = new RssParser();
+
+app.use(compression());
 
 const rawCorsOrigin = process.env.CORS_ORIGIN || process.env.RENDER_EXTERNAL_URL || '';
 const corsOrigin = rawCorsOrigin
@@ -389,7 +392,7 @@ async function addLog(req, action, email, details = '') {
       const newRef = firebaseDb.ref('pending_logs').push();
       await newRef.set(logEntry);
 
-      const snapshot = await firebaseDb.ref('pending_logs').once('value');
+      const snapshot = await firebaseDb.ref('pending_logs').limitToFirst(500).once('value');
       const count = snapshot.numChildren();
 
       if (count >= 500) {

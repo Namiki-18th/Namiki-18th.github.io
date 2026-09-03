@@ -14,6 +14,7 @@ function isGithubConfigured() {
 
 const githubApi = axios.create({
   baseURL: `https://api.github.com/repos/${GITHUB_OWNER}/${GITHUB_REPO}/contents`,
+  timeout: 10000,
   headers: {
     Authorization: `Bearer ${GITHUB_TOKEN}`,
     Accept: 'application/vnd.github.v3+json',
