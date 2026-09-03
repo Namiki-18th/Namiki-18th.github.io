@@ -449,16 +449,53 @@ function decrypt(data) {
 
 // --- [Firebase リアルタイム同期リスナー（チャット用）] ---
 if (firebaseDb) {
-  firebaseDb.ref('chats').on('child_added', (channelSnapshot) => {
+  const chatsRef = firebaseDb.ref('chats');
+  const channelListeners = new Map();
+
+  const handleChannelAdded = (channelSnapshot) => {
     const channelKey = channelSnapshot.key;
-    channelSnapshot.ref.limitToLast(1).on('child_added', (msgSnapshot) => {
+    if (!channelKey || channelListeners.has(channelKey)) return;
+
+    const messageQuery = channelSnapshot.ref.limitToLast(1);
+    const handleMessageAdded = (msgSnapshot) => {
       const msg = msgSnapshot.val();
       if (msg && msg.content) {
         const decryptedContent = decrypt(msg.content);
         io.to(channelKey).emit('newMessage', { ...msg, content: decryptedContent });
       }
-    });
-  });
+    };
+
+    messageQuery.on('child_added', handleMessageAdded);
+    channelListeners.set(channelKey, { messageQuery, handleMessageAdded });
+  };
+
+  const handleChannelRemoved = (channelSnapshot) => {
+    const listener = channelListeners.get(channelSnapshot.key);
+    if (!listener) return;
+
+    listener.messageQuery.off('child_added', listener.handleMessageAdded);
+    channelListeners.delete(channelSnapshot.key);
+  };
+
+  chatsRef.on('child_added', handleChannelAdded);
+  chatsRef.on('child_removed', handleChannelRemoved);
+
+  const cleanupChatListeners = () => {
+    chatsRef.off('child_added', handleChannelAdded);
+    chatsRef.off('child_removed', handleChannelRemoved);
+    for (const { messageQuery, handleMessageAdded } of channelListeners.values()) {
+      messageQuery.off('child_added', handleMessageAdded);
+    }
+    channelListeners.clear();
+  };
+
+  const handleShutdown = (signal) => {
+    cleanupChatListeners();
+    process.exit(signal === 'SIGINT' ? 130 : 143);
+  };
+
+  process.once('SIGINT', () => handleShutdown('SIGINT'));
+  process.once('SIGTERM', () => handleShutdown('SIGTERM'));
 }
 
 // --- [認証設定 (Passport Google OAuth 2.0)] ---
