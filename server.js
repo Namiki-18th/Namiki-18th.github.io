@@ -24,20 +24,6 @@ try {
   console.log('[System] unlock.js は見つかりませんでした。標準設定で動作します。');
 }
 
-// GitHub Storage モジュールのフォールバック設計
-let githubStorage = {
-  isGithubConfigured: () => false,
-  getFileFromGithub: async (f, fallback) => fallback,
-  uploadJsonToGithub: async () => {},
-  appendLogToGithub: async () => {}
-};
-try {
-  githubStorage = require('./githubStorage');
-} catch (e) {
-  console.log('[System] githubStorage.js は見つかりませんでした。ローカルファイルストレージを使用します。');
-}
-const { isGithubConfigured, getFileFromGithub, uploadJsonToGithub, appendLogToGithub } = githubStorage;
-
 // 非同期ハンドラーラッパー
 const asyncHandler = (fn) => (req, res, next) => Promise.resolve(fn(req, res, next)).catch(next);
 
@@ -236,16 +222,20 @@ class LocalFileStore extends session.Store {
     return path.join(this.directory, `${encodeURIComponent(sessionId)}.json`);
   }
 
+  ensureDirectory() {
+    return fsPromises.mkdir(this.directory, { recursive: true });
+  }
+
   get(sessionId, callback) {
-    safeReadJSON(this.filePath(sessionId), null).then((data) => callback(null, data)).catch(callback);
+    this.ensureDirectory().then(() => safeReadJSON(this.filePath(sessionId), null)).then((data) => callback(null, data)).catch(callback);
   }
 
   set(sessionId, sessionData, callback) {
-    safeWriteJSON(this.filePath(sessionId), sessionData).then(() => callback()).catch(callback);
+    this.ensureDirectory().then(() => safeWriteJSON(this.filePath(sessionId), sessionData)).then(() => callback()).catch(callback);
   }
 
   destroy(sessionId, callback) {
-    fsPromises.unlink(this.filePath(sessionId)).catch((err) => {
+    this.ensureDirectory().then(() => fsPromises.unlink(this.filePath(sessionId))).catch((err) => {
       if (err.code !== 'ENOENT') throw err;
     }).then(() => callback()).catch(callback);
   }
@@ -255,7 +245,7 @@ class LocalFileStore extends session.Store {
   }
 
   all(callback) {
-    fsPromises.readdir(this.directory)
+    this.ensureDirectory().then(() => fsPromises.readdir(this.directory))
       .then((files) => Promise.all(files.filter((file) => file.endsWith('.json')).map(async (file) => {
         const data = await safeReadJSON(path.join(this.directory, file), null);
         return data ? { id: decodeURIComponent(file.slice(0, -5)), data } : null;
@@ -284,50 +274,6 @@ let usersDB = {};
 let systemSettings = {};
 let systemLogs = [];
 const MAX_LOGS_LIMIT = 1000; // メモリおよびディスク肥大化防止のログ件数上限
-
-// --- [GitHub 同期処理] ---
-async function syncWithGithub() {
-  if (!isGithubConfigured()) return;
-  console.log('[GitHub Storage] Synchronizing data from GitHub...');
-
-  try {
-    const remoteLogs = await getFileFromGithub('logs.json', null);
-    if (remoteLogs && Array.isArray(remoteLogs)) {
-      systemLogs = remoteLogs.slice(0, MAX_LOGS_LIMIT);
-      await safeWriteJSON(PATHS.LOGS, systemLogs);
-    }
-
-    const remoteUsers = await getFileFromGithub('users.json', null);
-    if (remoteUsers && typeof remoteUsers === 'object' && !Array.isArray(remoteUsers)) {
-      usersDB = remoteUsers;
-      await safeWriteJSON(PATHS.USERS, usersDB);
-    }
-
-    const remoteSettings = await getFileFromGithub('settings.json', null);
-    if (remoteSettings && typeof remoteSettings === 'object' && !Array.isArray(remoteSettings)) {
-      systemSettings = remoteSettings;
-      await safeWriteJSON(PATHS.SETTINGS, systemSettings);
-    }
-
-    const syncFiles = [
-      { name: 'notices.json', path: PATHS.NOTICES },
-      { name: 'classroom.json', path: PATHS.CLASSROOM },
-      { name: 'schedule.json', path: PATHS.SCHEDULE },
-      { name: 'events.json', path: PATHS.EVENTS },
-      { name: 'reports.json', path: PATHS.REPORTS },
-      { name: 'links.json', path: PATHS.LINKS }
-    ];
-
-    for (const file of syncFiles) {
-      const data = await getFileFromGithub(file.name, null);
-      if (data) await safeWriteJSON(file.path, data);
-    }
-
-    console.log('[GitHub Storage] Synchronization complete.');
-  } catch (error) {
-    console.error('[GitHub Storage] Synchronization failed:', error.message);
-  }
-}
 
 // --- [最適化されたログ追加関数 (デバウンス・上限付き)] ---
 // --- [最適化されたログ追加関数 (デバウンス・上限付き)] ---
@@ -368,11 +314,6 @@ async function addLog(req, action, email, details = '') {
   // ディスク保存は一括書き込み（デバウンス）処理でI/Oパンクを防ぐ
   scheduleLogSave();
 
-  if (isGithubConfigured()) {
-    appendLogToGithub('logs.json', logEntry, `Log: ${action} by ${email}`).catch((err) => {
-      console.error('[GitHub Storage] addLog sync failed:', err.message);
-    });
-  }
 }
 
 async function saveUsersDB() {
@@ -383,9 +324,6 @@ async function saveUsersDB() {
     }
   });
   await safeWriteJSON(PATHS.USERS, usersDB);
-  if (isGithubConfigured()) {
-    uploadJsonToGithub('users.json', usersDB, 'Update users DB').catch(() => {});
-  }
 }
 
 // --- [暗号化ユーティリティ (AES-256-GCM)] ---
@@ -734,9 +672,6 @@ app.post(
       return res.status(400).json({ error: 'Each item must be an object' });
     }
     await safeWriteJSON(PATHS.CLASSROOM, items);
-    if (isGithubConfigured()) {
-      await uploadJsonToGithub('classroom.json', items, 'Update classroom items');
-    }
     io.emit('classroomUpdated', items);
     await addLog(req, 'notice_post', req.user ? req.user.email : 'System/API', `Items: ${items.length}`);
     res.json({ success: true, count: items.length });
@@ -780,9 +715,6 @@ app.post(
 
     notices.unshift(newNotice);
     await safeWriteJSON(PATHS.NOTICES, notices);
-    if (isGithubConfigured()) {
-      await uploadJsonToGithub('notices.json', notices, `Notice posted by ${req.user.email}`);
-    }
     io.emit('noticesUpdated', notices);
     await addLog(req, 'notice_post', req.user.email, `Notice ID: ${newNotice.id}`);
     res.json({ success: true, notice: newNotice });
@@ -802,9 +734,6 @@ app.delete(
     }
 
     await safeWriteJSON(PATHS.NOTICES, nextNotices);
-    if (isGithubConfigured()) {
-      await uploadJsonToGithub('notices.json', nextNotices, `Notice ${id} deleted by ${req.user.email}`);
-    }
     io.emit('noticesUpdated', nextNotices);
     await addLog(req, 'notice_delete', req.user.email, `Notice ID: ${id}`);
     res.json({ success: true });
@@ -853,10 +782,6 @@ app.post(
     reports.push(newReport);
 
     await safeWriteJSON(PATHS.REPORTS, reports);
-    if (isGithubConfigured()) {
-      await uploadJsonToGithub('reports.json', reports, `Report submitted by ${req.user.email}`);
-    }
-
     await addLog(req, 'form_submit', req.user.email, `Report ID: ${newReport.id}`);
     res.json({ success: true, message: '送信が完了しました。' });
   })
@@ -1101,6 +1026,29 @@ app.post(
 // --- [管理者向け API] ---
 app.get('/api/admin/users', ensureAdmin, (req, res) => res.json(Object.values(usersDB)));
 
+app.get('/api/admin/sessions', ensureAdmin, (req, res, next) => {
+  sessionStore.all((err, sessions) => {
+    if (err) return next(err);
+    const result = Object.entries(sessions).map(([sessionId, data]) => ({
+      sessionId,
+      email: getSessionOwner(data) || '未認証',
+      device: data.__metadata?.device || '不明な端末',
+      ip: data.__metadata?.ip || '不明',
+      lastAccess: data.cookie?.expires || data.__metadata?.lastAccess || new Date().toISOString(),
+      isCurrent: sessionId === req.sessionID
+    }));
+    res.json(result);
+  });
+});
+
+app.delete('/api/admin/sessions/:sessionId', ensureAdmin, (req, res, next) => {
+  if (req.params.sessionId === req.sessionID) return res.status(400).json({ error: 'Cannot revoke current session' });
+  sessionStore.destroy(req.params.sessionId, (err) => {
+    if (err) return next(err);
+    res.json({ success: true });
+  });
+});
+
 app.get('/api/admin/reports', ensureAdmin, asyncHandler(async (req, res) => {
   const reports = await safeReadJSON(PATHS.REPORTS, []);
   res.json(reports);
@@ -1116,9 +1064,6 @@ app.post(
   asyncHandler(async (req, res) => {
     systemSettings.maintenanceMode = !!req.body.enabled;
     await safeWriteJSON(PATHS.SETTINGS, systemSettings);
-    if (isGithubConfigured()) {
-      await uploadJsonToGithub('settings.json', systemSettings, 'Toggle maintenance mode');
-    }
     io.emit('systemSettingsUpdated', systemSettings);
     await addLog(req, 'maintenance_toggle', req.user.email, `Status: ${req.body.enabled}`);
     res.json({ success: true, maintenanceMode: systemSettings.maintenanceMode });
@@ -1138,9 +1083,6 @@ app.post(
     if (recoveryTime !== undefined) systemSettings.offlineConfig.recoveryTime = recoveryTime;
 
     await safeWriteJSON(PATHS.SETTINGS, systemSettings);
-    if (isGithubConfigured()) {
-      await uploadJsonToGithub('settings.json', systemSettings, 'Update offline settings');
-    }
     io.emit('systemSettingsUpdated', systemSettings);
     await addLog(req, 'offline_config_update', req.user.email, 'Updated offline message config');
 
@@ -1260,10 +1202,6 @@ async function initServer() {
     });
     const loadedLogs = await safeReadJSON(PATHS.LOGS, []);
     systemLogs = Array.isArray(loadedLogs) ? loadedLogs.slice(0, MAX_LOGS_LIMIT) : [];
-
-    if (isGithubConfigured()) {
-      await syncWithGithub();
-    }
 
     updateTransitCache();
     updateRoadCache();

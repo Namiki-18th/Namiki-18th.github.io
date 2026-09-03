@@ -9,6 +9,6 @@ npm-debug.log*
 yarn-debug.log*
 logs.json
 yarn-error.log*
+.git/
 data/
 certs/
-serviceAccountKey.json

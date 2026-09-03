@@ -189,6 +189,10 @@
         <svg class="icon-nav" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z" /></svg>
         <span class="sidebar-nav-text">ユーザー管理</span>
       </button>
+      <button id="sidebar-nav-sessions" class="sidebar-nav-button admin-tab-btn" data-tab="sessions" title="セッション管理">
+        <svg class="icon-nav" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 17v-2a4 4 0 018 0v2m-4-8a3 3 0 100-6 3 3 0 000 6zm-7 8v-2a4 4 0 014-4" /></svg>
+        <span class="sidebar-nav-text">セッション管理</span>
+      </button>
       <button id="sidebar-nav-notices" class="sidebar-nav-button admin-tab-btn" data-tab="notices" title="お知らせ投稿">
         <svg class="icon-nav" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5.882V19.24a1.76 1.76 0 01-3.417.592l-2.147-6.15M18 13a3 3 0 100-6M5.436 13.683A4.001 4.001 0 017 6h1.832c.41 0 .789.24 1.002.618L12.5 12.5" /></svg>
         <span class="sidebar-nav-text">お知らせ配信</span>
@@ -266,6 +270,7 @@
 
     <div class="mobile-tab-bar">
       <button id="mobile-nav-users" class="mobile-nav-button active admin-tab-btn" data-tab="users">ユーザー</button>
+      <button id="mobile-nav-sessions" class="mobile-nav-button admin-tab-btn" data-tab="sessions">セッション</button>
       <button id="mobile-nav-notices" class="mobile-nav-button admin-tab-btn" data-tab="notices">お知らせ</button>
       <button id="mobile-nav-schedule" class="mobile-nav-button admin-tab-btn" data-tab="schedule">時間割</button>
       <button id="mobile-nav-system" class="mobile-nav-button admin-tab-btn" data-tab="system">システム</button>
@@ -303,6 +308,24 @@
               <tr><td colspan="5" class="placeholder-text gen-c590b8">ユーザーデータを読み込んでいます...</td></tr>
             </tbody>
           </table>
+        </div>
+      </div>
+
+      <div id="page-sessions" class="page-section hidden fade-in space-y-6">
+        <div class="app-card content-card">
+          <div class="gen-93a5df">
+            <div>
+              <h2 class="content-card-title">セッション管理</h2>
+              <p class="content-card-subtitle">現在保存されている全ユーザーのログインセッションを管理します。</p>
+            </div>
+            <button id="btn-load-sessions" class="button-primary gen-e2b6ce">更新</button>
+          </div>
+          <div class="overflow-x-auto">
+            <table class="gen-3eac61">
+              <thead><tr class="gen-ec0641"><th class="gen-6f9be4">ユーザー</th><th class="gen-6f9be4">端末</th><th class="gen-6f9be4">IP</th><th class="gen-6f9be4">有効期限</th><th class="gen-6f9be4">操作</th></tr></thead>
+              <tbody id="admin-sessions-table"><tr><td colspan="5" class="placeholder-text gen-cfedb1">セッションを読み込んでいます...</td></tr></tbody>
+            </table>
+          </div>
         </div>
       </div>
 
@@ -528,6 +551,7 @@
       document.getElementById('btn-trigger-sync')?.addEventListener('click', triggerAdminClassroomSync);
       document.getElementById('form-offline-config')?.addEventListener('submit', saveOfflineConfig);
       document.getElementById('btn-load-logs')?.addEventListener('click', loadAdminLogs);
+      document.getElementById('btn-load-sessions')?.addEventListener('click', loadAdminSessions);
 
       const maintenanceToggle = document.getElementById('maintenance-toggle');
       if (maintenanceToggle) {
@@ -566,6 +590,14 @@
         });
       }
 
+      const adminSessionsTable = document.getElementById('admin-sessions-table');
+      if (adminSessionsTable) {
+        adminSessionsTable.addEventListener('click', (e) => {
+          const button = e.target.closest('.revoke-admin-session-btn');
+          if (button) revokeAdminSession(button.dataset.sid);
+        });
+      }
+
       // 初期化処理
       checkAdminAuthAndLoad();
       loadSystemSettings(); 
@@ -594,6 +626,40 @@
 
       if (tabId === 'notices') loadAdminNotices();
       if (tabId === 'logs') loadAdminLogs();
+      if (tabId === 'sessions') loadAdminSessions();
+    }
+
+    async function loadAdminSessions() {
+      const tbody = document.getElementById('admin-sessions-table');
+      if (!tbody) return;
+      tbody.innerHTML = '<tr><td colspan="5" class="placeholder-text gen-cfedb1">読み込み中...</td></tr>';
+      try {
+        const res = await fetch('/api/admin/sessions');
+        if (!res.ok) throw new Error('取得失敗');
+        const sessions = await res.json();
+        tbody.innerHTML = sessions.length ? sessions.map((item) => `
+          <tr class="gen-4ccb56">
+            <td class="gen-c60936">${escapeHtml(item.email)}</td>
+            <td class="gen-300fcd">${escapeHtml(item.device)}</td>
+            <td class="gen-fbd1b5">${escapeHtml(item.ip)}</td>
+            <td class="gen-916915">${new Date(item.lastAccess).toLocaleString('ja-JP')}</td>
+            <td class="gen-36239d">${item.isCurrent ? '<span class="gen-891c24">現在の端末</span>' : `<button data-sid="${escapeHtml(item.sessionId)}" class="button-primary revoke-admin-session-btn text-red">切断</button>`}</td>
+          </tr>
+        `).join('') : '<tr><td colspan="5" class="placeholder-text gen-cfedb1">セッションはありません。</td></tr>';
+      } catch (err) {
+        tbody.innerHTML = '<tr><td colspan="5" class="placeholder-text gen-dbd0ea">セッションの取得に失敗しました。</td></tr>';
+      }
+    }
+
+    async function revokeAdminSession(sessionId) {
+      if (!confirm('このセッションを切断しますか？')) return;
+      try {
+        const res = await fetch(`/api/admin/sessions/${encodeURIComponent(sessionId)}`, { method: 'DELETE' });
+        if (!res.ok) throw new Error('切断失敗');
+        loadAdminSessions();
+      } catch (err) {
+        alert('セッションの切断に失敗しました。');
+      }
     }
     // --- 追加: APIデータ取得ボタンのイベントリスナー ---
       document.querySelectorAll('.api-fetch-btn').forEach(btn => {
