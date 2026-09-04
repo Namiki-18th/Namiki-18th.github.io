@@ -63,6 +63,9 @@ node server.js
 | `GOOGLE_CALLBACK_URL` | 推奨 | OAuth コールバックURL（未設定時は `RENDER_EXTERNAL_URL` から自動生成、それも無ければ `http://localhost:3000/auth/google/callback`） |
 | `SESSION_SECRET` | ◯（本番必須） | express-session の署名鍵。**未設定の場合、起動のたびにランダムな一時鍵が生成され、再起動でセッションが無効になります。** 公開リポジトリに固定値をコミットしないこと。 |
 | `CHAT_ENCRYPTION_KEY` | ◯（本番必須） | チャット本文の AES-256-GCM 暗号化鍵（32byte を hex 文字列で指定）。**未設定の場合、起動のたびにランダムな一時鍵が生成され、再起動で過去のチャットが復号不能になります。** |
+| `RECAPTCHA_SITE_KEY` | 報告フォーム利用時必須 | Google reCAPTCHA v3 のサイトキー。ブラウザーへ公開されます。 |
+| `RECAPTCHA_SECRET_KEY` | 報告フォーム利用時必須 | Google reCAPTCHA v3 のシークレットキー。サーバー環境変数にのみ設定します。 |
+| `DEEPL_AUTH_KEY` | 翻訳機能利用時必須 | DeepL API の認証キー。サーバー環境変数にのみ設定します（`DEEPL_API_KEY` も使用可能）。 |
 | `API_SECRET_KEY` | 任意 | `/api/classroom` への Webhook 投稿など、管理者ログイン無しで書き込みを許可するための API キー |
 | `CORS_ORIGIN` | 任意 | 許可するオリジン（カンマ区切りで複数指定可）。未設定時はクロスオリジンリクエストを許可しません（同一オリジンの通常利用には影響なし） |
 | `PORT` | 任意 | リッスンポート（デフォルト `3000`） |
@@ -98,7 +101,7 @@ node -e "console.log(require('crypto').randomBytes(32).toString('hex'))"
 ├── notices.json              # お知らせデータ
 ├── classroom.json            # Classroom連携データ
 ├── settings.json              # システム設定（メンテナンスモード等）
-├── logs.json                  # 管理者向けアクセスログ
+├── log.json                   # 管理者向けアクセスログ
 ├── chat/                       # チャンネルごとのチャットログ（暗号化して保存）
 ├── chat.log                    # （予約領域）
 └── .env                          # 環境変数（Git管理対象外）
@@ -127,6 +130,7 @@ node -e "console.log(require('crypto').randomBytes(32).toString('hex'))"
 | GET / POST | `/api/classroom` | 取得はログイン必須 / 投稿は管理者 or APIキー | Classroom連携データ |
 | GET | `/api/offline/config` | 不要 | メンテナンス画面の表示設定取得 |
 | GET | `/api/transit` | ログイン必須 | リアルタイム運行情報取得 |
+| POST | `/api/translate` | ログイン必須 | DeepL APIによる表示テキスト翻訳 |
 | GET / POST | `/api/chat/channels`, `/api/chat/messages` | ログイン必須 | チャット機能（詳細は下記） |
 | GET | `/api/admin/users`, `/api/admin/logs` | 管理者 | ユーザー一覧・アクセスログ取得 |
 | POST | `/api/admin/settings/maintenance`, `/api/admin/settings/offline` | 管理者 | メンテナンスモード・オフライン画面設定変更 |

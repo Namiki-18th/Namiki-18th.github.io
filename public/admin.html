@@ -193,6 +193,10 @@
         <svg class="icon-nav" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 17v-2a4 4 0 018 0v2m-4-8a3 3 0 100-6 3 3 0 000 6zm-7 8v-2a4 4 0 014-4" /></svg>
         <span class="sidebar-nav-text">セッション管理</span>
       </button>
+      <button id="sidebar-nav-reports" class="sidebar-nav-button admin-tab-btn" data-tab="reports" title="レポート管理">
+        <svg class="icon-nav" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h4m5 5H6a2 2 0 01-2-2V5a2 2 0 012-2h8l4 4v12a2 2 0 01-2 2z" /></svg>
+        <span class="sidebar-nav-text">レポート管理</span>
+      </button>
       <button id="sidebar-nav-notices" class="sidebar-nav-button admin-tab-btn" data-tab="notices" title="お知らせ投稿">
         <svg class="icon-nav" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5.882V19.24a1.76 1.76 0 01-3.417.592l-2.147-6.15M18 13a3 3 0 100-6M5.436 13.683A4.001 4.001 0 017 6h1.832c.41 0 .789.24 1.002.618L12.5 12.5" /></svg>
         <span class="sidebar-nav-text">お知らせ配信</span>
@@ -271,6 +275,7 @@
     <div class="mobile-tab-bar">
       <button id="mobile-nav-users" class="mobile-nav-button active admin-tab-btn" data-tab="users">ユーザー</button>
       <button id="mobile-nav-sessions" class="mobile-nav-button admin-tab-btn" data-tab="sessions">セッション</button>
+      <button id="mobile-nav-reports" class="mobile-nav-button admin-tab-btn" data-tab="reports">レポート</button>
       <button id="mobile-nav-notices" class="mobile-nav-button admin-tab-btn" data-tab="notices">お知らせ</button>
       <button id="mobile-nav-schedule" class="mobile-nav-button admin-tab-btn" data-tab="schedule">時間割</button>
       <button id="mobile-nav-system" class="mobile-nav-button admin-tab-btn" data-tab="system">システム</button>
@@ -324,6 +329,24 @@
             <table class="gen-3eac61">
               <thead><tr class="gen-ec0641"><th class="gen-6f9be4">ユーザー</th><th class="gen-6f9be4">端末</th><th class="gen-6f9be4">IP</th><th class="gen-6f9be4">有効期限</th><th class="gen-6f9be4">操作</th></tr></thead>
               <tbody id="admin-sessions-table"><tr><td colspan="5" class="placeholder-text gen-cfedb1">セッションを読み込んでいます...</td></tr></tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+
+      <div id="page-reports" class="page-section hidden fade-in space-y-6">
+        <div class="app-card content-card">
+          <div class="gen-93a5df">
+            <div>
+              <h2 class="content-card-title">レポート管理</h2>
+              <p class="content-card-subtitle">ユーザーから送信された報告・お問い合わせを確認します。</p>
+            </div>
+            <button id="btn-load-reports" class="button-primary gen-e2b6ce">更新</button>
+          </div>
+          <div class="overflow-x-auto">
+            <table class="gen-3eac61">
+              <thead><tr class="gen-ec0641"><th class="gen-6f9be4">日時</th><th class="gen-6f9be4">投稿者</th><th class="gen-6f9be4">種別</th><th class="gen-6f9be4">件名</th><th class="gen-6f9be4">内容</th></tr></thead>
+              <tbody id="admin-reports-table"><tr><td colspan="5" class="placeholder-text gen-cfedb1">レポートを読み込んでいます...</td></tr></tbody>
             </table>
           </div>
         </div>
@@ -492,6 +515,7 @@
                   <th class="gen-6f9be4">ユーザー(Email)</th>
                   <th class="gen-6f9be4">IPアドレス</th>
                   <th class="gen-6f9be4">詳細</th>
+                  <th class="gen-6f9be4">HTTP</th>
                 </tr>
               </thead>
               <tbody id="admin-logs-table" class="gen-b30001">
@@ -552,6 +576,7 @@
       document.getElementById('form-offline-config')?.addEventListener('submit', saveOfflineConfig);
       document.getElementById('btn-load-logs')?.addEventListener('click', loadAdminLogs);
       document.getElementById('btn-load-sessions')?.addEventListener('click', loadAdminSessions);
+      document.getElementById('btn-load-reports')?.addEventListener('click', loadAdminReports);
 
       const maintenanceToggle = document.getElementById('maintenance-toggle');
       if (maintenanceToggle) {
@@ -627,6 +652,29 @@
       if (tabId === 'notices') loadAdminNotices();
       if (tabId === 'logs') loadAdminLogs();
       if (tabId === 'sessions') loadAdminSessions();
+      if (tabId === 'reports') loadAdminReports();
+    }
+
+    async function loadAdminReports() {
+      const tbody = document.getElementById('admin-reports-table');
+      if (!tbody) return;
+      tbody.innerHTML = '<tr><td colspan="5" class="placeholder-text gen-cfedb1">読み込み中...</td></tr>';
+      try {
+        const res = await fetch('/api/admin/reports');
+        if (!res.ok) throw new Error('取得失敗');
+        const reports = await res.json();
+        tbody.innerHTML = reports.length ? reports.map((report) => `
+          <tr class="gen-4ccb56">
+            <td class="gen-300fcd">${new Date(report.timestamp).toLocaleString('ja-JP')}</td>
+            <td class="gen-c60936">${escapeHtml(report.userName || report.userId || '-')}<br><small>${escapeHtml(report.userId || '')}</small></td>
+            <td class="gen-6f9be4">${escapeHtml(report.type || '-')}</td>
+            <td class="gen-6f9be4">${escapeHtml(report.subject || '-')}</td>
+            <td class="gen-916915">${escapeHtml(report.message || '-')}</td>
+          </tr>
+        `).join('') : '<tr><td colspan="5" class="placeholder-text gen-cfedb1">レポートはありません。</td></tr>';
+      } catch (err) {
+        tbody.innerHTML = '<tr><td colspan="5" class="placeholder-text gen-dbd0ea">レポートの取得に失敗しました。</td></tr>';
+      }
     }
 
     async function loadAdminSessions() {
@@ -832,13 +880,13 @@
     async function loadAdminLogs() {
       const tbody = document.getElementById('admin-logs-table');
       try {
-        tbody.innerHTML = '<tr><td colspan="5" class="placeholder-text gen-cfedb1">読み込み中...</td></tr>';
+        tbody.innerHTML = '<tr><td colspan="6" class="placeholder-text gen-cfedb1">読み込み中...</td></tr>';
         const res = await fetch('/api/admin/logs');
         if (!res.ok) throw new Error('ログの取得に失敗しました');
         const logs = await res.json();
         
         if (!logs.length) {
-          tbody.innerHTML = '<tr><td colspan="5" class="placeholder-text gen-cfedb1">ログデータがありません。</td></tr>';
+          tbody.innerHTML = '<tr><td colspan="6" class="placeholder-text gen-cfedb1">ログデータがありません。</td></tr>';
           return;
         }
 
@@ -855,11 +903,12 @@
               <td class="gen-c60936">${escapeHtml(l.email)}</td>
               <td class="gen-fbd1b5">${escapeHtml(l.ip)}</td>
               <td class="gen-916915">${escapeHtml(l.details || '-')}</td>
+              <td class="gen-916915">${l.statusCode ?? '-'}</td>
             </tr>
           `;
         }).join('');
       } catch (err) {
-        tbody.innerHTML = `<tr><td colspan="5" class="placeholder-text gen-dbd0ea">ログの読み込みに失敗しました。</td></tr>`;
+        tbody.innerHTML = `<tr><td colspan="6" class="placeholder-text gen-dbd0ea">ログの読み込みに失敗しました。</td></tr>`;
       }
     }
 

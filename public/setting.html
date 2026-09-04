@@ -503,11 +503,6 @@
         document.getElementById('setting-show-notices').checked = prefs.dashboard?.showNotices !== false;
         document.getElementById('setting-chat-sound').checked = prefs.notifications?.chatSound !== false;
 
-        // 【DeepL API用フック】保存済みの言語設定を呼び出す関数などをここに結合できます
-        if (typeof applyDeepLTranslation === 'function' && prefs.language) {
-          applyDeepLTranslation(prefs.language);
-        }
-
       } catch (err) {
         window.location.href = '/login';
       }
@@ -564,12 +559,13 @@
             localStorage.setItem('namiki-theme', theme);
             document.documentElement.className = theme;
           }
-          
-          // 【DeepL API用フック】言語変更時にバックエンドの翻訳APIを叩く処理を追加
-          if (typeof applyDeepLTranslation === 'function') {
-            await applyDeepLTranslation(language);
-          }
 
+          if (language === 'JA') {
+            window.location.reload();
+            return;
+          }
+          await window.applyDeepLTranslation(language);
+          
           alert('設定を保存しました。');
         } else {
           alert('保存に失敗しました。');

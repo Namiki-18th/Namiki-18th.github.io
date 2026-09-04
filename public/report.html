@@ -8,6 +8,7 @@
   <link rel="icon" href="favicon.ico" type="image/x-icon">
   <link rel="icon" href="favicon.png" type="image/png" sizes="256x256">
   <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" />
+  <script src="https://www.google.com/recaptcha/api.js?render=%%RECAPTCHA_SITE_KEY%%" nonce="%%CSP_NONCE%%"></script>
   
   <script nonce="%%CSP_NONCE%%">
     (function() {
@@ -250,7 +251,7 @@
         <h2 class="content-card-title">問題報告・お問い合わせ</h2>
         <p class="content-card-subtitle">不具合の報告や改善要望、その他のお問い合わせはこちらから送信してください。</p>
         
-        <form action="https://formspree.io/f/xzepwvye" method="POST" class="report-form">
+        <form id="report-form" class="report-form">
           <input type="text" name="_gotcha" class="gotcha-field" tabIndex="-1" autocomplete="off" />
 
           <div class="form-group">
@@ -396,7 +397,7 @@
     }
 
     function handleAdminSettings() { window.location.href = '/admin'; }
-    function handlePersonalSettings() { alert('個人用設定は開発中です。'); }
+    function handlePersonalSettings() { window.location.href = '/setting'; }
 
     function switchTab(tabId) {
       const routes = {
@@ -431,9 +432,36 @@
       }
     }
 
+    async function submitReport(event) {
+      event.preventDefault();
+      const form = event.currentTarget;
+      const submitButton = form.querySelector('button[type="submit"]');
+      submitButton.disabled = true;
+      try {
+        const recaptchaToken = await new Promise((resolve, reject) => {
+          if (!window.grecaptcha || !'%%RECAPTCHA_SITE_KEY%%') return reject(new Error('reCAPTCHA is not configured'));
+          window.grecaptcha.ready(() => window.grecaptcha.execute('%%RECAPTCHA_SITE_KEY%%', { action: 'report' }).then(resolve).catch(reject));
+        });
+        const response = await fetch('/api/reports', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            type: form.elements.type.value,
+            subject: form.elements.type.value,
+            message: form.elements.message.value,
+            recaptchaToken
+          })
+        });
+        window.location.href = response.ok ? '/Success.html' : '/Error.html';
+      } catch (error) {
+        window.location.href = '/Error.html';
+      }
+    }
+
     window.addEventListener('DOMContentLoaded', () => {
       fetchUserProfile();
       initThemeToggle();
+      document.getElementById('report-form')?.addEventListener('submit', submitReport);
     });
   </script>
 </body>

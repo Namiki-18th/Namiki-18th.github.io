@@ -14,6 +14,7 @@ const rateLimit = require('express-rate-limit');
 const compression = require('compression');
 const RssParser = require('rss-parser');
 const axios = require('axios');
+const deepl = require('deepl-node');
 require('dotenv').config();
 
 // --- [オプショナルモジュールの読み込み] ---
@@ -64,6 +65,12 @@ const io = new Server(server, {
   }
 });
 const PORT = process.env.PORT || 3000;
+const RECAPTCHA_SITE_KEY = process.env.RECAPTCHA_SITE_KEY || '';
+const RECAPTCHA_SECRET_KEY = process.env.RECAPTCHA_SECRET_KEY || '';
+const DEEPL_AUTH_KEY = process.env.DEEPL_AUTH_KEY || process.env.DEEPL_API_KEY || '';
+const deeplTranslator = DEEPL_AUTH_KEY ? new deepl.Translator(DEEPL_AUTH_KEY) : null;
+const DEEPL_TARGET_LANGUAGES = new Set(['JA', 'EN', 'ZH', 'KO']);
+const DEEPL_TARGET_LANGUAGE_MAP = { JA: 'JA', EN: 'EN-US', ZH: 'ZH', KO: 'KO' };
 
 // --- [基本設定 & セキュリティ (Helmet, CSP, Nonce)] ---
 app.set('trust proxy', 1);
@@ -76,7 +83,9 @@ app.use((req, res, next) => {
 const connectSrcUrls = [
   "'self'",
   'https://api.odpt.org',
-  'https://api.allorigins.win'
+  'https://api.allorigins.win',
+  'https://www.google.com/recaptcha/',
+  'https://www.gstatic.com/recaptcha/'
 ];
 if (process.env.ROAD_INFO_WORKER_URL) connectSrcUrls.push(process.env.ROAD_INFO_WORKER_URL);
 if (process.env.JOBAN_LINE_WORKER_URL) connectSrcUrls.push(process.env.JOBAN_LINE_WORKER_URL);
@@ -90,8 +99,11 @@ app.use(
           "'self'",
           (req, res) => `'nonce-${res.locals.cspNonce}'`,
           'https://cdn.jsdelivr.net',
-          'https://cdnjs.cloudflare.com'
+          'https://cdnjs.cloudflare.com',
+          'https://www.google.com/recaptcha/',
+          'https://www.gstatic.com/recaptcha/'
         ],
+        scriptSrcAttr: ["'unsafe-inline'"],
         styleSrc: [
           "'self'",
           "'unsafe-inline'", // nonce 記述を削除して unsafe-inline を正常動作させる
@@ -100,6 +112,7 @@ app.use(
         fontSrc: ["'self'", 'https://fonts.gstatic.com'],
         imgSrc: ["'self'", 'data:', 'https:'],
         connectSrc: connectSrcUrls,
+        frameSrc: ["'self'", 'https://www.google.com/recaptcha/', 'https://recaptcha.google.com/recaptcha/'],
         objectSrc: ["'none'"],
         baseUri: ["'self'"],
         frameAncestors: ["'self'"]
@@ -113,7 +126,66 @@ async function sendHtmlWithNonce(res, filePath) {
   try {
     const html = await fsPromises.readFile(filePath, 'utf8');
     const nonce = res.locals.cspNonce;
-    const injected = html.replace(/%%CSP_NONCE%%/g, nonce);
+    const preferenceScript = `<script nonce="${nonce}">
+      window.applyDeepLTranslation = async function(targetLanguage) {
+        if (!targetLanguage || targetLanguage === 'JA') return;
+        const textNodes = [];
+        const walker = document.createTreeWalker(document.body, NodeFilter.SHOW_TEXT, {
+          acceptNode(node) {
+            const parent = node.parentElement;
+            if (!node.nodeValue.trim() || !parent || /^(SCRIPT|STYLE|NOSCRIPT|TEXTAREA|INPUT|SELECT|OPTION)$/i.test(parent.tagName)) {
+              return NodeFilter.FILTER_REJECT;
+            }
+            return NodeFilter.FILTER_ACCEPT;
+          }
+        });
+        while (walker.nextNode()) textNodes.push(walker.currentNode);
+        for (let index = 0; index < textNodes.length; index += 50) {
+          const nodes = textNodes.slice(index, index + 50);
+          const response = await fetch('/api/translate', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ texts: nodes.map((node) => node.nodeValue), targetLang: targetLanguage })
+          });
+          if (!response.ok) return;
+          const data = await response.json();
+          data.translations.forEach((translation, translationIndex) => {
+            if (nodes[translationIndex]?.isConnected) nodes[translationIndex].nodeValue = translation;
+          });
+        }
+      };
+      fetch('/api/profile', { credentials: 'same-origin' }).then((response) => response.ok ? response.json() : null).then((profile) => {
+        const preferences = profile?.preferences || {};
+        const theme = preferences.theme === 'light' ? 'light' : 'dark';
+        const root = document.documentElement;
+        root.classList.remove('light', 'dark');
+        root.classList.add(theme);
+        localStorage.setItem('namiki-theme', theme);
+        const fontSizes = { small: '0.9', medium: '1', large: '1.1' };
+        root.style.setProperty('--namiki-font-scale', fontSizes[preferences.fontSize] || '1');
+        root.style.fontSize = (fontSizes[preferences.fontSize] || '1') + 'em';
+        const accents = {
+          blue: ['#60a5fa', '#3b82f6', '#2563eb'],
+          green: ['#86efac', '#22c55e', '#16a34a'],
+          purple: ['#d8b4fe', '#a855f7', '#7e22ce'],
+          pink: ['#f9a8d4', '#ec4899', '#be185d']
+        };
+        const accent = accents[preferences.accentColor] || accents.blue;
+        root.style.setProperty('--color-accent-blue-light', accent[0]);
+        root.style.setProperty('--color-accent-blue', accent[1]);
+        root.style.setProperty('--color-accent-blue-dark', accent[2]);
+        const notices = document.getElementById('dashboard-notices-list');
+        if (notices?.closest('.app-card')) notices.closest('.app-card').hidden = preferences.dashboard?.showNotices === false;
+        window.namikiPreferences = preferences;
+        document.dispatchEvent(new CustomEvent('namiki:preferences-ready', { detail: preferences }));
+        if (preferences.language) window.applyDeepLTranslation(preferences.language).catch(() => {});
+      }).catch(() => {});
+    </script>`;
+    const injected = html
+      .replace(/%%CSP_NONCE%%/g, nonce)
+      .replace(/%%RECAPTCHA_SITE_KEY%%/g, RECAPTCHA_SITE_KEY)
+      .replace(/function handlePersonalSettings\(\) \{ alert\('個人用設定は開発中です。'\); \}/g, "function handlePersonalSettings() { window.location.href = '/setting'; }")
+      .replace(/<\/body>/i, `${preferenceScript}</body>`);
     res.set('Content-Type', 'text/html; charset=utf-8');
     res.send(injected);
   } catch (err) {
@@ -183,7 +255,7 @@ const PATHS = {
   SCHEDULE: path.join(DATA_DIR, 'schedule.json'),
   EVENTS: path.join(DATA_DIR, 'events.json'),
   SETTINGS: path.join(DATA_DIR, 'settings.json'),
-  LOGS: path.join(DATA_DIR, 'logs.json'),
+  LOGS: path.join(DATA_DIR, 'log.json'),
   REPORTS: path.join(DATA_DIR, 'reports.json'),
   LINKS: path.join(DATA_DIR, 'links.json'),
   CHAT_DIR: CHAT_DIR,
@@ -276,7 +348,6 @@ let systemLogs = [];
 const MAX_LOGS_LIMIT = 1000; // メモリおよびディスク肥大化防止のログ件数上限
 
 // --- [最適化されたログ追加関数 (デバウンス・上限付き)] ---
-// --- [最適化されたログ追加関数 (デバウンス・上限付き)] ---
 let logSaveTimeout = null;
 function scheduleLogSave() {
   if (logSaveTimeout) return;
@@ -288,7 +359,7 @@ function scheduleLogSave() {
   }, 2000); // ログ書き込みを2秒間統合してディスクI/Oを激減させる
 }
 
-async function addLog(req, action, email, details = '') {
+async function addLog(req, action, email, details = '', statusCode = null) {
   const ip = req.headers['x-forwarded-for']
     ? req.headers['x-forwarded-for'].split(',')[0].trim()
     : req.socket?.remoteAddress || req.ip || 'Unknown';
@@ -302,6 +373,7 @@ async function addLog(req, action, email, details = '') {
     ip,
     userAgent,
     details,
+    statusCode,
     method: req.method || 'Unknown',
     url: req.originalUrl || req.url || 'Unknown'
   };
@@ -503,6 +575,22 @@ function shouldRequireAuth(req) {
   return true;
 }
 
+const STATIC_ASSET_REGEX = /\.(css|js|png|jpg|jpeg|gif|webp|ico|svg|woff|woff2|ttf|eot)$/i;
+
+app.use((req, res, next) => {
+  if (STATIC_ASSET_REGEX.test(req.path) || req.path.startsWith('/socket.io/')) return next();
+  res.on('finish', () => {
+    addLog(
+      req,
+      'request',
+      req.user?.email || 'anonymous',
+      `${req.method} ${req.originalUrl || req.url}`,
+      res.statusCode
+    ).catch((err) => console.error('[Request Log Error]:', err.message));
+  });
+  next();
+});
+
 app.use((req, res, next) => {
   if (shouldRequireAuth(req)) {
     checkAccountStatus(req, res, () => checkMaintenanceMode(req, res, next));
@@ -609,6 +697,69 @@ app.use(
 // --- [API: 一般機能 & データ取得] ---
 app.get('/api/profile', ensureAuth, (req, res) => res.json(usersDB[req.user.email] || req.user));
 
+app.post('/api/translate', ensureAuth, writeLimiter, asyncHandler(async (req, res) => {
+  if (!deeplTranslator) return res.status(503).json({ error: 'DeepL API is not configured' });
+
+  const { texts, targetLang } = req.body || {};
+  if (!Array.isArray(texts) || texts.length === 0 || texts.length > 50 || texts.some((text) => typeof text !== 'string' || text.length > 5000)) {
+    return res.status(400).json({ error: 'texts must contain 1 to 50 strings of up to 5000 characters' });
+  }
+  if (!DEEPL_TARGET_LANGUAGES.has(targetLang)) {
+    return res.status(400).json({ error: 'Unsupported target language' });
+  }
+
+  const translations = await deeplTranslator.translateText(texts, null, DEEPL_TARGET_LANGUAGE_MAP[targetLang]);
+  res.json({ translations: translations.map((translation) => translation.text) });
+}));
+
+app.post('/api/profile/preferences', ensureAuth, writeLimiter, asyncHandler(async (req, res) => {
+  const user = usersDB[req.user.email];
+  if (!user) return res.status(404).json({ error: 'User not found' });
+
+  const { picture, preferences } = req.body || {};
+  if (picture !== undefined && (typeof picture !== 'string' || picture.length > 500)) {
+    return res.status(400).json({ error: 'Invalid picture' });
+  }
+  if (preferences !== undefined && (!preferences || typeof preferences !== 'object' || Array.isArray(preferences))) {
+    return res.status(400).json({ error: 'Invalid preferences' });
+  }
+
+  const nextPreferences = { ...(user.preferences || {}) };
+  for (const key of ['privacy', 'dashboard', 'notifications']) {
+    if (preferences?.[key] !== undefined) {
+      if (!preferences[key] || typeof preferences[key] !== 'object' || Array.isArray(preferences[key])) {
+        return res.status(400).json({ error: `Invalid preferences.${key}` });
+      }
+      nextPreferences[key] = { ...(nextPreferences[key] || {}), ...preferences[key] };
+    }
+  }
+  for (const key of ['statusMessage', 'language', 'theme', 'accentColor', 'fontSize']) {
+    if (preferences?.[key] !== undefined) {
+      if (typeof preferences[key] !== 'string' || preferences[key].length > 100) {
+        return res.status(400).json({ error: `Invalid preferences.${key}` });
+      }
+      nextPreferences[key] = preferences[key];
+    }
+  }
+
+  if (picture !== undefined) user.picture = picture;
+  user.preferences = nextPreferences;
+  await saveUsersDB();
+  await addLog(req, 'profile_preferences_update', req.user.email, 'Updated profile preferences');
+  res.json({ success: true, profile: user });
+}));
+
+app.delete('/api/profile', ensureAuth, asyncHandler(async (req, res) => {
+  const email = req.user.email;
+  if (isPrivilegedAdminEmail(email)) return res.status(400).json({ error: 'Cannot delete privileged admin account' });
+  if (!Object.prototype.hasOwnProperty.call(usersDB, email)) return res.status(404).json({ error: 'User not found' });
+
+  delete usersDB[email];
+  await saveUsersDB();
+  await addLog(req, 'account_delete', email, 'Deleted own account');
+  req.session.destroy(() => res.json({ success: true }));
+}));
+
 function getSessionOwner(sessionData) {
   return sessionData?.passport?.user;
 }
@@ -679,6 +830,22 @@ app.post(
 );
 
 const ALLOWED_NOTICE_PRIORITIES = ['high', 'normal', 'low'];
+
+async function verifyRecaptcha(token, expectedAction) {
+  if (!RECAPTCHA_SECRET_KEY || !token) return false;
+  try {
+    const response = await axios.post(
+      'https://www.google.com/recaptcha/api/siteverify',
+      new URLSearchParams({ secret: RECAPTCHA_SECRET_KEY, response: token }).toString(),
+      { headers: { 'Content-Type': 'application/x-www-form-urlencoded' }, timeout: 5000 }
+    );
+    const result = response.data;
+    return result.success === true && result.action === expectedAction && Number(result.score) >= 0.5;
+  } catch (error) {
+    console.error('[reCAPTCHA Verification Error]:', error.message);
+    return false;
+  }
+}
 
 app.post(
   '/api/notices',
@@ -757,7 +924,11 @@ app.post(
   ensureAuth,
   writeLimiter,
   asyncHandler(async (req, res) => {
-    const { message, subject, type } = req.body;
+    const { message, subject, type, recaptchaToken } = req.body;
+
+    if (!(await verifyRecaptcha(recaptchaToken, 'report'))) {
+      return res.status(403).json({ error: 'reCAPTCHA verification failed' });
+    }
 
     if (!message || typeof message !== 'string' || !message.trim()) {
       return res.status(400).json({ error: '送信内容(message)は必須です。' });
@@ -1200,8 +1371,18 @@ async function initServer() {
         recoveryTime: ''
       }
     });
-    const loadedLogs = await safeReadJSON(PATHS.LOGS, []);
-    systemLogs = Array.isArray(loadedLogs) ? loadedLogs.slice(0, MAX_LOGS_LIMIT) : [];
+    const loadedLogs = await safeReadJSON(PATHS.LOGS, null);
+    const logsToLoad = loadedLogs ?? await safeReadJSON(path.join(DATA_DIR, 'logs.json'), []);
+    systemLogs = Array.isArray(logsToLoad) ? logsToLoad.slice(0, MAX_LOGS_LIMIT) : [];
+    let logsChanged = loadedLogs === null && systemLogs.length > 0;
+    systemLogs = systemLogs.map((entry) => {
+      if (entry.action !== 'request' || (entry.statusCode !== null && entry.statusCode !== undefined) || typeof entry.details !== 'string') return entry;
+      const match = entry.details.match(/^([A-Z]+) (.+) -> (\d{3})$/);
+      if (!match) return entry;
+      logsChanged = true;
+      return { ...entry, details: `${match[1]} ${match[2]}`, statusCode: Number(match[3]) };
+    });
+    if (logsChanged) await safeWriteJSON(PATHS.LOGS, systemLogs);
 
     updateTransitCache();
     updateRoadCache();

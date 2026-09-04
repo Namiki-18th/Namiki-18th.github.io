@@ -60,9 +60,12 @@
         font-family: 'Inter', sans-serif;
         background-color: var(--color-bg);
         color: var(--color-text-secondary);
-        height: 100vh;
-        overflow: hidden;
+        min-height: 100vh;
+        min-height: 100dvh;
+        overflow-x: hidden;
+        overflow-y: auto;
         display: flex;
+        align-items: stretch;
     }
 
     ::selection { background-color: rgba(59, 130, 246, 0.3); }
@@ -149,7 +152,9 @@
         width: 4.5rem; /* 格納時の幅 */
         background-color: var(--color-surface);
         border-right: 1px solid var(--color-border);
-        height: 100%;
+        height: 100dvh;
+        position: sticky;
+        top: 0;
         flex-shrink: 0;
         transition: width 0.3s cubic-bezier(0.4, 0, 0.2, 1);
         white-space: nowrap;
@@ -186,11 +191,14 @@
 
     .app-main {
         flex: 1;
+        min-width: 0;
+        min-height: 100vh;
+        min-height: 100dvh;
         display: flex;
         flex-direction: column;
-        height: 100%;
+        height: auto;
         position: relative;
-        overflow: hidden;
+        overflow: visible;
         background-color: var(--color-bg);
     }
 
@@ -224,7 +232,9 @@
 
     .content-area {
         flex: 1;
-        overflow-y: auto;
+        min-width: 0;
+        min-height: 100%;
+        overflow: visible;
         padding: 1rem;
         width: 100%;
         max-width: 72rem;
@@ -492,7 +502,7 @@
     .schedule-day-button { padding: 0.375rem 1rem; border-radius: 0.5rem; font-size: 0.875rem; font-weight: 500; transition: all 0.2s; color: var(--color-text-muted); background: transparent; border: none; cursor: pointer; }
     .schedule-day-button:hover { color: var(--color-text-secondary); }
     .schedule-day-button.active { background-color: var(--color-surface-hover); color: var(--color-text-primary); }
-    table { width: 100%; text-align: left; border-collapse: collapse; white-space: nowrap; }
+    table { width: 100%; max-width: 100%; text-align: left; border-collapse: collapse; white-space: nowrap; }
     th { padding: 0.75rem 1rem; font-weight: 500; color: var(--color-text-faint); font-size: 0.75rem; text-transform: uppercase; letter-spacing: 0.05em; border-bottom: 1px solid var(--color-border); }
     td { padding: 0.75rem 1rem; font-size: 0.875rem; }
     tbody tr { border-bottom: 1px solid var(--color-line); transition: background-color 0.2s; }
@@ -508,7 +518,7 @@
     .notice-card-header { display: flex; align-items: center; gap: 0.5rem; margin-bottom: 0.5rem; }
     .notice-card-date { font-size: 0.75rem; padding: 0.125rem 0.5rem; border-radius: 0.25rem; background-color: var(--color-surface-active); color: var(--color-text-body); }
     .notice-card-title { color: var(--color-text-secondary); font-weight: 700; }
-    .notice-card-body { color: var(--color-text-muted); font-size: 0.875rem; }
+    .notice-card-body { color: var(--color-text-muted); font-size: 0.875rem; overflow-wrap: anywhere; }
     .link-card { padding: 1rem; border-radius: 0.75rem; background-color: var(--color-surface-hover); border: 1px solid var(--color-border); display: block; text-decoration: none; }
     .link-card-name { color: var(--color-accent-blue-light); font-weight: 600; margin-bottom: 0.25rem; }
     .link-card-desc { color: var(--color-text-muted); font-size: 0.75rem; }
@@ -517,11 +527,11 @@
     .calendar-item-date { color: var(--color-text-faint); font-size: 0.875rem; font-family: ui-monospace, monospace; }
     
     /* チャット画面のデザイン */
-    .chat-page-wrapper { height: calc(100vh - 140px); min-height: 500px; }
-    @media (min-width: 768px) { .chat-page-wrapper { height: calc(100vh - 100px); } }
-    .chat-card { padding: 0; display: flex; flex-direction: column; height: 100%; overflow: hidden; box-shadow: 0 1px 2px 0 rgba(0, 0, 0, 0.05); }
+    .chat-page-wrapper { height: calc(100dvh - 8rem); min-height: 24rem; }
+    @media (min-width: 768px) { .chat-page-wrapper { height: calc(100dvh - 4rem); } }
+    .chat-card { min-height: 0; padding: 0; display: flex; flex-direction: column; height: 100%; overflow: hidden; box-shadow: 0 1px 2px 0 rgba(0, 0, 0, 0.05); }
     @media (min-width: 768px) { .chat-card { flex-direction: row; } }
-    .chat-sidebar { width: 100%; display: flex; flex-direction: column; background-color: var(--color-surface); border-bottom: 1px solid var(--color-border); }
+    .chat-sidebar { width: 100%; min-height: 0; display: flex; flex-direction: column; background-color: var(--color-surface); border-bottom: 1px solid var(--color-border); }
     @media (min-width: 768px) { .chat-sidebar { width: 16rem; border-bottom: none; border-right: 1px solid var(--color-border); } }
     .chat-sidebar-header { padding: 1rem; border-bottom: 1px solid var(--color-border); }
     .chat-sidebar-title { color: var(--color-text-secondary); font-size: 0.875rem; font-weight: 700; }
@@ -533,7 +543,7 @@
     .channel-hash { color: var(--color-text-muted); }
     .dm-user-avatar { width: 1.25rem; height: 1.25rem; border-radius: 9999px; object-fit: cover; }
     .dm-loading-text { color: var(--color-text-subtle); padding: 0 0.5rem; font-size: 0.75rem; }
-    .chat-main { flex: 1; display: flex; flex-direction: column; height: 100%; background-color: var(--color-bg); }
+    .chat-main { flex: 1; min-width: 0; min-height: 0; display: flex; flex-direction: column; height: 100%; background-color: var(--color-bg); }
     .chat-header { height: 4rem; padding: 0 1.5rem; border-bottom: 1px solid var(--color-border); display: flex; align-items: center; justify-content: space-between; background-color: var(--color-surface); backdrop-filter: blur(8px); flex-shrink: 0; }
     .chat-header-title { color: var(--color-text-primary); font-size: 1rem; font-weight: 700; display: flex; align-items: center; gap: 0.5rem; }
     .chat-header-desc { color: var(--color-text-muted); font-size: 0.75rem; display: none; }
@@ -545,7 +555,7 @@
     .chat-message--self { flex-direction: row-reverse; }
     .chat-message--other { flex-direction: row; }
     .chat-message-avatar { width: 2rem; height: 2rem; border-radius: 9999px; background-color: var(--color-surface-hover); flex-shrink: 0; margin-top: 0.25rem; }
-    .chat-message-content { display: flex; flex-direction: column; max-width: 80%; }
+    .chat-message-content { display: flex; flex-direction: column; max-width: 80%; min-width: 0; }
     .chat-message-content--self { align-items: flex-end; }
     .chat-message-content--other { align-items: flex-start; }
     .chat-message-sender { color: var(--color-text-faint); font-size: 0.75rem; margin-bottom: 0.25rem; margin-left: 0.25rem; }
