@@ -487,23 +487,16 @@
         }
 
         if (profileRes.ok) globalData.profile = await profileRes.json();
-        else globalData.profile = { name: '並木 太郎', email: 'namiki.taro@example.com', id: '180001', role: 'student', userClass: '3-A', picture: '' };
+        else throw new Error('プロフィールを取得できませんでした。');
 
         if (scheduleRes.ok) globalData.schedule = await scheduleRes.json();
-        else globalData.schedule = [
-          { id: 1, day: '月', time: '9:00-9:50', subject: '数学特講', room: 'A-102', teacher: '田中先生' },
-          { id: 2, day: '月', time: '10:00-10:50', subject: '英語表現', room: 'A-103', teacher: 'Smith先生' }
-        ];
+        else globalData.schedule = {};
 
         if (noticesRes.ok) globalData.notices = await noticesRes.json();
-        else globalData.notices = [
-          { id: 1, title: 'システムメンテナンスのお知らせ', date: '2026-08-20', content: 'テスト', priority: 'high' }
-        ];
+        else globalData.notices = [];
 
         if (linksRes.ok) globalData.links = await linksRes.json();
-        else globalData.links = [
-          { id: 1, name: 'Google Classroom', url: 'https://classroom.google.com' }
-        ];
+        else globalData.links = [];
 
         renderDashboard();
       } catch (err) {

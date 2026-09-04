@@ -493,12 +493,10 @@
         }
 
         if (profileRes.ok) globalData.profile = await profileRes.json();
-        else globalData.profile = { name: '並木 太郎', email: 'namiki.taro@example.com', id: '180001', role: 'student', userClass: '3-A', picture: '' };
+        else throw new Error('プロフィールを取得できませんでした。');
 
         if (noticesRes.ok) globalData.notices = await noticesRes.json();
-        else globalData.notices = [
-          { id: 1, title: 'システムメンテナンスのお知らせ', date: '2026-08-20', content: '8月20日22:00より、サーバーの定期メンテナンスを実施します。詳細は https://example.com を確認してください。', priority: 'high' }
-        ];
+        else globalData.notices = [];
 
         renderAll();
       } catch (err) {

@@ -304,7 +304,7 @@
         } else if (res.ok) {
           p = await res.json();
         } else {
-          p = { name: '並木 太郎', email: 'namiki.taro@example.com', id: '180001', picture: '' };
+          p = null;
         }
 
         const studentIdText = (p.id && p.id !== 'Unknown') ? p.id : '学籍番号未設定';

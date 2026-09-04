@@ -181,7 +181,7 @@
     <div class="sidebar-footer">
       <div id="account-popup-menu" class="account-popup-menu">
         <div class="user-info-header user-info-header-styled">
-          <img id="popup-user-avatar" src="https://via.placeholder.com/40?text=U" alt="User Avatar" class="popup-user-avatar" />
+          <img id="popup-user-avatar" alt="User Avatar" class="popup-user-avatar hidden-element" />
           <div class="user-info-text">
             <span id="popup-user-name" class="truncate user-name-styled">読み込み中...</span>
             <span id="popup-user-email" class="truncate user-email-styled">読み込み中...</span>
@@ -215,7 +215,7 @@
       </div>
 
       <div id="sidebar-user-toggle" class="sidebar-user-row" title="ユーザーメニュー">
-        <img id="sidebar-user-avatar" src="https://via.placeholder.com/40?text=U" alt="Avatar" class="sidebar-avatar-image" />
+        <img id="sidebar-user-avatar" alt="Avatar" class="sidebar-avatar-image hidden-element" />
         <div class="flex-1 min-w-0 sidebar-user-info">
           <p id="sidebar-user-id" class="text-xs sidebar-user-id-text truncate">読み込み中...</p>
           <p id="sidebar-user-name" class="text-sm truncate sidebar-user-name-text">読み込み中...</p>
@@ -237,7 +237,7 @@
         <button class="theme-toggle-btn theme-toggle-action-btn" title="モード切替">
           <svg class="icon-sm" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 3v1m0 16v1m9-9h-1M4 12H3m15.364 6.364l-.707-.707M6.343 6.343l-.707-.707m12.728 0l-.707.707M6.343 17.657l-.707.707M16 12a4 4 0 11-8 0 4 4 0 018 0z"/></svg>
         </button>
-        <img id="mobile-user-avatar" src="https://via.placeholder.com/32?text=U" alt="Avatar" class="mobile-avatar-image" />
+        <img id="mobile-user-avatar" alt="Avatar" class="mobile-avatar-image hidden-element" />
       </div>
     </header>
 
@@ -413,17 +413,14 @@
       if (res.ok) {
         globalData.profile = await res.json();
       } else {
-        globalData.profile = { name: '並木 太郎', email: 'namiki.taro@example.com', id: '180001', role: 'student', userClass: '3-A', picture: '' };
+        throw new Error('ユーザー情報を取得できませんでした。');
       }
       
       const savedDms = localStorage.getItem('namiki_dm_users');
       if (savedDms) {
         activeDmUsers = JSON.parse(savedDms);
       } else {
-        activeDmUsers = [
-          { id: 'u1', name: '佐藤 先生', picture: '' },
-          { id: '180002', name: '田中 太郎', picture: '' }
-        ];
+        activeDmUsers = [];
       }
 
       renderUserProfile();
@@ -445,16 +442,25 @@
     const popupEmail = document.getElementById('popup-user-email');
     if (popupEmail) popupEmail.textContent = p.email || 'メールアドレス未設定';
 
-    const userAvatar = (p.picture && p.picture !== 'admin.png') ? p.picture : `https://via.placeholder.com/40/3b82f6/ffffff?text=${encodeURIComponent(p.name ? p.name.charAt(0) : 'U')}`;
+    const userAvatar = p.picture && p.picture !== 'admin.png' ? p.picture : '';
     
     const sidebarAvatar = document.getElementById('sidebar-user-avatar');
-    if (sidebarAvatar) sidebarAvatar.src = userAvatar;
+    if (sidebarAvatar) {
+      sidebarAvatar.hidden = !userAvatar;
+      if (userAvatar) sidebarAvatar.src = userAvatar;
+    }
 
     const mobileAvatar = document.getElementById('mobile-user-avatar');
-    if (mobileAvatar) mobileAvatar.src = userAvatar;
+    if (mobileAvatar) {
+      mobileAvatar.hidden = !userAvatar;
+      if (userAvatar) mobileAvatar.src = userAvatar;
+    }
 
     const popupAvatar = document.getElementById('popup-user-avatar');
-    if (popupAvatar) popupAvatar.src = userAvatar;
+    if (popupAvatar) {
+      popupAvatar.hidden = !userAvatar;
+      if (userAvatar) popupAvatar.src = userAvatar;
+    }
 
     const classBtnText = document.getElementById('channel-name-class-text');
     if (classBtnText) classBtnText.textContent = p.userClass ? p.userClass : 'クラス';
@@ -467,13 +473,11 @@
     const container = document.getElementById('chat-dm-list');
     if (container) {
       container.innerHTML = activeDmUsers.map(u => {
-        const avatar = (u.picture && u.picture !== 'admin.png') 
-          ? u.picture 
-          : `https://via.placeholder.com/32/555/fff?text=${encodeURIComponent(u.name ? u.name.charAt(0) : 'U')}`;
+        const avatar = u.picture && u.picture !== 'admin.png' ? u.picture : '';
           
         return `
           <button id="dm-button-${u.id}" class="channel-button dm-user-button channel-switch-btn" data-channel="dm_${u.id}" data-name="${escapeHtml(u.name)}">
-            <img src="${avatar}" class="dm-user-avatar" alt="Avatar" />
+            ${avatar ? `<img src="${escapeHtml(avatar)}" class="dm-user-avatar" alt="Avatar" />` : ''}
             <span class="truncate">${escapeHtml(u.name)}</span>
           </button>
         `;
@@ -511,14 +515,13 @@
     }
 
     try {
-      const res = await fetch('/api/admin/users').catch(() => null);
+      const res = await fetch(`/api/chat/users/${encodeURIComponent(inputId)}`).catch(() => null);
       if (!res || !res.ok) {
         alert('ユーザー情報の取得に失敗しました。');
         return;
       }
 
-      const userList = await res.json();
-      const targetUser = userList.find(u => String(u.id) === inputId);
+      const targetUser = await res.json();
 
       if (targetUser) {
         const newUser = {
@@ -602,9 +605,7 @@
     // サーバープロパティとのマッピング
     const isSelf = msg.userId ? (msg.userId === globalData.profile?.email) : false;
     const timeStr = msg.timestamp ? new Date(msg.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : '';
-    const avatarSrc = isSelf 
-      ? (globalData.profile?.picture || 'https://via.placeholder.com/32/333/fff?text=Me') 
-      : (msg.userPicture || 'https://via.placeholder.com/32/555/fff?text=U');
+    const avatarSrc = isSelf ? (globalData.profile?.picture || '') : (msg.userPicture || '');
     const senderName = msg.userName || 'ユーザー';
     const messageContent = msg.content || '';
 
@@ -616,7 +617,7 @@
     if (msg.id) msgDiv.setAttribute('data-msg-id', msg.id);
 
     msgDiv.innerHTML = `
-      <img src="${escapeHtml(avatarSrc)}" class="chat-message-avatar" alt="Avatar" />
+      ${avatarSrc ? `<img src="${escapeHtml(avatarSrc)}" class="chat-message-avatar" alt="Avatar" />` : ''}
       <div class="chat-message-content ${isSelf ? 'chat-message-content--self' : 'chat-message-content--other'}">
         ${!isSelf ? `<span class="chat-message-sender">${escapeHtml(senderName)}</span>` : ''}
         <div class="chat-bubble ${isSelf ? 'chat-bubble--self' : 'chat-bubble--other'}">
@@ -724,12 +725,8 @@
           e.target.nextElementSibling.classList.remove('hidden-element');
           e.target.nextElementSibling.style.display = 'inline';
         }
-      } else if (e.target.classList.contains('dm-user-avatar') || e.target.classList.contains('chat-message-avatar')) {
-        e.target.src = 'https://via.placeholder.com/32?text=U';
-      } else if (e.target.id === 'popup-user-avatar' || e.target.id === 'sidebar-user-avatar') {
-        e.target.src = 'https://via.placeholder.com/40?text=U';
-      } else if (e.target.id === 'mobile-user-avatar') {
-        e.target.src = 'https://via.placeholder.com/32?text=U';
+      } else if (e.target.classList.contains('dm-user-avatar') || e.target.classList.contains('chat-message-avatar') || e.target.id === 'popup-user-avatar' || e.target.id === 'sidebar-user-avatar' || e.target.id === 'mobile-user-avatar') {
+        e.target.hidden = true;
       }
     }
   }, true);

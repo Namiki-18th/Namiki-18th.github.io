@@ -697,6 +697,19 @@ app.use(
 // --- [API: 一般機能 & データ取得] ---
 app.get('/api/profile', ensureAuth, (req, res) => res.json(usersDB[req.user.email] || req.user));
 
+app.get('/api/chat/users/:id', ensureAuth, asyncHandler(async (req, res) => {
+  const targetId = String(req.params.id || '').trim();
+  if (!targetId || targetId.length > 100) return res.status(400).json({ error: 'Invalid user ID' });
+
+  const currentUser = usersDB[req.user.email] || req.user;
+  const targetUser = Object.values(usersDB).find((user) => String(user.id) === targetId && user.status !== 'suspended');
+  if (!targetUser || String(targetUser.id) === String(currentUser.id)) {
+    return res.status(404).json({ error: 'User not found' });
+  }
+
+  res.json({ id: targetUser.id, name: targetUser.name, picture: targetUser.picture || '' });
+}));
+
 app.post('/api/translate', ensureAuth, writeLimiter, asyncHandler(async (req, res) => {
   if (!deeplTranslator) return res.status(503).json({ error: 'DeepL API is not configured' });
 

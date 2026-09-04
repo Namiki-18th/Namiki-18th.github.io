@@ -426,7 +426,7 @@
         }
 
         if (profileRes.ok) globalData.profile = await profileRes.json();
-        else globalData.profile = { name: '並木 太郎', email: 'namiki.taro@example.com', id: '180001', role: 'student', userClass: '2-A', picture: '' };
+        else throw new Error('プロフィールを取得できませんでした。');
 
         if (scheduleRes.ok) {
           globalData.schedule = await scheduleRes.json();
