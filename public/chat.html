@@ -51,7 +51,7 @@
     .chat-bubble--other { background-color: var(--color-bg-secondary); color: var(--color-text-primary); border: 1px solid var(--color-border); border-top-left-radius: 0.25rem; }
     .chat-bubble--self { background-color: var(--color-accent-blue-light, #3b82f6); color: #ffffff; border-top-right-radius: 0.25rem; }
     .chat-message-time { font-size: 0.6875rem; color: var(--color-text-muted); margin-top: 0.25rem; padding: 0 0.25rem; }
-    .chat-input-wrapper { padding: 0.875rem 1.25rem; border-top: 1px solid var(--color-border); background-color: var(--color-bg-secondary); }
+    .chat-input-wrapper { padding: 0.5rem 1.25rem 0.625rem; border-top: 1px solid var(--color-border); background-color: var(--color-bg-secondary); }
     .chat-input-form { display: flex; align-items: center; gap: 0.5rem; background-color: var(--color-bg); border: 1px solid var(--color-border); border-radius: 0.5rem; padding: 0.375rem 0.5rem 0.375rem 0.75rem; }
     .chat-input-form:focus-within { border-color: var(--color-accent-blue-light, #3b82f6); }
     .chat-text-input { flex: 1; border: none; background: transparent; color: var(--color-text-primary); font-size: 0.875rem; outline: none; }
@@ -59,6 +59,18 @@
     .chat-action-button:hover { color: var(--color-text-primary); background-color: var(--color-bg-tertiary); }
     .chat-send-button { background-color: var(--color-accent-blue-light, #3b82f6); color: #ffffff; border: none; border-radius: 0.375rem; padding: 0.375rem 0.75rem; font-size: 0.875rem; font-weight: 500; cursor: pointer; display: flex; align-items: center; gap: 0.25rem; transition: opacity 0.15s ease; }
     .chat-send-button:hover { opacity: 0.9; }
+    .chat-attachment-preview { display: none; align-items: center; gap: 0.5rem; padding: 0.375rem 0.625rem; margin-bottom: 0.375rem; background: var(--color-bg); border: 1px solid var(--color-border); border-radius: 0.375rem; color: var(--color-text-secondary); font-size: 0.75rem; }
+    .chat-attachment-preview.show { display: flex; }
+    .chat-attachment-preview-name { flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+    .chat-message-tools { display: flex; align-items: center; gap: 0.25rem; opacity: 0; transition: opacity 0.15s ease; }
+    .chat-message:hover .chat-message-tools, .chat-message:focus-within .chat-message-tools { opacity: 1; }
+    .chat-message-tool { border: 0; background: transparent; color: var(--color-text-muted); cursor: pointer; padding: 0.125rem 0.25rem; border-radius: 0.25rem; font-size: 0.75rem; }
+    .chat-message-tool:hover { background: var(--color-bg-tertiary); color: var(--color-text-primary); }
+    .chat-attachment-link { display: flex; align-items: center; gap: 0.375rem; color: inherit; text-decoration: underline; margin-top: 0.375rem; }
+    .chat-reactions { display: flex; flex-wrap: wrap; gap: 0.25rem; margin-top: 0.25rem; }
+    .chat-reaction { border: 1px solid var(--color-border); background: var(--color-bg-secondary); color: var(--color-text-primary); border-radius: 999px; padding: 0.125rem 0.375rem; cursor: pointer; font-size: 0.75rem; }
+    .chat-reaction.mine { border-color: var(--color-accent-blue-light, #3b82f6); }
+    .chat-read-count { font-size: 0.6875rem; color: var(--color-text-muted); }
     .modal-overlay { display: none; position: fixed; inset: 0; background-color: rgba(0, 0, 0, 0.5); z-index: 50; align-items: center; justify-content: center; }
     .modal-overlay.show { display: flex; }
     .modal-container { background-color: var(--color-bg-secondary); border: 1px solid var(--color-border); border-radius: 0.5rem; width: 90%; max-width: 400px; padding: 1.25rem; box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.3); }
@@ -303,10 +315,15 @@
           </div>
 
           <div class="chat-input-wrapper">
+            <div id="chat-attachment-preview" class="chat-attachment-preview">
+              <span>添付:</span><span id="chat-attachment-name" class="chat-attachment-preview-name"></span>
+              <button type="button" id="remove-attachment-btn" class="chat-message-tool" title="添付を削除">×</button>
+            </div>
             <form id="chat-input-form" class="chat-input-form">
               <button type="button" id="attachment-btn" class="chat-action-button" title="ファイルを添付">
                 <svg class="icon-sm" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15.172 7l-6.586 6.586a2 2 0 102.828 2.828l6.414-6.586a4 4 0 00-5.656-5.656l-6.415 6.585a6 6 0 108.486 8.486L20.5 13"/></svg>
               </button>
+              <input type="file" id="chat-file-input" hidden />
               <input type="text" id="chat-message-input" class="chat-text-input" placeholder="メッセージを入力..." autocomplete="off" />
               <button type="submit" class="chat-send-button">
                 <span>送信</span>
@@ -336,7 +353,7 @@
       <div class="modal-header">メッセージ相手を追加</div>
       <div class="modal-body">
         <label for="add-dm-user-id" class="text-sm-muted">ユーザーID（学籍番号など）</label>
-        <input type="text" id="add-dm-user-id" class="modal-input" placeholder="例: 180002" autocomplete="off" />
+        <input type="text" id="add-dm-user-id" class="modal-input" placeholder="例: 2A00" autocomplete="off" />
       </div>
       <div class="modal-footer">
         <button id="close-add-dm-btn" class="modal-btn modal-btn-secondary">キャンセル</button>
@@ -349,6 +366,7 @@
   let globalData = { profile: null };
   let activeDmUsers = [];
   let currentChannel = 'grade';
+  let pendingAttachment = null;
   const socket = io();
 
   if (typeof marked !== 'undefined') {
@@ -400,7 +418,31 @@
 
   function handleAdminSettings() { window.location.href = '/admin'; }
   function handlePersonalSettings() { window.location.href = '/setting'; }
-  function handleAttachment() { alert('ファイルの添付機能は現在準備中です。'); }
+  function handleAttachment() { document.getElementById('chat-file-input')?.click(); }
+
+  function clearAttachment() {
+    pendingAttachment = null;
+    const input = document.getElementById('chat-file-input');
+    if (input) input.value = '';
+    document.getElementById('chat-attachment-preview')?.classList.remove('show');
+  }
+
+  function handleFileSelected(event) {
+    const file = event.target.files?.[0];
+    if (!file) return;
+    if (file.size > 2 * 1024 * 1024) {
+      alert('添付できるファイルは2MBまでです。');
+      clearAttachment();
+      return;
+    }
+    const reader = new FileReader();
+    reader.onload = () => {
+      pendingAttachment = { name: file.name, type: file.type || 'application/octet-stream', size: file.size, data: reader.result };
+      document.getElementById('chat-attachment-name').textContent = `${file.name} (${Math.ceil(file.size / 1024)}KB)`;
+      document.getElementById('chat-attachment-preview').classList.add('show');
+    };
+    reader.readAsDataURL(file);
+  }
 
   async function loadUserData() {
     try {
@@ -588,6 +630,7 @@
           container.innerHTML = '<div class="chat-center-message"><div class="chat-center-message-text">メッセージはまだありません。</div></div>';
         } else {
           messages.forEach(appendMessage);
+          markMessagesRead(messages);
         }
       }
     } catch (e) {
@@ -597,10 +640,8 @@
 
   function appendMessage(msg) {
     const container = document.getElementById('chat-messages-list');
-    
-    if (msg.id && document.querySelector(`[data-msg-id="${msg.id}"]`)) {
-      return; 
-    }
+    const existing = msg.id ? document.querySelector(`[data-msg-id="${CSS.escape(msg.id)}"]`) : null;
+    if (existing) existing.remove();
 
     // サーバープロパティとのマッピング
     const isSelf = msg.userId ? (msg.userId === globalData.profile?.email) : false;
@@ -609,8 +650,18 @@
     const senderName = msg.userName || 'ユーザー';
     const messageContent = msg.content || '';
 
-    const rawHtml = typeof marked !== 'undefined' ? marked.parse(messageContent) : escapeHtml(messageContent);
+    const rawHtml = msg.deleted ? `<em>${escapeHtml(messageContent)}</em>` : (typeof marked !== 'undefined' ? marked.parse(messageContent) : escapeHtml(messageContent));
     const safeHtml = typeof DOMPurify !== 'undefined' ? DOMPurify.sanitize(rawHtml) : rawHtml;
+    const attachmentHtml = msg.attachment?.data && !msg.deleted
+      ? `<a class="chat-attachment-link" href="${escapeHtml(msg.attachment.data)}" download="${escapeHtml(msg.attachment.name || '添付ファイル')}">📎 ${escapeHtml(msg.attachment.name || '添付ファイル')}</a>`
+      : '';
+    const reactions = msg.reactions || {};
+    const reactionHtml = Object.entries(reactions).map(([emoji, users]) => {
+      const reactionUsers = Array.isArray(users) ? users : [];
+      return `<button type="button" class="chat-reaction ${reactionUsers.includes(globalData.profile?.email) ? 'mine' : ''}" data-reaction="${escapeHtml(emoji)}" data-message-id="${escapeHtml(msg.id)}">${escapeHtml(emoji)} ${reactionUsers.length}</button>`;
+    }).join('');
+    const toolsHtml = isSelf && !msg.deleted ? `<div class="chat-message-tools"><button type="button" class="chat-message-tool" data-delete-message="${escapeHtml(msg.id)}" title="削除">削除</button><button type="button" class="chat-message-tool" data-add-reaction="${escapeHtml(msg.id)}" title="リアクション">🙂</button></div>` : '';
+    const readCount = isSelf && msg.readBy?.length ? `<span class="chat-read-count">既読 ${msg.readBy.length}</span>` : '';
 
     const msgDiv = document.createElement('div');
     msgDiv.className = `chat-message ${isSelf ? 'chat-message--self' : 'chat-message--other'}`;
@@ -622,30 +673,55 @@
         ${!isSelf ? `<span class="chat-message-sender">${escapeHtml(senderName)}</span>` : ''}
         <div class="chat-bubble ${isSelf ? 'chat-bubble--self' : 'chat-bubble--other'}">
           ${safeHtml}
+          ${attachmentHtml}
         </div>
         <div class="flex-center-gap1 gap-1">
           <span class="chat-message-time">${timeStr}</span>
+          ${readCount}
+          ${toolsHtml}
         </div>
+        <div class="chat-reactions">${reactionHtml}</div>
       </div>
     `;
     container.appendChild(msgDiv);
     container.scrollTop = container.scrollHeight;
   }
 
+  async function markMessagesRead(messages) {
+    const messageIds = messages.filter((message) => message.userId !== globalData.profile?.email && message.id).map((message) => message.id);
+    if (!messageIds.length) return;
+    fetch(`/api/chat/read?channel=${encodeURIComponent(currentChannel)}`, {
+      method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ messageIds })
+    }).catch(() => {});
+  }
+
+  async function toggleReaction(messageId, emoji) {
+    await fetch(`/api/chat/messages/${encodeURIComponent(messageId)}/reactions?channel=${encodeURIComponent(currentChannel)}`, {
+      method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ emoji })
+    });
+  }
+
+  async function deleteMessage(messageId) {
+    if (!confirm('このメッセージを削除しますか？')) return;
+    const res = await fetch(`/api/chat/messages/${encodeURIComponent(messageId)}?channel=${encodeURIComponent(currentChannel)}`, { method: 'DELETE' });
+    if (!res.ok) alert('メッセージを削除できませんでした。');
+  }
+
   async function handleChatSubmit(event) {
     event.preventDefault();
     const input = document.getElementById('chat-message-input');
     const text = input.value.trim();
-    if (!text) return;
+    if (!text && !pendingAttachment) return;
 
     try {
       const res = await fetch(`/api/chat/messages?channel=${encodeURIComponent(currentChannel)}`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ content: text })
+        body: JSON.stringify({ content: text, attachment: pendingAttachment })
       });
       if (res.ok) {
         input.value = '';
+        clearAttachment();
       } else {
         alert('送信に失敗しました。');
       }
@@ -656,6 +732,11 @@
 
   // Socket.ioイベント受信 (サーバー側イベント名: newMessage)
   socket.on('newMessage', (msg) => {
+    appendMessage(msg);
+    if (msg.userId !== globalData.profile?.email) markMessagesRead([msg]);
+  });
+
+  socket.on('messageUpdated', (msg) => {
     appendMessage(msg);
   });
 
@@ -695,6 +776,8 @@
 
     const attachmentBtn = document.getElementById('attachment-btn');
     if (attachmentBtn) attachmentBtn.addEventListener('click', handleAttachment);
+    document.getElementById('chat-file-input')?.addEventListener('change', handleFileSelected);
+    document.getElementById('remove-attachment-btn')?.addEventListener('click', clearAttachment);
 
     initThemeToggle();
     loadUserData();
@@ -715,6 +798,16 @@
       const name = channelBtn.getAttribute('data-name') || '';
       switchChannel(channel, name);
     }
+
+    const reactionButton = e.target.closest('[data-reaction]');
+    if (reactionButton) toggleReaction(reactionButton.dataset.messageId, reactionButton.dataset.reaction);
+    const addReactionButton = e.target.closest('[data-add-reaction]');
+    if (addReactionButton) {
+      const emoji = prompt('リアクションを入力してください。', '👍');
+      if (emoji) toggleReaction(addReactionButton.dataset.addReaction, emoji.trim());
+    }
+    const deleteButton = e.target.closest('[data-delete-message]');
+    if (deleteButton) deleteMessage(deleteButton.dataset.deleteMessage);
   });
 
   document.addEventListener('error', (e) => {

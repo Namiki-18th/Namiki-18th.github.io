@@ -219,7 +219,7 @@ const writeLimiter = rateLimit({
   message: { error: 'Too many requests, please slow down.' }
 });
 
-app.use(express.json({ limit: '1mb' }));
+app.use(express.json({ limit: '4mb' }));
 app.use(express.urlencoded({ limit: '1mb', extended: true }));
 
 app.use(
@@ -251,7 +251,7 @@ const SESSIONS_DIR = path.join(DATA_DIR, 'sessions');
 const PATHS = {
   USERS: path.join(DATA_DIR, 'users.json'),
   NOTICES: path.join(DATA_DIR, 'notices.json'),
-  CLASSROOM: path.join(DATA_DIR, 'classroom.json'),
+  CLASSROOM: path.join(DATA_DIR, 'classroom.json'), // ※ 今後使われなくなりますが、他の影響を避けるため残しています
   SCHEDULE: path.join(DATA_DIR, 'schedule.json'),
   EVENTS: path.join(DATA_DIR, 'events.json'),
   SETTINGS: path.join(DATA_DIR, 'settings.json'),
@@ -385,7 +385,6 @@ async function addLog(req, action, email, details = '', statusCode = null) {
 
   // ディスク保存は一括書き込み（デバウンス）処理でI/Oパンクを防ぐ
   scheduleLogSave();
-
 }
 
 async function saveUsersDB() {
@@ -422,6 +421,25 @@ function decrypt(data) {
   } catch (err) {
     return '[復号化エラー]';
   }
+}
+
+function serializeChatMessage(message) {
+  let attachment = null;
+  if (message.attachment) {
+    try {
+      attachment = JSON.parse(decrypt(message.attachment));
+    } catch (_) {
+      attachment = null;
+    }
+  }
+  return {
+    ...message,
+    content: decrypt(message.content),
+    attachment,
+    reactions: message.reactions || {},
+    readBy: Array.isArray(message.readBy) ? message.readBy : [],
+    isEdited: !!message.isEdited
+  };
 }
 
 // --- [認証設定 (Passport Google OAuth 2.0)] ---
@@ -528,8 +546,6 @@ app.use((req, res, next) => {
   };
   req.session.save(next);
 });
-
-// --- [全リクエストログのディスク書き込みミドルウェアを撤去し、軽快なアクセス制御へ] ---
 
 // --- [アクセス制御ミドルウェア] ---
 function checkAccountStatus(req, res, next) {
@@ -819,28 +835,11 @@ app.delete('/api/profile/sessions-all-others', ensureAuth, (req, res, next) => {
 });
 
 app.get('/api/notices', ensureAuth, asyncHandler(async (req, res) => res.json(await safeReadJSON(PATHS.NOTICES, []))));
-app.get('/api/classroom', ensureAuth, asyncHandler(async (req, res) => res.json(await safeReadJSON(PATHS.CLASSROOM, []))));
+// ▼ ここをキャッシュを返すように変更しました
+app.get('/api/classroom', ensureAuth, asyncHandler(async (req, res) => res.json(cachedClassroomData)));
 app.get('/api/calendar', ensureAuth, asyncHandler(async (req, res) => res.json(await safeReadJSON(PATHS.EVENTS, []))));
 app.get('/api/schedule', ensureAuth, asyncHandler(async (req, res) => res.json(await safeReadJSON(PATHS.SCHEDULE, {}))));
 app.get('/api/links', ensureAuth, asyncHandler(async (req, res) => res.json(await safeReadJSON(PATHS.LINKS, []))));
-
-app.post(
-  '/api/classroom',
-  ensureApiKeyOrAdmin,
-  writeLimiter,
-  asyncHandler(async (req, res) => {
-    const { items } = req.body;
-    if (!Array.isArray(items)) return res.status(400).json({ error: 'Array required' });
-    if (items.length > 1000) return res.status(400).json({ error: 'Too many items' });
-    if (!items.every((it) => it && typeof it === 'object' && !Array.isArray(it))) {
-      return res.status(400).json({ error: 'Each item must be an object' });
-    }
-    await safeWriteJSON(PATHS.CLASSROOM, items);
-    io.emit('classroomUpdated', items);
-    await addLog(req, 'notice_post', req.user ? req.user.email : 'System/API', `Items: ${items.length}`);
-    res.json({ success: true, count: items.length });
-  })
-);
 
 const ALLOWED_NOTICE_PRIORITIES = ['high', 'normal', 'low'];
 
@@ -1083,8 +1082,30 @@ async function updateRoadCache() {
   }
 }
 
+// --- [キャッシュ機能: Classroomデータ] ---
+// ▼ 新しく追加した部分です
+let cachedClassroomData = [];
+
+async function updateClassroomCache() {
+  const workerUrl = "https://classroom.namiki-18th.workers.dev/api/classroom";
+  try {
+    const res = await axios.get(workerUrl, { timeout: 10000 });
+    // Cloudflareから返ってくるJSONが { items: [...] } という構造になっていることを想定
+    if (res.data && Array.isArray(res.data.items)) {
+      cachedClassroomData = res.data.items;
+    } else if (Array.isArray(res.data)) {
+      // 万が一配列が直接返ってきた場合のフォールバック
+      cachedClassroomData = res.data;
+    }
+  } catch (err) {
+    console.error('[Classroom API Cache Error]:', err.message);
+  }
+}
+
 setInterval(updateTransitCache, 60 * 1000);
 setInterval(updateRoadCache, 60 * 1000);
+// ▼ 5分ごとにキャッシュを更新
+setInterval(updateClassroomCache, 5 * 60 * 1000);
 
 app.get('/api/transit', ensureAuth, asyncHandler(async (req, res) => res.json(cachedTransitData)));
 app.get('/api/road', ensureAuth, asyncHandler(async (req, res) => res.json(cachedRoadData)));
@@ -1162,11 +1183,7 @@ app.get(
     if (!key) return res.status(403).json({ error: 'Forbidden' });
 
     const data = await readChannelData(key);
-    const decrypted = data.messages.map((m) => ({
-      ...m,
-      content: decrypt(m.content),
-      isEdited: !!m.isEdited
-    }));
+    const decrypted = data.messages.map(serializeChatMessage);
     res.json(decrypted);
   })
 );
@@ -1180,15 +1197,23 @@ app.post(
     const key = resolveChannelKey(currentUser, req.query.channel);
     if (!key) return res.status(403).json({ error: 'Forbidden' });
 
-    const { content } = req.body;
-    if (typeof content !== 'string' || !content.trim()) {
+    const { content, attachment } = req.body || {};
+    if ((typeof content !== 'string' || !content.trim()) && !attachment) {
       return res.status(400).json({ error: 'Message content is required' });
     }
-    const trimmedContent = content.trim();
+    const trimmedContent = typeof content === 'string' ? content.trim() : '';
     if (trimmedContent.length > 4000) {
       return res.status(400).json({ error: 'Message content is too long (max 4000 chars)' });
     }
 
+    if (attachment !== undefined) {
+      if (!attachment || typeof attachment !== 'object' || typeof attachment.name !== 'string' || typeof attachment.type !== 'string' || typeof attachment.data !== 'string' || attachment.data.length > 2_800_000) {
+        return res.status(400).json({ error: 'Invalid attachment (max 2 MB)' });
+      }
+      if (!attachment.data.startsWith(`data:${attachment.type};base64,`)) {
+        return res.status(400).json({ error: 'Invalid attachment data' });
+      }
+    }
     const encryptedData = encrypt(trimmedContent);
     const newMessage = {
       id: Date.now().toString(),
@@ -1196,16 +1221,79 @@ app.post(
       userName: currentUser.name,
       userPicture: currentUser.picture,
       content: encryptedData,
+      attachment: attachment ? encrypt(JSON.stringify({ name: attachment.name.slice(0, 200), type: attachment.type.slice(0, 100), size: Number(attachment.size) || 0, data: attachment.data })) : null,
+      reactions: {},
+      readBy: [],
       timestamp: new Date().toISOString()
     };
 
     const data = await readChannelData(key);
     data.messages.push(newMessage);
     await safeWriteJSON(getChannelFilePath(key), data);
-    io.to(key).emit('newMessage', { ...newMessage, content: trimmedContent });
-    res.json({ success: true, message: { ...newMessage, content: trimmedContent } });
+    const responseMessage = serializeChatMessage(newMessage);
+    io.to(key).emit('newMessage', responseMessage);
+    res.json({ success: true, message: responseMessage });
   })
 );
+
+app.delete('/api/chat/messages/:id', ensureAuth, writeLimiter, asyncHandler(async (req, res) => {
+  const currentUser = usersDB[req.user.email] || req.user;
+  const key = resolveChannelKey(currentUser, req.query.channel);
+  if (!key) return res.status(403).json({ error: 'Forbidden' });
+  const data = await readChannelData(key);
+  const index = data.messages.findIndex((message) => message.id === req.params.id);
+  if (index < 0) return res.status(404).json({ error: 'Message not found' });
+  if (data.messages[index].userId !== currentUser.email) return res.status(403).json({ error: 'Only the sender can delete this message' });
+  data.messages[index].deleted = true;
+  data.messages[index].content = encrypt('このメッセージは削除されました。');
+  data.messages[index].attachment = null;
+  await safeWriteJSON(getChannelFilePath(key), data);
+  const message = serializeChatMessage(data.messages[index]);
+  io.to(key).emit('messageUpdated', message);
+  res.json({ success: true, message });
+}));
+
+app.post('/api/chat/messages/:id/reactions', ensureAuth, writeLimiter, asyncHandler(async (req, res) => {
+  const currentUser = usersDB[req.user.email] || req.user;
+  const key = resolveChannelKey(currentUser, req.query.channel);
+  const emoji = typeof req.body?.emoji === 'string' ? req.body.emoji.trim() : '';
+  if (!key || !emoji || emoji.length > 16) return res.status(400).json({ error: 'Invalid reaction' });
+  const data = await readChannelData(key);
+  const message = data.messages.find((item) => item.id === req.params.id);
+  if (!message) return res.status(404).json({ error: 'Message not found' });
+  message.reactions = message.reactions || {};
+  message.reactions[emoji] = Array.isArray(message.reactions[emoji]) ? message.reactions[emoji] : [];
+  const users = message.reactions[emoji];
+  const userIndex = users.indexOf(currentUser.email);
+  if (userIndex >= 0) users.splice(userIndex, 1);
+  else users.push(currentUser.email);
+  if (users.length === 0) delete message.reactions[emoji];
+  await safeWriteJSON(getChannelFilePath(key), data);
+  const responseMessage = serializeChatMessage(message);
+  io.to(key).emit('messageUpdated', responseMessage);
+  res.json({ success: true, message: responseMessage });
+}));
+
+app.post('/api/chat/read', ensureAuth, writeLimiter, asyncHandler(async (req, res) => {
+  const currentUser = usersDB[req.user.email] || req.user;
+  const key = resolveChannelKey(currentUser, req.query.channel);
+  if (!key) return res.status(403).json({ error: 'Forbidden' });
+  const ids = Array.isArray(req.body?.messageIds) ? req.body.messageIds : [];
+  const data = await readChannelData(key);
+  const changed = [];
+  data.messages.forEach((message) => {
+    if (ids.includes(message.id) && message.userId !== currentUser.email) {
+      message.readBy = Array.isArray(message.readBy) ? message.readBy : [];
+      if (!message.readBy.includes(currentUser.email)) {
+        message.readBy.push(currentUser.email);
+        changed.push(serializeChatMessage(message));
+      }
+    }
+  });
+  if (changed.length) await safeWriteJSON(getChannelFilePath(key), data);
+  changed.forEach((message) => io.to(key).emit('messageUpdated', message));
+  res.json({ success: true });
+}));
 
 // --- [管理者向け API] ---
 app.get('/api/admin/users', ensureAdmin, (req, res) => res.json(Object.values(usersDB)));
@@ -1399,6 +1487,8 @@ async function initServer() {
 
     updateTransitCache();
     updateRoadCache();
+    // ▼ 初期起動時にもClassroomデータを取得してキャッシュ
+    updateClassroomCache();
 
     server.listen(PORT, () => {
       console.log(`[Server] Running on port ${PORT}`);
