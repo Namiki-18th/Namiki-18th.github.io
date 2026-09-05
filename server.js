@@ -510,7 +510,7 @@ const sessionMiddleware = session({
     secure: isProduction,
     httpOnly: true,
     sameSite: 'lax',
-    maxAge: 86400000
+    maxAge: 604800000
   }
 });
 
