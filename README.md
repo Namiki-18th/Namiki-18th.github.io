@@ -1,192 +1,220 @@
-# Namiki-18th.github.io
+# 並木中等教育学校18回生
+## Namiki Secondary School 18th
 
-Google OAuth 認証を用いた、学年内向けの連絡・チャット・カレンダー共有 Web アプリケーションです。Node.js (Express) + Socket.IO で構築されています。
+**Google OAuth 2.0 同意画面 検証用ドキュメント**
+**Document for Google OAuth 2.0 Consent Screen Verification (App Verification)**
 
-## 目次
-
-- [主な機能](#主な機能)
-- [技術スタック](#技術スタック)
-- [セットアップ](#セットアップ)
-- [環境変数](#環境変数)
-- [ディレクトリ構成](#ディレクトリ構成)
-- [ルーティング一覧](#ルーティング一覧)
-- [セキュリティ設計](#セキュリティ設計)
-  - [Content Security Policy (CSP) と Nonce](#content-security-policy-csp-と-nonce)
-  - [認証・認可](#認証認可)
-  - [チャットのアクセス制御](#チャットのアクセス制御)
-  - [その他のセキュリティ対策](#その他のセキュリティ対策)
-- [開発時の注意点](#開発時の注意点)
-
-## 主な機能
-
-- Google アカウントによるログイン（学校ドメイン限定 + 管理者アカウント例外）
-- お知らせ配信・カレンダー・時間割・Google Classroom 連携情報の閲覧
-- リアルタイムチャット（学年全体 / クラス単位 / 個人間DM、Socket.IO）
-- 管理者パネル（ユーザー権限管理、メンテナンスモード切り替え、アクセスログ閲覧）
-- リアルタイム交通運行情報（JR常磐線・つくばエクスプレス・関鉄）
-- メンテナンス（オフライン）モードとカスタムオフライン画面
-
-## 技術スタック
-
-| 分類 | 使用技術 |
+| 項目 / Item | 内容 / Detail |
 |---|---|
-| サーバー | Node.js, Express |
-| リアルタイム通信 | Socket.IO |
-| 認証 | Passport.js (Google OAuth 2.0), express-session |
-| セキュリティ | Helmet (CSP nonce方式), express-rate-limit |
-| 暗号化 | Node.js crypto (AES-256-GCM でチャット本文を暗号化保存) |
-| データ永続化 | ローカル JSON ファイル（DB非使用） |
-| フロントエンド | 素の HTML / CSS / JavaScript（フレームワーク不使用） |
+| サービス名 / Service Name | 並木中等教育学校18回生 (Namiki-18th) |
+| 運営主体 / Operator | Taichi Kimura（個人運営 / Individually operated） |
+| 対象校 / Target School | 茨城県立並木中等教育学校（Ibaraki Prefectural Namiki Secondary School） |
+| 所在地 / School Address | 〒305-0044 茨城県つくば市並木4丁目5-1 |
+| 問い合わせ先 / Contact Email | contact@namiki-18th.net |
+| Google Cloud プロジェクトID / Project ID | `namiki-18th-506602` |
+| Google Cloud プロジェクト番号 / Project Number | `769124929239` |
+| 公開ランディングページ / Public Landing Page (this document) | https://about.namiki-18th.net/ |
+| アプリケーション本体 / Application URL | https://namiki-18th.net/ |
+| プライバシーポリシー / Privacy Policy | https://namiki-18th.net/privacy-noauth |
+| 利用規約 / Terms of Service | https://namiki-18th.net/terms-noauth |
+| 要求スコープ / Requested OAuth Scopes | `openid`, `email`, `profile` |
+| 最終更新日 / Last Updated | 2026年9月6日 |
 
-## セットアップ
+---
 
-```bash
-# 依存パッケージのインストール
-npm install
+## Google 審査チームの皆様へ（English Summary for the Google Review Team）
 
-# .env ファイルを作成し、下記「環境変数」を設定
+This document describes **Namiki-18th**, a private, invitation-style community portal built for the alumni of a single graduating class ("18th generation") of **Ibaraki Prefectural Namiki Secondary School** (茨城県立並木中等教育学校), a public secondary school located at 〒305-0044 Namiki 4-5-1, Tsukuba, Ibaraki, Japan. The service is independently organized and operated by an alumnus (Taichi Kimura) and is **not an official school system**.
 
-# 開発・本番共通で起動
-node server.js
+The application uses **Google OAuth 2.0 / OpenID Connect** solely to authenticate members against their Google account and to restrict access to verified alumni of the target class (plus one administrator account). It requests only the basic **`openid`, `email`, `profile`** scopes to identify the signed-in user and does **not** request any sensitive or restricted scope.
+
+All public traffic is delivered through **Cloudflare** (DNS, CDN, TLS termination, and edge/WAF protection) before reaching either the static landing page (GitHub Pages) or the application server. A full technical dossier — architecture diagrams, source-code structure, and screen-flow documentation — was submitted as a **supplementary ZIP attachment** together with the OAuth verification application; this public page is intentionally a summarized, non-sensitive overview for anonymous visitors and reviewers. Full details on data handling and Limited Use compliance are provided in the **Security & Data Protection** section below, in both Japanese and English.
+
+---
+
+## 目次 / Table of Contents
+
+1. [サービス概要 (Overview)](#サービス概要-overview)
+2. [学校との関係について (Affiliation Disclaimer)](#学校との関係について-affiliation-disclaimer)
+3. [主な機能 (Key Features)](#主な機能-key-features)
+4. [インフラ・システム構成 (Architecture & Cloudflare Integration)](#インフラシステム構成-architecture--cloudflare-integration)
+5. [サイトマップ (Site Map)](#サイトマップ-site-map)
+6. [セキュリティ & データ保護方針 (Security & Data Protection)](#セキュリティ--データ保護方針-security--data-protection)
+7. [利用規約 & プライバシーポリシー (Terms & Privacy Policy)](#利用規約--プライバシーポリシー-terms--privacy-policy)
+8. [お問い合わせ (Contact)](#お問い合わせ-contact)
+9. [改訂履歴 (Revision History)](#改訂履歴-revision-history)
+
+---
+
+## サービス概要 (Overview)
+
+**Namiki-18th** は、茨城県立並木中等教育学校のある学年（18回生）の卒業生・在校生コミュニティ専用に開発された、招待制のクローズドなWebポータルです。学年内の連絡事項・カレンダー・時間割・チャットなど、限定されたメンバー間の情報共有を目的としており、不特定多数への公開は行っていません。
+
+対象ユーザーは、学校が発行するメールドメイン（`@namiki-cs.ibk.ed.jp`）を保有する当該学年の在校生・卒業生に限定されます。Googleアカウントでのログインを必須とすることで、なりすましや部外者のアクセスを防ぎ、学年内の情報共有という課題を安全に解決します。
+
+*This is a closed, invitation-style portal for a single graduating class of Ibaraki Prefectural Namiki Secondary School. It centralizes announcements, a shared calendar, class schedules, and internal chat for verified members only, and is not intended for the general public. Access is restricted to holders of the school's official email domain, verified through Google Sign-In.*
+
+---
+
+## 学校との関係について (Affiliation Disclaimer)
+
+| 項目 / Item | 内容 / Detail |
+|---|---|
+| 対象校 / Target School | 茨城県立並木中等教育学校 (Ibaraki Prefectural Namiki Secondary School) |
+| 所在地 / Address | 〒305-0044 茨城県つくば市並木4丁目5-1 |
+
+本サービスは、上記学校の特定の学年（18回生）の卒業生有志によって**独立して運営される非公式のコミュニティサービス**であり、学校当局・学校法人による公式な運営・監修・承認を受けたものではありません。ログイン制限に使用している学校発行のメールドメインは、あくまで対象学年の在籍・卒業確認の手段として利用しているものであり、学校が本サービスの提供主体であることを意味するものではありません。
+
+*This service is an independent, unofficial community platform organized and operated by volunteer alumni of a specific graduating class ("18th generation") of the school named above. It is not officially operated, endorsed, or supervised by the school or any school authority. The school-issued email domain is used solely as a means of verifying membership in the target graduating class, and its use does not imply that the school is the provider of this service.*
+
+---
+
+## 主な機能 (Key Features)
+
+- **Google OAuth 2.0 統合認証**：学校ドメイン限定 + 管理者アカウント例外による安全なログイン
+- **ダッシュボード & 情報共有**：お知らせ・時間割・Google Classroom連携情報など、ユーザー専用ページの閲覧
+- **カレンダー共有**：学年行事・イベントの一覧表示
+- **通知・リマインド機能**：更新情報のお知らせ配信
+- **リアルタイムチャット**：学年全体 / クラス単位 / 個人間のメッセージ共有（暗号化保存）
+- **管理者パネル**：権限管理・メンテナンスモード切り替えなど、限定された管理機能
+- **交通運行情報**：通学に関わる公共交通機関のリアルタイム情報表示
+
+---
+
+## インフラ・システム構成 (Architecture & Cloudflare Integration)
+
+本サービスは、すべての通信を **Cloudflare（DNS / CDN / WAF / Edge Security / SSL・TLS終端）** を経由して配信しており、エンドユーザーとオリジンサーバーの間に多層的な防御層を設けています。公開ランディングページは **GitHub Pages** 上で静的ホスティングされ、アプリケーション本体は独立したアプリケーションサーバー上で稼働します。
+
+*All traffic to this service passes through Cloudflare (DNS / CDN / WAF / Edge Security / TLS termination) before reaching either the static landing page (hosted on GitHub Pages) or the application origin server.*
+
+```
++-----------+        HTTPS         +--------------------------------+
+|  Browser  |---------------------->|           Cloudflare            |
+| (Client)  |                       |  DNS / CDN / WAF / TLS Term.     |
++-----------+                       |  Edge Security & DDoS Mitigation |
+                                     +----------------+-----------------+
+                                                       |
+                          +----------------------------+----------------------------+
+                          |                                                         |
+                          v                                                         v
+           +---------------------------------+                     +---------------------------------+
+           |     公開LP / Landing Page         |                     |    アプリ本体 / Main Application  |
+           |     about.namiki-18th.net         |                     |    namiki-18th.net                |
+           |     (GitHub Pages / 静的配信)       |                     |    (Node.js / Express / Socket.IO)|
+           +---------------------------------+                     +----------------+------------------+
+                                                                                      |
+                                                                                      | OAuth 2.0 / OpenID Connect
+                                                                                      v
+                                                                       +---------------------------------+
+                                                                       |     Google Identity Platform      |
+                                                                       |     (Google OAuth 2.0 / OIDC)      |
+                                                                       +---------------------------------+
 ```
 
-デフォルトでは `http://localhost:3000` で起動します（`PORT` 環境変数で変更可）。
+> **添付資料について / Note on Supplementary Materials**
+> より詳細な構成、画面遷移図、ソース資料につきましては、OAuth審査用に別途提出した添付のZIPファイル（添付資料）をご参照ください。
+> *For a more detailed architecture, screen-flow diagrams, and source materials, please refer to the supplementary ZIP file submitted separately with this OAuth verification application.*
 
-## 環境変数
+---
 
-`.env` ファイル（`dotenv` で読み込み）に以下を設定してください。
+## サイトマップ (Site Map)
 
-| 変数名 | 必須 | 説明 |
+### 公開LP / Public Landing Page — `about.namiki-18th.net`
+
+```
+about.namiki-18th.net/
+├── index.html          # トップページ（サービス概要・審査用README案内）
+└── README.md            # 本ドキュメント（このページ）
+```
+
+### アプリ本体 / Main Application — `namiki-18th.net`
+
+```
+namiki-18th.net/
+├── /                    # トップ（未ログイン時はログイン画面へ誘導）
+├── /login               # Googleログイン開始
+├── /login-deny          # アクセス拒否画面（対象外ドメイン等）
+├── /logout              # ログアウト
+├── /index               # ダッシュボード（要ログイン）
+├── /notice              # お知らせ（要ログイン）
+├── /calendar            # カレンダー（要ログイン）
+├── /schedule            # 時間割（要ログイン）
+├── /classroom           # Google Classroom 連携情報（要ログイン）
+├── /chat                # リアルタイムチャット（要ログイン）
+├── /link                # リンク集（要ログイン）
+├── /report              # 報告・お問い合わせフォーム（要ログイン）
+├── /admin               # 管理者パネル（管理者権限のみ）
+├── /privacy-noauth      # プライバシーポリシー（未ログイン閲覧可）
+├── /terms-noauth        # 利用規約（未ログイン閲覧可）
+└── /offline             # メンテナンス表示画面
+```
+
+---
+
+## セキュリティ & データ保護方針 (Security & Data Protection)
+
+### Google API サービスデータポリシーへの準拠 (Compliance with Google API Services User Data Policy)
+
+本アプリケーションおよびその開発者は、**Google API サービスデータポリシー（Google API Services User Data Policy）**、および該当する場合の**限定使用要件（Limited Use Requirements）**を遵守します。Google APIから取得したユーザーデータの利用は、本アプリがユーザーに提供する機能の実現に必要な範囲に厳格に限定されます。
+
+*This application and its developer comply with the **Google API Services User Data Policy**, including the **Limited Use requirements** where applicable. Data obtained through Google APIs is used strictly to provide and improve the user-facing features of this application, and for no other purpose.*
+
+### 取得データと利用目的 (Data Collected & Purpose)
+
+| 取得データ / Data | スコープ / Scope | 利用目的 / Purpose |
 |---|---|---|
-| `GOOGLE_CLIENT_ID` | ◯ | Google OAuth クライアントID |
-| `GOOGLE_CLIENT_SECRET` | ◯ | Google OAuth クライアントシークレット |
-| `GOOGLE_CALLBACK_URL` | 推奨 | OAuth コールバックURL（未設定時は `RENDER_EXTERNAL_URL` から自動生成、それも無ければ `http://localhost:3000/auth/google/callback`） |
-| `SESSION_SECRET` | ◯（本番必須） | express-session の署名鍵。**未設定の場合、起動のたびにランダムな一時鍵が生成され、再起動でセッションが無効になります。** 公開リポジトリに固定値をコミットしないこと。 |
-| `CHAT_ENCRYPTION_KEY` | ◯（本番必須） | チャット本文の AES-256-GCM 暗号化鍵（32byte を hex 文字列で指定）。**未設定の場合、起動のたびにランダムな一時鍵が生成され、再起動で過去のチャットが復号不能になります。** |
-| `RECAPTCHA_SITE_KEY` | 報告フォーム利用時必須 | Google reCAPTCHA v3 のサイトキー。ブラウザーへ公開されます。 |
-| `RECAPTCHA_SECRET_KEY` | 報告フォーム利用時必須 | Google reCAPTCHA v3 のシークレットキー。サーバー環境変数にのみ設定します。 |
-| `DEEPL_AUTH_KEY` | 翻訳機能利用時必須 | DeepL API の認証キー。サーバー環境変数にのみ設定します（`DEEPL_API_KEY` も使用可能）。 |
-| `API_SECRET_KEY` | 任意 | `/api/classroom` への Webhook 投稿など、管理者ログイン無しで書き込みを許可するための API キー |
-| `CORS_ORIGIN` | 任意 | 許可するオリジン（カンマ区切りで複数指定可）。未設定時はクロスオリジンリクエストを許可しません（同一オリジンの通常利用には影響なし） |
-| `PORT` | 任意 | リッスンポート（デフォルト `3000`） |
-| `NODE_ENV` | 任意 | `production` にすると Cookie の `secure` 属性等が有効化されます |
-| `RENDER` / `RENDER_EXTERNAL_URL` | 任意 | Render.com へのデプロイ時に自動設定される変数。CORS・コールバックURLのデフォルト算出に使用 |
+| Googleアカウント一意識別子 / Google Account ID | `openid` | 本人確認・ログインセッションの管理 / Authenticate the user and manage the login session |
+| メールアドレス / Email Address | `email` | 学校ドメインによるアクセス可否判定、本人特定 / Verify eligibility via school domain and identify the account |
+| 氏名・プロフィール画像 / Name & Profile Picture | `profile` | ダッシュボード・チャット等での表示名・アイコン表示 / Display name and avatar within the dashboard and chat |
 
-`CHAT_ENCRYPTION_KEY` の生成例:
+上記以外の個人データは取得しません。
 
-```bash
-node -e "console.log(require('crypto').randomBytes(32).toString('hex'))"
-```
+*No personal data beyond the items listed above is collected via Google OAuth.*
 
-## ディレクトリ構成
+### 第三者提供・目的外利用の禁止 (No Third-Party Sharing or Secondary Use)
 
-```
-.
-├── server.js              # Express アプリ本体（ルーティング・認証・Socket.IO・CSP設定）
-├── public/                 # 静的ファイル配信ディレクトリ
-│   ├── index.html           # ダッシュボード
-│   ├── admin.html           # 管理者パネル
-│   ├── calendar.html        # カレンダー
-│   ├── chat.html            # チャット
-│   ├── classroom.html       # Classroom連携情報
-│   ├── link.html            # リンク集
-│   ├── notice.html          # お知らせ
-│   ├── report.html          # 報告フォーム
-│   ├── privacy.html         # プライバシーポリシー
-│   ├── terms.html           # 利用規約
-│   ├── login.html           # ログイン画面
-│   ├── offline.html         # メンテナンス表示画面
-│   └── style.css            # 共通スタイルシート
-├── users.json               # ユーザーDB（自動生成・自動保存）
-├── notices.json              # お知らせデータ
-├── classroom.json            # Classroom連携データ
-├── settings.json              # システム設定（メンテナンスモード等）
-├── log.json                   # 管理者向けアクセスログ
-├── chat/                       # チャンネルごとのチャットログ（暗号化して保存）
-├── chat.log                    # （予約領域）
-└── .env                          # 環境変数（Git管理対象外）
-```
+- 取得したユーザーデータを**第三者へ販売・提供することはありません**。
+- 取得したユーザーデータを**広告目的で利用・共有することはありません**。
+- 取得したユーザーデータを**AI／機械学習モデルの学習・トレーニングに使用することはありません**。
+- データは本アプリが提供する機能（認証・表示・アクセス制御）以外の目的には使用しません。
 
-## ルーティング一覧
+*User data obtained via Google OAuth is never sold or shared with third parties, never used or shared for advertising purposes, and never used to train AI or machine learning models. Data is used exclusively to operate the authentication, display, and access-control features described in this document.*
 
-### 画面ルート（認証必須・`ensureAuth`）
+### 通信の暗号化とデータ安全管理 (Encryption & Data Security)
 
-`/index` `/terms` `/privacy` `/report` `/link` `/calendar` `/schedule` `/chat` `/notice` `/classroom`
+- クライアント・サーバー間のすべての通信は、Cloudflareが提供する **HTTPS / TLS** により暗号化されています。
+- サーバー内で保持する機密性の高い情報は、業界標準の暗号化方式により保護された状態で保存されます。
+- Cloudflareのエッジセキュリティ機能（WAF・DDoS防御等）により、不正アクセス・攻撃からサービス基盤を保護しています。
 
-### 画面ルート（管理者専用・`ensureAdmin`）
+*All communication between clients and the server is encrypted in transit via HTTPS/TLS through Cloudflare. Sensitive data held on the server side is protected using industry-standard encryption at rest. Cloudflare's edge security features (WAF, DDoS mitigation) protect the service infrastructure from unauthorized access and attacks.*
 
-`/admin`
+### データの保持・削除 (Data Retention & Deletion)
 
-### 画面ルート（認証不要）
+ユーザーは、お問い合わせ窓口（contact@namiki-18th.net）よりアカウント削除・データ消去を申請できます。申請を受理した開発者は、本人確認の上、対象アカウントに紐づくデータをシステムから速やかに削除します。
 
-`/` `/login` `/login-deny` `/logout` `/offline` `/privacy-noauth` `/terms-noauth`
+*Users may request account and data deletion by contacting **contact@namiki-18th.net**. Upon receiving and verifying such a request, the developer will promptly delete the data associated with that account from the system.*
 
-### 主な API
+---
 
-| メソッド | パス | 権限 | 概要 |
-|---|---|---|---|
-| GET | `/api/profile` | ログイン必須 | 自分のプロフィール取得 |
-| GET | `/api/notices` | ログイン必須 | お知らせ一覧取得 |
-| GET / POST | `/api/classroom` | 取得はログイン必須 / 投稿は管理者 or APIキー | Classroom連携データ |
-| GET | `/api/offline/config` | 不要 | メンテナンス画面の表示設定取得 |
-| GET | `/api/transit` | ログイン必須 | リアルタイム運行情報取得 |
-| POST | `/api/translate` | ログイン必須 | DeepL APIによる表示テキスト翻訳 |
-| GET / POST | `/api/chat/channels`, `/api/chat/messages` | ログイン必須 | チャット機能（詳細は下記） |
-| GET | `/api/admin/users`, `/api/admin/logs` | 管理者 | ユーザー一覧・アクセスログ取得 |
-| POST | `/api/admin/settings/maintenance`, `/api/admin/settings/offline` | 管理者 | メンテナンスモード・オフライン画面設定変更 |
-| POST | `/api/admin/user/:email` | 管理者 | ユーザーのクラス・権限・ステータス変更 |
+## 利用規約 & プライバシーポリシー (Terms & Privacy Policy)
 
-## セキュリティ設計
+- プライバシーポリシー / Privacy Policy: [https://namiki-18th.net/privacy-noauth](https://namiki-18th.net/privacy-noauth)
+- 利用規約 / Terms of Service: [https://namiki-18th.net/terms-noauth](https://namiki-18th.net/terms-noauth)
 
-### Content Security Policy (CSP) と Nonce
+---
 
-本アプリは **`'unsafe-inline'` を一切使用しない厳格な CSP** を採用しています。
+## お問い合わせ (Contact)
 
-- `server.js` はリクエストごとに `crypto.randomBytes(16)` で暗号学的に安全なランダム値を生成し、`res.locals.cspNonce` に格納します。
-- Helmet の CSP ディレクティブ（`scriptSrc` / `styleSrc`）はこの nonce を関数形式で参照し、レスポンスヘッダーの `Content-Security-Policy` に都度異なる nonce を埋め込みます。
-- `public/` 配下の HTML はビルド時の静的ファイルではなく、**`sendHtmlWithNonce()` ヘルパー経由で毎回読み込まれ**、ファイル内の `%%CSP_NONCE%%` プレースホルダーを実際の nonce に置換してから返されます。そのため `express.static` では `.html` を配信しないよう除外しています。
-- 各 HTML ファイルの `<script>` / `<style>` タグには全て `nonce="%%CSP_NONCE%%"` が付与されています。
-- インラインの `style="..."` 属性、および `onclick` / `onerror` / `onchange` / `oninput` などのインラインイベント属性は**全て排除**し、以下の方式に置き換えています。
-  - `style="..."` → 一意な CSS クラス（例: `.gen-24b531`）として nonce 付き `<style>` ブロックに集約
-  - `onclick="location.href='/xxx'"` → `data-href="/xxx"` 属性 + `document.querySelectorAll('[data-href]')` への `addEventListener` 一括登録
-  - `onclick="switchTab('xxx')"` → `data-tab="xxx"` 属性 + 同様の一括登録
-  - `onerror="..."`（画像読み込み失敗時のフォールバック）→ `js-logo-fallback` 等のクラスマーカー + `addEventListener('error', ...)`
-  - 個別の関数呼び出し（`toggleTheme()` など）→ 要素に `id` を付与し、`initInlineEventReplacements()` 内で個別に `addEventListener`
+| 項目 / Item | 内容 / Detail |
+|---|---|
+| 運営者 / Operator | Taichi Kimura |
+| メールアドレス / Email | contact@namiki-18th.net |
+| Google Cloud プロジェクトID / Project ID | `namiki-18th-506602` |
+| Google Cloud プロジェクト番号 / Project Number | `769124929239` |
 
-新しい画面を追加する場合は、上記のパターンに従い **`style` 属性・インラインイベント属性を使用しない**でください。CSPが `'unsafe-inline'` を許可していないため、そのまま実装すると該当のスタイル・スクリプトはブラウザにブロックされます。
+---
 
-### 認証・認可
-
-- Google OAuth 2.0（Passport.js）でログインし、学校ドメイン（`@namiki-cs.ibk.ed.jp`）に加えて特権管理者アカウント1件のみ許可
-- セッションは `express-session` で管理し、`httpOnly` / `sameSite=lax` / 本番では `secure` Cookie
-- `ensureAuth`（ログイン必須）・`ensureAdmin`（管理者専用）ミドルウェアで画面・APIともに保護
-- 停止（`suspended`）ステータスのユーザーは自動的にアクセス拒否（特権管理者アカウントを除く）
-- ロール（`admin` / `student`）・アカウントステータス（`active` / `suspended`）は許可された値のみ受け付けるバリデーションを実装
-
-### チャットのアクセス制御
-
-- チャンネルは `grade`（学年全体）・`class_<クラス名>`（クラス単位）・`dm_<ID1>_<ID2>`（個人間DM）の3種類
-- クライアントが指定した `channel` パラメータをそのままファイル名に使わず、必ずサーバー側でログインユーザーの所属・IDと突き合わせて実チャンネルキーを算出（`resolveChannelKey`）。これにより他クラス・他人宛DMの閲覧・投稿を防止
-- チャットメッセージ本文は AES-256-GCM で暗号化してファイルに保存
-- Socket.IO の接続時も express-session を共有して認証状態を検証し、認可されたチャンネルにのみ `join` を許可
-
-### その他のセキュリティ対策
-
-- **レートリミット**: 全体（15分あたり600リクエスト/IP）、認証系（15分あたり20回）、書き込み系API（1分あたり30回）
-- **入力バリデーション**: チャット投稿の文字数上限（4000文字）、Classroom連携データの件数上限（1000件）、ユーザー権限変更時の許可値チェック
-- **タイミング攻撃対策**: APIキー比較に `crypto.timingSafeEqual` を使用した定数時間比較
-- **秘密情報のハードコード禁止**: `SESSION_SECRET` / `CHAT_ENCRYPTION_KEY` が未設定の場合、固定値へのフォールバックは行わずランダムな一時鍵を生成し警告ログを出力（本番運用では必ず `.env` に設定すること）
-- **safeWriteJSON**: JSON永続化は一時ファイル書き込み後にリネームすることで、書き込み中のクラッシュによるデータ破損を防止
-
-## 開発時の注意点
-
-- 静的アセット（CSS・画像・フォント）は `express.static` でそのまま配信されますが、**HTMLファイルは必ず `sendHtmlWithNonce()` を経由**させてください（nonce注入のため）。
-- 新規画面追加時は `%%CSP_NONCE%%` プレースホルダーを `<script>` / `<style>` タグに付与することを忘れないでください。
-- ローカル開発時、Google OAuth のコールバックURLは Google Cloud Console 側の設定と一致させる必要があります（`http://localhost:3000/auth/google/callback` 等）。
-- `usersDB` はメモリ上にキャッシュされ `users.json` に随時保存されるため、複数プロセス・複数インスタンスでの水平スケールは非対応です（単一プロセス運用を前提とした設計）。
-
-## リリースノート
-コミット内容は機密情報保持及びセキュリティ対策として定期的にリセットされています。
+## 改訂履歴 (Revision History)
 
 - **3.4.2** ログシステムを改良しました
 - **3.4.1** セキュリティを強化しました
@@ -291,5 +319,7 @@ node -e "console.log(require('crypto').randomBytes(32).toString('hex'))"
 - **1.0.2** Add files via upload
 - **1.0.1** Add files via upload
 - **1.0.0** Initial commit
+
+---
 
 ©2026 Taichi Kimura. All rights reserved.

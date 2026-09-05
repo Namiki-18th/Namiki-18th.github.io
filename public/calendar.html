@@ -30,7 +30,8 @@
     .gen-a9a0ae { padding: 0.5rem 1rem; font-size: 0.9rem; }
     .gen-ef7695 { margin: 0; font-size: 1.25rem; text-align: center; flex: 1; }
     .gen-b56181 { overflow-x: auto; }
-    .gen-2016c3 { width: 100%; border-collapse: collapse; margin-bottom: 1.5rem; }
+    /* テーブルレイアウトを固定してセルの横幅を統一 */
+    .gen-2016c3 { width: 100%; border-collapse: collapse; margin-bottom: 1.5rem; table-layout: fixed; }
     .gen-f35ed8 { background: var(--color-bg-secondary); border-bottom: 2px solid var(--color-border); }
     .gen-8ce2af { padding: 0.75rem; text-align: center; font-weight: 600; color: #f87171; width: 14.28%; }
     .gen-106cb7 { padding: 0.75rem; text-align: center; font-weight: 600; color: var(--color-text-primary); width: 14.28%; }
@@ -48,25 +49,28 @@
     .gen-e5c627 { padding: 0.75rem; border: 1px solid var(--color-border); border-radius: 0.375rem; background: var(--color-bg-tertiary); }
     .gen-1aecdc { font-weight: 600; font-size: 0.95rem; }
     .gen-9803d8 { font-size: 0.75rem; color: var(--color-text-muted); margin-top: 0.25rem; }
-    /* 1. モーダル用の色を定義（ライトモード用） */
+    
+    /* 1. モーダル等の色を定義（ライトモード用） */
     :root {
       --modal-bg: #ffffff;
       --modal-text: #333333;
       --modal-border: #e5e7eb;
       --modal-close: #9ca3af;
       --modal-close-hover: #1f2937;
+      --calendar-cell-hover: #f3f4f6; /* セルホバー色（ライトモード） */
     }
 
-    /* 2. モーダル用の色を定義（ダークモード用） */
+    /* 2. モーダル等の色を定義（ダークモード用） */
     html.dark {
-      --modal-bg: #0b0c0c;          /* 暗いグレー背景 */
-      --modal-text: #f9fafb;        /* 白っぽい文字色 */
-      --modal-border: #35373a;      /* 暗めの境界線 */
-      --modal-close: #6b7280;       /* 暗めのバツボタン */
-      --modal-close-hover: #f3f4f6; /* ホバー時は明るく */
+      --modal-bg: #0b0c0c;          
+      --modal-text: #f9fafb;        
+      --modal-border: #35373a;      
+      --modal-close: #6b7280;       
+      --modal-close-hover: #f3f4f6; 
+      --calendar-cell-hover: #1f2937; /* セルホバー色（ダークモード） */
     }
 
-    /* 3. 変数を使ってスタイルを適用（以前の .modal-content と .modal-close-btn を上書き） */
+    /* 3. 変数を使ってスタイルを適用 */
     .modal-content {
       background: var(--modal-bg);
       color: var(--modal-text);
@@ -75,7 +79,7 @@
       max-width: 90%;
       width: 400px;
       border: 1px solid var(--modal-border);
-      box-shadow: 0 4px 6px rgba(0,0,0,0.3); /* ダークモードでも浮いて見えるよう影を少し濃く */
+      box-shadow: 0 4px 6px rgba(0,0,0,0.3); 
     }
 
     .modal-close-btn {
@@ -120,7 +124,16 @@
       color: white;
     }
 
-    /* モーダル用のスタイル追加（修正済み） */
+    /* イベントチップのスクロールバーを非表示にする */
+    .event-chip-event, .event-chip-no-vacation {
+      scrollbar-width: none;
+      -ms-overflow-style: none;
+    }
+    .event-chip-event::-webkit-scrollbar, .event-chip-no-vacation::-webkit-scrollbar {
+      display: none;
+    }
+
+    /* モーダル用のスタイル追加 */
     .modal-overlay {
       display: none;
       position: fixed;
@@ -133,8 +146,10 @@
     .modal-overlay.show {
       display: flex;
     }
+
+    /* カレンダーセルホバー時の背景色を修正 */
     .calendar-cell:hover {
-      background: var(--color-bg-tertiary, var(--modal-close-hover)) !important;
+      background: var(--calendar-cell-hover) !important;
     }
 
     /* Tailwind代替用のカスタムクラス */
@@ -442,7 +457,6 @@
     function handleAdminSettings() { window.location.href = '/admin'; }
     function handlePersonalSettings() { window.location.href = '/setting'; }
 
-    // ▼ 追加：カレンダーのJSONデータを取得する関数 ▼
     async function fetchDefaultCalendarData() {
       try {
         const res = await fetch('/calendar.json');
@@ -472,7 +486,6 @@
 
         if (calendarRes.ok) {
           const apiCalendar = await calendarRes.json();
-          // APIからデータが取得できた場合はそれを使い、取得できない場合は外部JSONファイルから取得する
           globalData.calendar = (apiCalendar && apiCalendar.length > 0) 
             ? apiCalendar 
             : await fetchDefaultCalendarData();
@@ -603,10 +616,8 @@
           const baseTextColor = isCurrentMonth ? 'var(--color-text-primary)' : 'var(--color-text-muted)';
           const todayBorder = isToday ? '2px solid var(--color-accent-blue-light)' : 'none';
 
-          // 休日判定（type === 'holiday' のイベントがあるか）
           const hasHoliday = eventsPerDay[j].some(e => e.type === 'holiday');
           
-          // ヘッダーの色を決定（日曜または休日なら赤、土曜なら青、それ以外は通常色）
           let headerColor = baseTextColor;
           if (j===6) {
             headerColor = '#3b82f6'
@@ -627,7 +638,8 @@
                 const isContinuedFromPrev = j > 0 && slots[s][j-1] && slots[s][j-1].title === event.title;
                 const isContinuesToNext = j < 6 && slots[s][j+1] && slots[s][j+1].title === event.title;
                 
-                let styles = `padding: 0.25rem 0.375rem; margin-bottom: 0.25rem; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: 0.75rem; height: 1.5rem; line-height: 1rem; box-sizing: border-box;`;
+                // overflow-x: auto; を追加して横スクロール可能に修正
+                let styles = `padding: 0.25rem 0.375rem; margin-bottom: 0.25rem; overflow-x: auto; white-space: nowrap; font-size: 0.75rem; height: 1.5rem; line-height: 1rem; box-sizing: border-box;`;
                 
                 if (isContinuedFromPrev) {
                   styles += ` margin-left: -0.5rem; padding-left: 0.5rem; border-top-left-radius: 0; border-bottom-left-radius: 0;`;
@@ -720,12 +732,10 @@
       renderCalendar();
     }
 
-    // イベントリスナーの登録（CSP対応）
     document.addEventListener('DOMContentLoaded', () => {
       initThemeToggle();
       loadPageData();
 
-      // 画像のエラーフォールバック
       document.querySelectorAll('img.fallback-logo-img').forEach(img => {
         img.addEventListener('error', function() {
           this.style.display = 'none';
@@ -739,7 +749,6 @@
         });
       });
 
-      // ナビゲーションリンク
       document.querySelectorAll('.nav-link').forEach(btn => {
         btn.addEventListener('click', function() {
           if (this.dataset.href) {
@@ -748,7 +757,6 @@
         });
       });
 
-      // アカウントメニュー周り
       const sidebarToggle = document.getElementById('sidebar-user-toggle');
       if (sidebarToggle) sidebarToggle.addEventListener('click', toggleAccountMenu);
       
@@ -764,14 +772,12 @@
       const mobileThemeToggle = document.getElementById('btn-mobile-theme-toggle');
       if (mobileThemeToggle) mobileThemeToggle.addEventListener('click', toggleTheme);
 
-      // カレンダーの月切り替え
       const prevBtn = document.getElementById('calendar-prev-btn');
       if (prevBtn) prevBtn.addEventListener('click', previousMonth);
 
       const nextBtn = document.getElementById('calendar-next-btn');
       if (nextBtn) nextBtn.addEventListener('click', nextMonth);
 
-      // カレンダーセルのクリック（イベント委譲）
       const calendarBody = document.getElementById('calendar-body');
       if (calendarBody) {
         calendarBody.addEventListener('click', (e) => {
@@ -782,7 +788,6 @@
         });
       }
 
-      // モーダル周り
       const modalOverlay = document.getElementById('day-modal');
       if (modalOverlay) modalOverlay.addEventListener('click', closeDayModal);
 
@@ -792,7 +797,6 @@
       const modalCloseBtn = document.getElementById('modal-close-btn');
       if (modalCloseBtn) modalCloseBtn.addEventListener('click', closeDayModal);
 
-      // メニュー外のクリック処理
       document.addEventListener('click', (event) => {
         const menu = document.getElementById('account-popup-menu');
         const toggleBtn = document.getElementById('sidebar-user-toggle');
