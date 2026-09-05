@@ -247,6 +247,8 @@
         <h1 class="font-bold text-sm mobile-brand-name">並木中等教育学校18回生</h1>
       </div>
       <div class="flex items-center gap-3">
+        <!-- スマホ用：サーバー時刻表示（右側） -->
+        <span class="server-time-display text-sm font-bold" style="color: var(--color-text-primary); font-family: monospace;">--:--:--</span>
         <button class="theme-toggle-btn" title="モード切替">
           <svg class="icon-sm" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 3v1m0 16v1m9-9h-1M4 12H3m15.364 6.364l-.707-.707M6.343 6.343l-.707-.707m12.728 0l-.707.707M6.343 17.657l-.707.707M16 12a4 4 0 11-8 0 4 4 0 018 0z"/></svg>
         </button>
@@ -303,9 +305,16 @@
               <p id="dashboard-date-display" class="welcome-date-text">日付を読み込んでいます...</p>
               <h2 id="dashboard-welcome-heading" class="welcome-heading-text">ようこそ、ダッシュボードへ</h2>
             </div>
-            <button data-href="/schedule" class="button-primary">
-              📅 今日の時間割を見る
-            </button>
+            <div class="flex items-center gap-4">
+              <!-- PC用：サーバー時刻表示（右側） -->
+              <div class="text-right hidden sm:block" style="color: white;">
+                <div class="text-xs opacity-80">サーバー時刻</div>
+                <div class="server-time-display font-bold" style="font-size: 1.25rem; font-family: monospace;">--:--:--</div>
+              </div>
+              <button data-href="/schedule" class="button-primary">
+                📅 今日の時間割を見る
+              </button>
+            </div>
           </div>
         </div>
 
@@ -384,6 +393,8 @@
       notices: [],
       links: []
     };
+
+    let serverTimeObj = null;
 
     function escapeHtml(str) {
       if (!str) return '';
@@ -471,6 +482,39 @@
       if (dateEl) dateEl.textContent = now.toLocaleDateString('ja-JP', options);
     }
 
+    // サーバー時刻の初期化と自動更新
+    async function initServerTime() {
+      try {
+        // キャッシュを回避してHEADリクエストを送信し、サーバーのDateヘッダーを取得
+        const urlObj = new URL(window.location.href);
+        urlObj.searchParams.set('_t', Date.now());
+        const res = await fetch(urlObj.toString(), { method: 'HEAD' });
+        const dateHeader = res.headers.get('Date');
+        if (dateHeader) {
+          serverTimeObj = new Date(dateHeader);
+        } else {
+          serverTimeObj = new Date(); // ヘッダーがない場合はクライアント時刻でフォールバック
+        }
+      } catch (err) {
+        serverTimeObj = new Date(); // エラー時のフォールバック
+      }
+      
+      updateTimeDisplays();
+      setInterval(() => {
+        serverTimeObj.setSeconds(serverTimeObj.getSeconds() + 1);
+        updateTimeDisplays();
+      }, 1000);
+    }
+
+    function updateTimeDisplays() {
+      if (!serverTimeObj) return;
+      const timeStr = serverTimeObj.toLocaleTimeString('ja-JP', { hour12: false });
+      const displays = document.querySelectorAll('.server-time-display');
+      displays.forEach(el => {
+        el.textContent = timeStr;
+      });
+    }
+
     // データの読み込み
     async function loadDashboardData() {
       try {
@@ -533,7 +577,27 @@
         if (document.getElementById('popup-user-avatar')) document.getElementById('popup-user-avatar').src = userAvatar;
         if (document.getElementById('mobile-popup-user-avatar')) document.getElementById('mobile-popup-user-avatar').src = userAvatar;
 
-        if (document.getElementById('dashboard-welcome-heading')) document.getElementById('dashboard-welcome-heading').textContent = `ようこそ、${p.name || 'ユーザー'} さん`;
+        // 時間帯に応じた挨拶の切り替え
+        const currentHour = new Date().getHours();
+        let greeting = 'ようこそ';
+        if (currentHour >= 4 && currentHour < 6) {
+          greeting = '早起きですね';
+        } else if (currentHour >= 6 && currentHour < 10) {
+          greeting = 'おはようございます';
+        } else if (currentHour >= 10 && currentHour < 18) {
+          greeting = 'こんにちは';
+        } else if (currentHour >= 18 && currentHour < 24) {
+          greeting = 'こんばんは';
+        } else if (currentHour >= 0 && currentHour < 4) {
+          greeting = 'もう寝る時間ですよ';
+        } else {
+          greeting = 'ようこそ';
+        }
+
+        if (document.getElementById('dashboard-welcome-heading')) {
+          document.getElementById('dashboard-welcome-heading').textContent = `${greeting}、${p.name || 'ユーザー'} さん`;
+        }
+
         if (document.getElementById('dashboard-user-class')) document.getElementById('dashboard-user-class').textContent = p.userClass || '未設定';
       }
 
@@ -586,6 +650,7 @@
     document.addEventListener('DOMContentLoaded', () => {
       initDateStr();
       initThemeToggle();
+      initServerTime(); // サーバー時刻の初期化処理を呼び出し
       loadDashboardData();
 
       // クリックイベントの委譲
@@ -619,7 +684,7 @@
           return;
         }
       });
-    }); // ← 閉じ忘れを補正
+    });
 
     // 画像エラー時の代替処理（無限ループ完全防止）
     document.addEventListener('error', (e) => {
