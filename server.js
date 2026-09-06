@@ -102,6 +102,7 @@ app.use(
           'https://cdnjs.cloudflare.com',
           'https://www.google.com/recaptcha/',
           'https://www.gstatic.com/recaptcha/'
+          'https://api.open-meteo.com'
         ],
         scriptSrcAttr: ["'unsafe-inline'"],
         styleSrc: [
