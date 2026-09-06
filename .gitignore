@@ -1,7 +1,5 @@
 node_modules/
 .env
-users.json
-settings.json
 chat/
 encript/
 .DS_Store
@@ -12,3 +10,5 @@ yarn-error.log*
 .git/
 data/
 certs/
+sitemap.xml
+sitemap.js
