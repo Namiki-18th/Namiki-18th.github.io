@@ -253,7 +253,7 @@ const PATHS = {
   NOTICES: path.join(DATA_DIR, 'notices.json'),
   CLASSROOM: path.join(DATA_DIR, 'classroom.json'), // ※ 今後使われなくなりますが、他の影響を避けるため残しています
   SCHEDULE: path.join(DATA_DIR, 'schedule.json'),
-  EVENTS: path.join(DATA_DIR, 'events.json'),
+  CALENDAR: path.join(DATA_DIR, 'calendar.json'),
   SETTINGS: path.join(DATA_DIR, 'settings.json'),
   LOGS: path.join(DATA_DIR, 'log.json'),
   REPORTS: path.join(DATA_DIR, 'reports.json'),
@@ -837,7 +837,7 @@ app.delete('/api/profile/sessions-all-others', ensureAuth, (req, res, next) => {
 app.get('/api/notices', ensureAuth, asyncHandler(async (req, res) => res.json(await safeReadJSON(PATHS.NOTICES, []))));
 // ▼ ここをキャッシュを返すように変更しました
 app.get('/api/classroom', ensureAuth, asyncHandler(async (req, res) => res.json(cachedClassroomData)));
-app.get('/api/calendar', ensureAuth, asyncHandler(async (req, res) => res.json(await safeReadJSON(PATHS.EVENTS, []))));
+app.get('/api/calendar', ensureAuth, asyncHandler(async (req, res) => res.json(await safeReadJSON(PATHS.CALENDAR, []))));
 app.get('/api/schedule', ensureAuth, asyncHandler(async (req, res) => res.json(await safeReadJSON(PATHS.SCHEDULE, {}))));
 app.get('/api/links', ensureAuth, asyncHandler(async (req, res) => res.json(await safeReadJSON(PATHS.LINKS, []))));
 
