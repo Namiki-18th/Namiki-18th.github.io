@@ -9,11 +9,19 @@
 
 const crypto = require("crypto");
 const fs = require("fs");
+const path = require("path");
 require("dotenv").config();
+if (!/^[0-9a-f]{64}$/i.test(process.env.STUDENT_KEY || "")) {
+    throw new Error("STUDENT_KEY must be a 32-byte hexadecimal key");
+}
 const key = Buffer.from(process.env.STUDENT_KEY, "hex");
-const iv = fs.readFileSync("students.iv");
-const tag = fs.readFileSync("students.tag");
-const encrypted = fs.readFileSync("students.enc");
+const dataPath = (fileName) => path.join(__dirname, fileName);
+const iv = fs.readFileSync(dataPath("students.iv"));
+const tag = fs.readFileSync(dataPath("students.tag"));
+const encrypted = fs.readFileSync(dataPath("students.enc"));
+if (iv.length !== 12 || tag.length !== 16) {
+    throw new Error("Invalid encrypted student data metadata");
+}
 const decipher = crypto.createDecipheriv("aes-256-gcm", key, iv);
 decipher.setAuthTag(tag);
 

@@ -12,7 +12,6 @@ const cors = require('cors');
 const helmet = require('helmet');
 const rateLimit = require('express-rate-limit');
 const compression = require('compression');
-const RssParser = require('rss-parser');
 const axios = require('axios');
 const deepl = require('deepl-node');
 require('dotenv').config();
@@ -39,15 +38,14 @@ process.on('uncaughtException', (err) => {
 // 管理者メールアドレスの読み込み
 const PRIVILEGED_ADMINS = (process.env.PRIVILEGED_ADMINS || '')
   .split(',')
-  .map((s) => s.trim())
+  .map((s) => s.trim().toLowerCase())
   .filter(Boolean);
-const isPrivilegedAdminEmail = (email) => PRIVILEGED_ADMINS.includes(email);
+const isPrivilegedAdminEmail = (email) => PRIVILEGED_ADMINS.includes(String(email || '').toLowerCase());
+const isProduction = process.env.NODE_ENV === 'production' || !!process.env.RENDER;
 
 // サーバー初期化
 const app = express();
 const server = http.createServer(app);
-const rssParser = new RssParser();
-
 app.use(compression());
 
 const rawCorsOrigin = process.env.CORS_ORIGIN || process.env.RENDER_EXTERNAL_URL || '';
@@ -73,7 +71,7 @@ const DEEPL_TARGET_LANGUAGES = new Set(['JA', 'EN', 'ZH', 'KO']);
 const DEEPL_TARGET_LANGUAGE_MAP = { JA: 'JA', EN: 'EN-US', ZH: 'ZH', KO: 'KO' };
 
 // --- [基本設定 & セキュリティ (Helmet, CSP, Nonce)] ---
-app.set('trust proxy', 1);
+app.set('trust proxy', isProduction ? 1 : false);
 
 app.use((req, res, next) => {
   res.locals.cspNonce = crypto.randomBytes(16).toString('base64');
@@ -117,7 +115,7 @@ app.use(
         objectSrc: ["'none'"],
         baseUri: ["'self'"],
         frameAncestors: ["'self'"],
-        connectSrc: ["'self'", 'https://api.open-meteo.com', 'https://api.allorigins.win', 'https://api.odpt.org']
+        connectSrc: Array.from(new Set([...connectSrcUrls, 'https://api.open-meteo.com']))
       }
     },
     crossOriginEmbedderPolicy: false
@@ -362,9 +360,7 @@ function scheduleLogSave() {
 }
 
 async function addLog(req, action, email, details = '', statusCode = null) {
-  const ip = req.headers['x-forwarded-for']
-    ? req.headers['x-forwarded-for'].split(',')[0].trim()
-    : req.socket?.remoteAddress || req.ip || 'Unknown';
+  const ip = req.ip || req.socket?.remoteAddress || 'Unknown';
 
   const userAgent = req.headers['user-agent'] || 'Unknown';
 
@@ -400,11 +396,23 @@ async function saveUsersDB() {
 }
 
 // --- [暗号化ユーティリティ (AES-256-GCM)] ---
-if (!process.env.CHAT_ENCRYPTION_KEY) {
+if (!/^[0-9a-f]{64}$/i.test(process.env.CHAT_ENCRYPTION_KEY || '')) {
   console.error('[FATAL ERROR] CHAT_ENCRYPTION_KEY が設定されていません。セキュリティのためサーバーを停止します。');
   process.exit(1);
 }
 const ENCRYPTION_KEY = Buffer.from(process.env.CHAT_ENCRYPTION_KEY, 'hex');
+
+function sanitizeOfflineMessage(value) {
+  if (typeof value !== 'string') return '';
+  return value
+    .slice(0, 5000)
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/&lt;br\s*\/??&gt;/gi, '<br>')
+    .replace(/&lt;strong&gt;/gi, '<strong>')
+    .replace(/&lt;\/strong&gt;/gi, '</strong>');
+}
 
 function encrypt(text) {
   const iv = crypto.randomBytes(12);
@@ -461,7 +469,7 @@ if (process.env.GOOGLE_CLIENT_ID && process.env.GOOGLE_CLIENT_SECRET) {
       },
       async (accessToken, refreshToken, profile, done) => {
         try {
-          const email = profile.emails?.[0]?.value || '';
+          const email = String(profile.emails?.[0]?.value || '').trim().toLowerCase();
           const isPrivilegedAdmin = isPrivilegedAdminEmail(email);
 
           if (!email.endsWith('@namiki-cs.ibk.ed.jp') && !isPrivilegedAdmin) {
@@ -509,8 +517,6 @@ passport.deserializeUser((email, done) => {
   done(null, user);
 });
 
-const isProduction = process.env.NODE_ENV === 'production' || !!process.env.RENDER;
-
 // セッションストアはサーバー再起動後も維持できるローカル JSON ファイルを使用する。
 const sessionStore = new LocalFileStore(PATHS.SESSIONS_DIR);
 console.log(`[Session] Local file store: ${PATHS.SESSIONS_DIR}`);
@@ -540,9 +546,24 @@ app.use(passport.initialize());
 app.use(passport.session());
 
 app.use((req, res, next) => {
+  if (!['POST', 'PUT', 'PATCH', 'DELETE'].includes(req.method)) return next();
+  const requestOrigin = req.get('origin');
+  if (!requestOrigin) return next();
+  try {
+    const expectedOrigin = `${req.protocol}://${req.get('host')}`;
+    if (new URL(requestOrigin).origin !== expectedOrigin) {
+      return res.status(403).json({ error: 'Cross-site request blocked' });
+    }
+  } catch (_) {
+    return res.status(403).json({ error: 'Invalid request origin' });
+  }
+  next();
+});
+
+app.use((req, res, next) => {
   if (!req.isAuthenticated() || req.session.__metadata) return next();
   req.session.__metadata = {
-    ip: req.headers['x-forwarded-for']?.split(',')[0].trim() || req.socket.remoteAddress || '不明',
+    ip: req.ip || req.socket.remoteAddress || '不明',
     device: req.headers['user-agent'] || '不明な端末',
     lastAccess: new Date().toISOString()
   };
@@ -659,12 +680,15 @@ app.get('/auth/google/callback', authLimiter, (req, res, next) => {
     if (err) return next(err);
     if (!user) return res.redirect('/login-deny');
 
-    req.logIn(user, (loginErr) => {
-      if (loginErr) return next(loginErr);
-      req.session.save((saveErr) => {
-        if (saveErr) return next(saveErr);
-        addLog(req, 'login', user.email, 'Google OAuth Login').catch((e) => console.error(e));
-        return res.redirect('/index');
+    req.session.regenerate((regenerateErr) => {
+      if (regenerateErr) return next(regenerateErr);
+      req.logIn(user, (loginErr) => {
+        if (loginErr) return next(loginErr);
+        req.session.save((saveErr) => {
+          if (saveErr) return next(saveErr);
+          addLog(req, 'login', user.email, 'Google OAuth Login').catch((e) => console.error(e));
+          return res.redirect('/index');
+        });
       });
     });
   })(req, res, next);
@@ -685,6 +709,7 @@ app.get('/login-deny', (req, res) => {
 });
 
 app.get('/logout', (req, res, next) => {
+  if (req.get('sec-fetch-site') === 'cross-site') return res.status(403).send('Cross-site logout is not allowed.');
   req.logout((err) => {
     if (err) return next(err);
     req.session.destroy(() => res.redirect('/login'));
@@ -922,13 +947,14 @@ app.delete(
 );
 
 app.get('/api/offline/config', (req, res) => {
+  const offlineConfig = systemSettings.offlineConfig || {};
   res.json({
     maintenanceMode: systemSettings.maintenanceMode,
-    config: systemSettings.offlineConfig || {
-      title: 'Maintenance',
-      subtitle: '只今システムメンテナンス中です',
-      message: 'サービス向上およびシステム保守のため、一時的に<strong>ログイン後の全機能</strong>を停止しております。<br>ご不便をおかけいたしますが、復旧までしばらくお待ちください。',
-      recoveryTime: ''
+    config: {
+      title: typeof offlineConfig.title === 'string' ? offlineConfig.title.slice(0, 200) : 'Maintenance',
+      subtitle: typeof offlineConfig.subtitle === 'string' ? offlineConfig.subtitle.slice(0, 500) : '只今システムメンテナンス中です',
+      message: sanitizeOfflineMessage(offlineConfig.message || 'サービス向上およびシステム保守のため、一時的に<strong>ログイン後の全機能</strong>を停止しております。<br>ご不便をおかけいたしますが、復旧までしばらくお待ちください。'),
+      recoveryTime: typeof offlineConfig.recoveryTime === 'string' ? offlineConfig.recoveryTime.slice(0, 200) : ''
     }
   });
 });
@@ -953,13 +979,20 @@ app.post(
 
     const reports = await safeReadJSON(PATHS.REPORTS, []);
 
+    if (subject !== undefined && (typeof subject !== 'string' || subject.length > 200)) {
+      return res.status(400).json({ error: '件名が長すぎます。' });
+    }
+    if (type !== undefined && (typeof type !== 'string' || type.length > 100)) {
+      return res.status(400).json({ error: '種別が不正です。' });
+    }
+
     const newReport = {
       id: Date.now().toString(),
       userId: req.user.email,
       userName: req.user.name,
       userClass: req.user.userClass,
-      subject: subject || 'No Subject',
-      type: type || 'report',
+      subject: typeof subject === 'string' && subject.trim() ? subject.trim() : 'No Subject',
+      type: typeof type === 'string' && type.trim() ? type.trim() : 'report',
       message: message.trim(),
       timestamp: new Date().toISOString()
     };
@@ -1209,11 +1242,16 @@ app.post(
     }
 
     if (attachment !== undefined) {
-      if (!attachment || typeof attachment !== 'object' || typeof attachment.name !== 'string' || typeof attachment.type !== 'string' || typeof attachment.data !== 'string' || attachment.data.length > 2_800_000) {
+      const allowedAttachmentType = /^(image\/(png|jpeg|gif|webp)|application\/pdf|text\/plain)$/i;
+      if (!attachment || typeof attachment !== 'object' || typeof attachment.name !== 'string' || typeof attachment.type !== 'string' || !allowedAttachmentType.test(attachment.type) || typeof attachment.data !== 'string' || attachment.data.length > 2_800_000) {
         return res.status(400).json({ error: 'Invalid attachment (max 2 MB)' });
       }
       if (!attachment.data.startsWith(`data:${attachment.type};base64,`)) {
         return res.status(400).json({ error: 'Invalid attachment data' });
+      }
+      const base64Data = attachment.data.slice(attachment.data.indexOf(',') + 1);
+      if (!/^[A-Za-z0-9+/]*={0,2}$/.test(base64Data) || Buffer.from(base64Data, 'base64').length > 2 * 1024 * 1024) {
+        return res.status(400).json({ error: 'Invalid attachment size or encoding' });
       }
     }
     const encryptedData = encrypt(trimmedContent);
@@ -1259,7 +1297,7 @@ app.post('/api/chat/messages/:id/reactions', ensureAuth, writeLimiter, asyncHand
   const currentUser = usersDB[req.user.email] || req.user;
   const key = resolveChannelKey(currentUser, req.query.channel);
   const emoji = typeof req.body?.emoji === 'string' ? req.body.emoji.trim() : '';
-  if (!key || !emoji || emoji.length > 16) return res.status(400).json({ error: 'Invalid reaction' });
+  if (!key || !emoji || emoji.length > 16 || ['__proto__', 'constructor', 'prototype'].includes(emoji)) return res.status(400).json({ error: 'Invalid reaction' });
   const data = await readChannelData(key);
   const message = data.messages.find((item) => item.id === req.params.id);
   if (!message) return res.status(404).json({ error: 'Message not found' });
@@ -1351,9 +1389,17 @@ app.post(
     const { title, subtitle, message, recoveryTime } = req.body;
     if (!systemSettings.offlineConfig) systemSettings.offlineConfig = {};
 
+    for (const [name, value, maxLength] of [['title', title, 200], ['subtitle', subtitle, 500], ['recoveryTime', recoveryTime, 200]]) {
+      if (value !== undefined && (typeof value !== 'string' || value.length > maxLength)) {
+        return res.status(400).json({ error: `Invalid offlineConfig.${name}` });
+      }
+    }
+    if (message !== undefined && (typeof message !== 'string' || message.length > 5000)) {
+      return res.status(400).json({ error: 'Invalid offlineConfig.message' });
+    }
     if (title !== undefined) systemSettings.offlineConfig.title = title;
     if (subtitle !== undefined) systemSettings.offlineConfig.subtitle = subtitle;
-    if (message !== undefined) systemSettings.offlineConfig.message = message;
+    if (message !== undefined) systemSettings.offlineConfig.message = sanitizeOfflineMessage(message);
     if (recoveryTime !== undefined) systemSettings.offlineConfig.recoveryTime = recoveryTime;
 
     await safeWriteJSON(PATHS.SETTINGS, systemSettings);
@@ -1419,16 +1465,21 @@ app.delete('/api/admin/user/:email', ensureAdmin, asyncHandler(async (req, res) 
   res.json({ success: true });
 }));
 
+io.use((socket, next) => {
+  const email = socket.request.session?.passport?.user;
+  const currentUser = email ? usersDB[email] : null;
+  if (!currentUser || (currentUser.status === 'suspended' && !isPrivilegedAdminEmail(currentUser.email))) {
+    return next(new Error('Unauthorized'));
+  }
+  socket.email = currentUser.email;
+  next();
+});
+
 // --- [Socket.IO 接続リスナー] ---
 io.on('connection', (socket) => {
   socket.on('joinChannel', (ch) => {
-    const session = socket.request.session;
-    const email = session?.passport?.user;
-    const currentUser = email ? usersDB[email] : null;
-    if (!currentUser) return;
-
-    if (currentUser.status === 'suspended' && !isPrivilegedAdminEmail(currentUser.email)) return;
-
+    const currentUser = usersDB[socket.email];
+    if (!currentUser || (currentUser.status === 'suspended' && !isPrivilegedAdminEmail(currentUser.email))) return;
     const key = resolveChannelKey(currentUser, ch);
     if (!key) return;
 
@@ -1452,7 +1503,7 @@ app.use((err, req, res, next) => {
     console.error(`[System Error - ${status}] ${req.method} ${req.url}`, err.stack);
   }
   if (req.xhr || req.path.startsWith('/api/')) {
-    return res.status(status).json({ error: err.message });
+    return res.status(status).json({ error: status >= 500 ? 'Internal server error' : err.message });
   }
   res.redirect('/offline.html');
 });

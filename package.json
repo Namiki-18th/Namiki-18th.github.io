@@ -20,8 +20,6 @@
     "helmet": "^8.3.0",
     "passport": "^0.7.0",
     "passport-google-oauth20": "^2.0.0",
-    "rss-parser": "^3.13.0",
-    "sitemap-generator": "^8.5.1",
     "socket.io": "^4.8.3"
   },
   "devDependencies": {
