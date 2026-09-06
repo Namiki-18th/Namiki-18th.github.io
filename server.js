@@ -101,7 +101,7 @@ app.use(
           'https://cdn.jsdelivr.net',
           'https://cdnjs.cloudflare.com',
           'https://www.google.com/recaptcha/',
-          'https://www.gstatic.com/recaptcha/'
+          'https://www.gstatic.com/recaptcha/',
           'https://api.open-meteo.com'
         ],
         scriptSrcAttr: ["'unsafe-inline'"],
@@ -116,7 +116,8 @@ app.use(
         frameSrc: ["'self'", 'https://www.google.com/recaptcha/', 'https://recaptcha.google.com/recaptcha/'],
         objectSrc: ["'none'"],
         baseUri: ["'self'"],
-        frameAncestors: ["'self'"]
+        frameAncestors: ["'self'"],
+        connectSrc: ["'self'", 'https://api.open-meteo.com', 'https://api.allorigins.win', 'https://api.odpt.org']
       }
     },
     crossOriginEmbedderPolicy: false
