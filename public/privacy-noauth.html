@@ -193,18 +193,44 @@
         <h2 class="content-card-title">プライバシーポリシー</h2>
         <p class="content-card-subtitle">本ポータルサイトにおける個人情報の取扱いおよびセキュリティ方針について規定しています。</p>
         
-        <div style="font-size: 0.875rem; color: var(--color-text-body); line-height: 1.7; margin-top: 1rem;">
+        <div class="gen-cd6865">
           <p>「並木中等教育学校18回生ポータルサイト」（以下、「当サイト」といいます。）は、利用者のプライバシーを尊重し、個人情報の保護と適切な管理に努めます。</p>
 
           <div class="policy-section">
-            <h3>1. 収集する情報</h3>
-            <p>当サイトでは、Google OAuth2 等の認証連携を利用してログインを行う際、以下の情報を自動的に取得します。</p>
-            <ul>
-              <li>氏名（表示名）</li>
-              <li>メールアドレス</li>
-              <li>プロフィール画像（アイコン）</li>
-              <li>学籍番号・クラス情報（アカウント照合に使用）</li>
-            </ul>
+            <h3>Google API サービスデータポリシーへの準拠</h3>
+            <p>本アプリケーションおよびその開発者は、Google API サービスデータポリシー（Google API Services User Data Policy）、および該当する場合の限定使用要件（Limited Use Requirements）を遵守します。Google APIから取得したユーザーデータの利用は、本アプリがユーザーに提供する機能の実現に必要な範囲に厳格に限定されます。</p>
+          </div>
+
+          <div class="policy-section">
+            <h3>1. 取得データと利用目的</h3>
+            <p>当サイトでは、Google OAuth2 等の認証連携を利用してログインを行う際、以下の情報を自動的に取得します。上記以外の個人データをGoogle OAuth経由で取得することはありません。</p>
+            
+            <table class="policy-table">
+              <thead>
+                <tr>
+                  <th>取得データ</th>
+                  <th>スコープ</th>
+                  <th>利用目的</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr>
+                  <td>Googleアカウント一意識別子</td>
+                  <td><code>openid</code></td>
+                  <td>本人確認・ログインセッションの管理</td>
+                </tr>
+                <tr>
+                  <td>メールアドレス</td>
+                  <td><code>email</code></td>
+                  <td>学校ドメインによるアクセス可否判定、本人特定</td>
+                </tr>
+                <tr>
+                  <td>氏名・プロフィール画像</td>
+                  <td><code>profile</code></td>
+                  <td>ダッシュボード・チャット等での表示名・アイコン表示</td>
+                </tr>
+              </tbody>
+            </table>
             <p>※当サイトが利用者のGoogleアカウント等のパスワードを取得・保存することは一切ありません。</p>
           </div>
 
@@ -218,21 +244,15 @@
             </ul>
           </div>
 
-
           <div class="policy-section">
-            <h3>3. データの安全管理と暗号化</h3>
+            <h3>3. 通信の暗号化とデータ安全管理</h3>
             <p>当サイトは、利用者の個人情報およびメッセージデータを保護するため、以下の安全対策を導入しています。</p>
             <ul>
-              <li><strong>データ暗号化：</strong> 登録されている名簿データおよびチャットメッセージは、AES-256-GCMと呼ばれる極めて強力な暗号化方式を用いて厳重に保護されています。</li>
-              <li><strong>通信の保護：</strong> 全ての通信は暗号化（HTTPS/TLS）を通じて行われます。</li>
-              <li><strong>ドメイン制限による防御：</strong> ドメイン制限をかけ、特定のドメインのGoogleアカウントのみのアクセスを許可しています。</li>
-              <li><strong>不正アクセス・IDOR対策：</strong> 利用者が他者のダイレクトメッセージや権限のないデータに不正アクセスできないよう、サーバー内部で厳格な権限チェック（認可制御）を実施し、安全なアクセスのみを許可しています。</li>
-              <li><strong>悪意あるスクリプトの遮断（XSS対策）：</strong> CSP（Content Security Policy）と呼ばれる強力なセキュリティ方式により、マルウェアや不正なスクリプトの実行を無効化します。</li>
-              <li><strong>DoS攻撃・スパム対策：</strong> 短時間に集中する不正な連続アクセスやシステムへの過負荷攻撃を防ぐため、アクセス頻度の上限設定（レートリミット）を導入し、自動的に遮断しています。</li>
-              <li><strong>タイミング攻撃対策：</strong> 処理時間の微小な差から秘密情報が推測されることを防ぐため、専用の安全な照合処理を採用し、高度なサイバー攻撃を防止しています。</li>
-              <li><strong>入力データの無害化と検証：</strong> 不正な形式や過剰なデータ量によるシステムの誤作動を防ぐため、送信される全てのデータに対して厳密な入力チェックを実施しています。</li>
-              <li><strong>セッションとCookieの保護：</strong> 不正なログイン状態の偽装を防ぐため、安全な通信でのみCookieを送信し、悪意あるサイトからの操作を防ぐ仕組み（SameSite属性等）を導入しています。</li>
-              <li><strong>不正な外部リクエストの遮断（CORS制限）：</strong> 許可されていない外部サイトからの不正な通信（API呼び出し）を遮断する制限を設け、システムの安全性を高めています。</li>
+              <li><strong>通信の暗号化（TLS 1.3/HTTPS）：</strong> クライアント・サーバー間のすべての通信は、Cloudflareが提供する HTTPS / TLS により暗号化されています。</li>
+              <li><strong>保管データの暗号化（AES-256）：</strong> サーバー内で保持する機密性の高い情報（名簿データやチャットメッセージ等）は、AES-256-GCM等の業界標準の暗号化方式により保護された状態で保存されます。</li>
+              <li><strong>エッジセキュリティ防御：</strong> Cloudflareのエッジセキュリティ機能（WAF・DDoS防御・レートリミット等）により、不正アクセスや多重リクエスト攻撃からサービス基盤を保護しています。</li>
+              <li><strong>ドメイン制限・アクセス制御（RBAC）：</strong> 特定の学校ドメインのGoogleアカウントのみのアクセスを許可し、他者のデータに不正アクセスできないよう厳格な認可制御（IDOR対策）を実施しています。</li>
+              <li><strong>スクリプト・セッションの保護：</strong> CSP（Content Security Policy）によるXSS対策、SameSite属性によるCookie保護、およびタイミング攻撃対策を採用しています。</li>
             </ul>
           </div>
 
@@ -242,19 +262,40 @@
           </div>
 
           <div class="policy-section">
-            <h3>5. 第三者への提供の禁止</h3>
-            <p>当サイトは、法令に基づく場合を除き、利用者の同意を得ることなく個人情報を第三者に提供・開示することはありません。</p>
+            <h3>5. 第三者提供・目的外利用の禁止</h3>
+            <p>取得したユーザーデータの取り扱いについては、以下の原則を厳守します。</p>
+            <ul>
+              <li>取得したユーザーデータを第三者へ販売・提供することはありません。</li>
+              <li>取得したユーザーデータを広告目的で利用・共有することはありません。</li>
+              <li>取得したユーザーデータをAI／機械学習モデルの学習・トレーニングに使用することはありません。</li>
+              <li>データは本アプリが提供する機能（認証・表示・アクセス制御）以外の目的には使用しません。</li>
+            </ul>
           </div>
 
           <div class="policy-section">
-            <h3>6. プライバシーポリシーの改定</h3>
+            <h3>6. データの保持・削除</h3>
+            <p>ユーザーは、いつでも自身の登録データおよび連携アカウント情報の削除を求めることができます。</p>
+            <ul>
+              <li><strong>連携解除:</strong> Googleの「<a href="https://myaccount.google.com/permissions" target="_blank" rel="noopener noreferrer" style="color: var(--color-text-primary); text-decoration: underline;">アカウントにアクセスできるアプリ</a>」画面より、当アプリへのアクセス権限を即座に取り消すことができます。</li>
+              <li><strong>データ消去の申請:</strong> ユーザーは、お問い合わせ窓口（<a href="mailto:contact@namiki-18th.net" style="color: var(--color-text-primary); text-decoration: underline;">contact@namiki-18th.net</a> または <a href="mailto:privacy@namiki-18th.net" style="color: var(--color-text-primary); text-decoration: underline;">privacy@namiki-18th.net</a>）よりアカウント削除・データ消去を申請できます。申請を受理した開発者は、本人確認の上、対象アカウントに紐づくデータをシステムから速やかに削除します。</li>
+            </ul>
+          </div>
+
+          <div class="policy-section">
+            <h3>7. プライバシーポリシーの改定</h3>
             <p>当サイトは、法令の改正や運用の変更に応じて、本プライバシーポリシーを適宜見直し、改定することがあります。改定後の内容は、当サイト上に掲載した時点より効力を生じるものとします。</p>
           </div>
 
-          <div class="policy-section" style="margin-top: 2rem; border-top: 1px solid var(--color-border); padding-top: 1rem;">
+          <div class="policy-section gen-ed4f12">
             <p><strong>【お問い合わせ窓口】</strong></p>
-            <p>本ポリシーに関するご質問やご報告は、サイドバーの「報告」フォームまたはサイト管理者までご連絡ください。</p>
-            <p style="font-size: 0.75rem; color: var(--color-text-muted); margin-top: 0.5rem;">制定日: 2026年4月1日<br>最終改定日: 2026年8月19日</p>
+            <p>本ポリシーに関するご質問、データの削除請求、またはセキュリティ上のご報告は、サイドバーの「報告」フォーム、または以下の窓口までご連絡ください。</p>
+            <p style="margin-top: 0.5rem; font-size: 0.875rem;">
+              運営主体: 並木中等教育学校18回生 運営委員会<br>
+              公式お問い合わせ窓口: <a href="mailto:contact@namiki-18th.net" style="color: var(--color-text-primary); text-decoration: underline;">contact@namiki-18th.net</a><br>
+              プライバシー担当窓口: <a href="mailto:privacy@namiki-18th.net" style="color: var(--color-text-primary); text-decoration: underline;">privacy@namiki-18th.net</a><br>
+              開発者連絡先: <a href="mailto:bme280.gac@gmail.com" style="color: var(--color-text-primary); text-decoration: underline;">bme280.gac@gmail.com</a>
+            </p>
+            <p class="gen-d1a033">制定日: 2026年4月1日<br>最終改定日: 2026年9月6日</p>
           </div>
         </div>
       </div>
