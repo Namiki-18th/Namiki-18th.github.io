@@ -4,10 +4,10 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>お知らせ - 並木中等教育学校18回生</title>
-  <link rel="stylesheet" href="style.css">
+  <link rel="stylesheet" href="/assets/css/app.css">
   <link rel="icon" href="favicon.ico" type="image/x-icon">
   <link rel="icon" href="favicon.png" type="image/png" sizes="256x256">
-  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" />
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Noto+Sans+JP:wght@400;500;600;700&display=swap" />
   <script src="/socket.io/socket.io.js" nonce="%%CSP_NONCE%%"></script>
   
   <style nonce="%%CSP_NONCE%%">
@@ -272,7 +272,7 @@
           <div class="transit-card">
             <div class="transit-header">
               <span class="transit-name flex items-center gap-2">
-                <img src="ico_JJ.svg" alt="常磐線" class="transit-icon">
+                <img src="/ico_JJ.svg" alt="常磐線" class="transit-icon">
                 JR常磐線
               </span>
             </div>
@@ -285,7 +285,7 @@
           <div class="transit-card">
             <div class="transit-header">
               <span class="transit-name flex items-center gap-2">
-                <img src="ico_TX.svg" alt="TX" class="transit-icon">
+                <img src="/ico_TX.svg" alt="TX" class="transit-icon">
                 つくばエクスプレス
               </span>
             </div>
@@ -298,7 +298,7 @@
           <div class="transit-card">
             <div class="transit-header">
               <span class="transit-name flex items-center gap-2">
-                <img src="ico_JARTIC.svg" alt="道路情報" class="transit-icon">
+                <img src="/ico_JARTIC.svg" alt="道路情報" class="transit-icon">
                 日本道路交通情報センター
               </span>
             </div>
@@ -446,8 +446,8 @@
         console.error('鉄道運行情報取得エラー:', err);
         const textJr = document.getElementById('text-jr');
         const textTx = document.getElementById('text-tx');
-        if (textJr) textJr.innerHTML = `<img src="ico_info_info.svg" class="status-icon" alt=""><span>常磐線情報の取得に失敗しました。</span>`;
-        if (textTx) textTx.innerHTML = `<img src="ico_info_info.svg" class="status-icon" alt=""><span>TX運行情報の取得に失敗しました。</span>`;
+        if (textJr) textJr.innerHTML = `<img src="/ico_info_info.svg" class="status-icon" alt=""><span>常磐線情報の取得に失敗しました。</span>`;
+        if (textTx) textTx.innerHTML = `<img src="/ico_info_info.svg" class="status-icon" alt=""><span>TX運行情報の取得に失敗しました。</span>`;
       }
 
       // 2. 道路交通情報の取得 (/api/road)
@@ -475,7 +475,7 @@
         console.error('道路交通情報取得エラー:', err);
         const textJartic = document.getElementById('text-jartic');
         if (textJartic) {
-          textJartic.innerHTML = `<img src="ico_info_info.svg" class="status-icon" alt=""><span>道路情報の取得に失敗しました。</span>`;
+          textJartic.innerHTML = `<img src="/ico_info_info.svg" class="status-icon" alt=""><span>道路情報の取得に失敗しました。</span>`;
         }
       }
     }

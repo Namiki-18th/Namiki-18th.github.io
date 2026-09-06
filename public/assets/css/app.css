@@ -1,0 +1,293 @@
+@import url('/style.css');
+
+:root {
+  --layout-max-width: 76rem;
+  --content-gutter: clamp(1rem, 3vw, 2.5rem);
+  --section-gap: clamp(1rem, 2vw, 1.5rem);
+  --control-height: 2.75rem;
+  --focus-ring: 0 0 0 3px color-mix(in srgb, var(--color-accent-blue) 28%, transparent);
+}
+
+html {
+  min-width: 320px;
+  text-rendering: optimizeLegibility;
+}
+
+body {
+  font-family: 'Noto Sans JP', 'Inter', sans-serif;
+  line-height: 1.6;
+}
+
+button,
+a,
+input,
+select,
+textarea {
+  font: inherit;
+}
+
+button,
+a {
+  -webkit-tap-highlight-color: transparent;
+}
+
+button:focus-visible,
+a:focus-visible,
+input:focus-visible,
+select:focus-visible,
+textarea:focus-visible {
+  outline: none;
+  box-shadow: var(--focus-ring);
+}
+
+img,
+svg,
+video {
+  max-width: 100%;
+}
+
+.app-main {
+  min-width: 0;
+}
+
+.content-area {
+  width: min(100%, var(--layout-max-width));
+  padding: var(--content-gutter);
+}
+
+.page-header,
+.content-header,
+.card-header,
+.section-header {
+  min-width: 0;
+}
+
+.page-header h1,
+.content-header h1,
+.card-header h2,
+.section-header h2 {
+  overflow-wrap: anywhere;
+}
+
+.app-card,
+.content-card,
+.card {
+  min-width: 0;
+  overflow: hidden;
+}
+
+.app-grid,
+.content-grid,
+.dashboard-grid {
+  min-width: 0;
+  align-items: start;
+}
+
+.table-scroll,
+.table-container,
+.data-table-wrapper {
+  width: 100%;
+  max-width: 100%;
+  overflow-x: auto;
+  overscroll-behavior-inline: contain;
+}
+
+.calendar-wrapper,
+.calendar-container,
+.schedule-table-wrapper,
+.chat-layout,
+.chat-container {
+  min-width: 0;
+  max-width: 100%;
+}
+
+.calendar-wrapper,
+.calendar-container,
+.schedule-table-wrapper {
+  overflow-x: auto;
+}
+
+.calendar-wrapper table,
+.calendar-container table,
+.schedule-table-wrapper table {
+  min-width: 36rem;
+}
+
+table {
+  width: 100%;
+  border-collapse: collapse;
+}
+
+th,
+td {
+  vertical-align: middle;
+  overflow-wrap: anywhere;
+}
+
+input,
+select,
+textarea {
+  min-width: 0;
+  max-width: 100%;
+}
+
+textarea {
+  resize: vertical;
+}
+
+.mobile-tab-bar {
+  padding-inline: max(0.5rem, env(safe-area-inset-left)) max(0.5rem, env(safe-area-inset-right));
+  padding-bottom: max(0.5rem, env(safe-area-inset-bottom));
+}
+
+.mobile-nav-button {
+  min-height: 2.75rem;
+}
+
+.sidebar-nav-button,
+.account-popup-item,
+.button-primary,
+.button-secondary,
+.btn-primary,
+.btn-secondary {
+  min-height: var(--control-height);
+}
+
+.notice-card,
+.link-card,
+.chat-message,
+.transit-card {
+  overflow-wrap: anywhere;
+}
+
+.auto-link,
+.link-card a,
+.notice-card a {
+  word-break: break-word;
+}
+
+@media (max-width: 767px) {
+  .mobile-topbar {
+    position: sticky !important;
+    top: 0;
+    z-index: 60;
+    display: flex !important;
+    align-items: center;
+    gap: 0.75rem;
+    min-height: 3.5rem;
+    height: 3.5rem;
+    padding: 0 max(1rem, env(safe-area-inset-left)) 0 max(1rem, env(safe-area-inset-right));
+    background: color-mix(in srgb, var(--color-surface) 94%, transparent);
+    border-bottom: 1px solid var(--color-border);
+    backdrop-filter: blur(14px);
+  }
+
+  .mobile-topbar > :first-child {
+    min-width: 0;
+    flex: 1 1 auto;
+  }
+
+  .mobile-topbar > :last-child {
+    flex: 0 0 auto;
+  }
+
+  .mobile-brand-name {
+    display: block;
+    min-width: 0;
+    max-width: 100%;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    line-height: 1.25;
+  }
+
+  .mobile-topbar .logo-badge--mobile,
+  .mobile-topbar .mobile-avatar-image,
+  .mobile-topbar button {
+    flex: 0 0 auto;
+  }
+
+  .mobile-topbar .mobile-avatar-image {
+    width: 2rem;
+    height: 2rem;
+    border-radius: 9999px;
+    object-fit: cover;
+  }
+
+  .mobile-topbar button {
+    display: inline-grid;
+    width: 2.5rem;
+    height: 2.5rem;
+    min-height: 2.5rem;
+    place-items: center;
+    padding: 0;
+    border: 0;
+    border-radius: 0.625rem;
+    color: var(--color-text-secondary);
+    background: transparent;
+  }
+
+  .mobile-tab-bar {
+    position: fixed !important;
+    right: 0;
+    bottom: 0;
+    left: 0;
+    z-index: 55;
+    width: 100%;
+    min-height: 3.5rem;
+    padding-top: 0.375rem;
+    padding-bottom: max(0.375rem, env(safe-area-inset-bottom));
+    border-top: 1px solid var(--color-border);
+    border-bottom: 0;
+    background: color-mix(in srgb, var(--color-surface) 96%, transparent);
+    backdrop-filter: blur(14px);
+  }
+
+  .app-main {
+    padding-bottom: calc(4.5rem + env(safe-area-inset-bottom));
+  }
+
+  .content-area {
+    padding: 1rem;
+  }
+
+  .app-card,
+  .content-card,
+  .card {
+    border-radius: 0.75rem;
+  }
+
+  .grid-cols-1,
+  .sm\\:grid-cols-2,
+  .md\\:grid-cols-2,
+  .lg\\:grid-cols-3 {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .mobile-tab-bar {
+    gap: 0.125rem;
+  }
+
+  .mobile-nav-button {
+    flex: 0 0 auto;
+    min-width: 4.25rem;
+    padding-inline: 0.75rem;
+  }
+}
+
+@media (min-width: 768px) {
+  .content-area {
+    padding-block: clamp(1.5rem, 3vw, 2.5rem);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    scroll-behavior: auto !important;
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
+}

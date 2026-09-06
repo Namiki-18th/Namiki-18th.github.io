@@ -1495,8 +1495,28 @@ app.use((req, res, next) => {
   next(err);
 });
 
+const ERROR_PAGE_CODES = new Set([301, 400, 401, 403, 404, 405, 408, 409, 410, 413, 415, 418, 422, 429, 500, 501, 502, 504]);
+
+async function sendErrorPage(res, status) {
+  const pageCode = ERROR_PAGE_CODES.has(status) ? status : 500;
+  const errorPagePath = path.join(__dirname, 'public', 'error', `${pageCode}.html`);
+  try {
+    let html = await fsPromises.readFile(errorPagePath, 'utf8');
+    html = html
+      .replace(/href="error\.css"/g, 'href="/error/error.css"')
+      .replace(/href="favicon\.ico"/g, 'href="/favicon.ico"')
+      .replace(/href="favicon\.png"/g, 'href="/favicon.png"')
+      .replace(/src="logo\.webp"/g, 'src="/error/logo.webp"');
+    res.status(status).type('html').send(html);
+  } catch (errorPageError) {
+    console.error('[Error Page Render Error]', errorPageError);
+    res.status(status).type('text').send(`${status} Error`);
+  }
+}
+
 app.use((err, req, res, next) => {
-  const status = err.status || 500;
+  if (res.headersSent) return next(err);
+  const status = Number.isInteger(err.status) && err.status >= 400 && err.status <= 599 ? err.status : 500;
   if (status >= 400 && status < 500) {
     console.warn(`[HTTP ${status}] ${req.method} ${req.url} - ${err.message}`);
   } else {
@@ -1505,7 +1525,7 @@ app.use((err, req, res, next) => {
   if (req.xhr || req.path.startsWith('/api/')) {
     return res.status(status).json({ error: status >= 500 ? 'Internal server error' : err.message });
   }
-  res.redirect('/offline.html');
+  return sendErrorPage(res, status);
 });
 
 // --- [サーバー非同期初期化 & 起動] ---
