@@ -67,6 +67,35 @@
       color: var(--color-text-secondary);
     }
 
+    /* 天気アイコンのアニメーション */
+    .weather-anim-cloud svg {
+      animation: floatCloud 3s ease-in-out infinite;
+    }
+    .weather-anim-rain svg {
+      animation: fallRain 1.5s linear infinite;
+    }
+    .weather-anim-snow svg {
+      animation: fallSnow 2.5s ease-in-out infinite;
+    }
+
+    @keyframes floatCloud {
+      0%, 100% { transform: translateX(0); }
+      50% { transform: translateX(3px); }
+    }
+    @keyframes fallRain {
+      0% { transform: translateY(-2px); opacity: 0; }
+      20% { opacity: 1; }
+      80% { opacity: 1; }
+      100% { transform: translateY(4px); opacity: 0; }
+    }
+    @keyframes fallSnow {
+      0% { transform: translateY(-2px) rotate(0deg); opacity: 0; }
+      20% { opacity: 1; }
+      50% { transform: translateX(2px) rotate(15deg); }
+      80% { opacity: 1; }
+      100% { transform: translateY(4px) rotate(-15deg); opacity: 0; }
+    }
+
     /* スマホ対応（レスポンシブデザイン）の保証と機能追加 */
     @media (max-width: 767px) {
       .sidebar { display: none !important; }
@@ -83,17 +112,17 @@
         white-space: nowrap;
         justify-content: flex-start;
         -webkit-overflow-scrolling: touch;
-        scrollbar-width: none; /* Firefox用スクロールバー非表示 */
+        scrollbar-width: none;
       }
       .mobile-tab-bar::-webkit-scrollbar {
-        display: none; /* Chrome/Safari用スクロールバー非表示 */
+        display: none; 
       }
       .mobile-nav-button {
-        flex-shrink: 0; /* タブが潰れないようにする */
+        flex-shrink: 0;
         padding: 0.5rem 1rem;
       }
 
-      .app-main { padding-bottom: 70px; /* 下部タブバー用の余白 */ }
+      .app-main { padding-bottom: 70px; }
 
       /* モバイル用ポップアップメニューのスタイル */
       #mobile-account-popup-menu {
@@ -247,7 +276,6 @@
         <h1 class="font-bold text-sm mobile-brand-name">並木中等教育学校18回生</h1>
       </div>
       <div class="flex items-center gap-3">
-        <!-- スマホ用：サーバー時刻表示（右側） -->
         <span class="server-time-display text-sm font-bold" style="color: var(--color-text-primary); font-family: monospace;">--:--:--</span>
         <button class="theme-toggle-btn" title="モード切替">
           <svg class="icon-sm" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 3v1m0 16v1m9-9h-1M4 12H3m15.364 6.364l-.707-.707M6.343 6.343l-.707-.707m12.728 0l-.707.707M6.343 17.657l-.707.707M16 12a4 4 0 11-8 0 4 4 0 018 0z"/></svg>
@@ -306,7 +334,17 @@
               <h2 id="dashboard-welcome-heading" class="welcome-heading-text">ようこそ、ダッシュボードへ</h2>
             </div>
             <div class="flex items-center gap-4">
-              <!-- PC用：サーバー時刻表示（右側） -->
+              
+              <div id="weather-widget" class="hidden sm:flex items-center gap-2 bg-black/20 rounded-lg px-3 py-1.5 backdrop-blur-sm">
+                <div id="weather-icon" class="text-white flex items-center justify-center w-6 h-6">
+                  <svg class="w-5 h-5 animate-pulse" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"></path></svg>
+                </div>
+                <div class="relative h-5 w-32 overflow-hidden text-sm text-white font-medium" style="line-height: 1.25rem;">
+                  <div id="weather-text-1" class="absolute inset-0 transition-transform duration-500 translate-y-0">取得中...</div>
+                  <div id="weather-text-2" class="absolute inset-0 transition-transform duration-500 translate-y-full"></div>
+                </div>
+              </div>
+
               <div class="text-right hidden sm:block" style="color: white;">
                 <div class="text-xs opacity-80">サーバー時刻</div>
                 <div class="server-time-display font-bold" style="font-size: 1.25rem; font-family: monospace;">--:--:--</div>
@@ -420,9 +458,8 @@
       }
     }
 
-    // メニュー外クリックで閉じる処理 (PC・スマホ統合)
+    // メニュー外クリックで閉じる処理
     document.addEventListener('click', (event) => {
-      // PC版の処理
       const menuPC = document.getElementById('account-popup-menu');
       const toggleBtnPC = document.getElementById('sidebar-user-toggle');
       if (menuPC && menuPC.classList.contains('show')) {
@@ -431,7 +468,6 @@
         }
       }
 
-      // スマホ版の処理
       const menuMobile = document.getElementById('mobile-account-popup-menu');
       const toggleBtnMobile = document.getElementById('mobile-user-avatar-btn');
       if (menuMobile && menuMobile.classList.contains('show')) {
@@ -485,7 +521,6 @@
     // サーバー時刻の初期化と自動更新
     async function initServerTime() {
       try {
-        // キャッシュを回避してHEADリクエストを送信し、サーバーのDateヘッダーを取得
         const urlObj = new URL(window.location.href);
         urlObj.searchParams.set('_t', Date.now());
         const res = await fetch(urlObj.toString(), { method: 'HEAD' });
@@ -493,10 +528,10 @@
         if (dateHeader) {
           serverTimeObj = new Date(dateHeader);
         } else {
-          serverTimeObj = new Date(); // ヘッダーがない場合はクライアント時刻でフォールバック
+          serverTimeObj = new Date();
         }
       } catch (err) {
-        serverTimeObj = new Date(); // エラー時のフォールバック
+        serverTimeObj = new Date();
       }
       
       updateTimeDisplays();
@@ -513,6 +548,96 @@
       displays.forEach(el => {
         el.textContent = timeStr;
       });
+    }
+
+    // 天気ウィジェットの初期化
+    async function initWeatherWidget() {
+      // デフォルト: 茨城県つくば市付近 (緯度 36.0834, 経度 140.1102)
+      let lat = 36.0834;
+      let lon = 140.1102;
+
+      if (navigator.geolocation) {
+        try {
+          const pos = await new Promise((resolve, reject) => {
+            navigator.geolocation.getCurrentPosition(resolve, reject, { timeout: 5000 });
+          });
+          lat = pos.coords.latitude;
+          lon = pos.coords.longitude;
+        } catch (e) {
+          console.log("位置情報が取得できなかったため、デフォルト（茨城県南部）を使用します。");
+        }
+      }
+
+      try {
+        const url = `https://api.open-meteo.com/v1/forecast?latitude=${lat}&longitude=${lon}&current=temperature_2m,relative_humidity_2m,weather_code,wind_speed_10m,wind_direction_10m&timezone=Asia%2FTokyo`;
+        const res = await fetch(url);
+        const data = await res.json();
+        const current = data.current;
+
+        updateWeatherUI(current);
+      } catch (error) {
+        console.error("天気データの取得に失敗しました", error);
+        document.getElementById('weather-text-1').textContent = "取得エラー";
+        document.getElementById('weather-icon').innerHTML = `<svg class="w-5 h-5 text-red-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>`;
+      }
+    }
+
+    // 取得したデータをもとにUIとアニメーションを更新 (SVG使用)
+    function updateWeatherUI(current) {
+      const iconEl = document.getElementById('weather-icon');
+      const code = current.weather_code;
+      
+      // SVGアイコンの定義
+      const svgSun = `<svg class="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="5"></circle><line x1="12" y1="1" x2="12" y2="3"></line><line x1="12" y1="21" x2="12" y2="23"></line><line x1="4.22" y1="4.22" x2="5.64" y2="5.64"></line><line x1="18.36" y1="18.36" x2="19.78" y2="19.78"></line><line x1="1" y1="12" x2="3" y2="12"></line><line x1="21" y1="12" x2="23" y2="12"></line><line x1="4.22" y1="19.78" x2="5.64" y2="18.36"></line><line x1="18.36" y1="5.64" x2="19.78" y2="4.22"></line></svg>`;
+      const svgCloud = `<svg class="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 10h-1.26A8 8 0 1 0 9 20h9a5 5 0 0 0 0-10z"></path></svg>`;
+      const svgRain = `<svg class="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M16 13v8"></path><path d="M8 13v8"></path><path d="M12 15v8"></path><path d="M20 16.58A5 5 0 0 0 18 7h-1.26A8 8 0 1 0 4 15.25"></path></svg>`;
+      const svgSnow = `<svg class="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="2" y1="12" x2="22" y2="12"></line><line x1="12" y1="2" x2="12" y2="22"></line><path d="M20 16l-4-4 4-4"></path><path d="M4 8l4 4-4 4"></path><path d="M16 4l-4 4-4-4"></path><path d="M8 20l4-4 4 4"></path></svg>`;
+      const svgStorm = `<svg class="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M19 16.9A5 5 0 0 0 18 7h-1.26a8 8 0 1 0-11.62 9"></path><polyline points="13 11 9 17 15 17 11 23"></polyline></svg>`;
+
+      let svgIcon = svgSun;
+      let animClass = '';
+      
+      if (code === 0) {
+        svgIcon = svgSun;
+      } else if (code >= 1 && code <= 3) {
+        svgIcon = svgCloud; animClass = 'weather-anim-cloud';
+      } else if ((code >= 51 && code <= 67) || (code >= 80 && code <= 82)) {
+        svgIcon = svgRain; animClass = 'weather-anim-rain';
+      } else if ((code >= 71 && code <= 77) || (code >= 85 && code <= 86)) {
+        svgIcon = svgSnow; animClass = 'weather-anim-snow';
+      } else if (code >= 95) {
+        svgIcon = svgStorm; animClass = 'weather-anim-rain';
+      }
+
+      iconEl.innerHTML = svgIcon;
+      iconEl.className = `text-white flex items-center justify-center w-6 h-6 ${animClass}`;
+
+      // 風向変換
+      const dirs = ['北', '北東', '東', '南東', '南', '南西', '西', '北西'];
+      const dirIndex = Math.round(current.wind_direction_10m / 45) % 8;
+      const windDirText = dirs[dirIndex];
+
+      const textA = `${current.temperature_2m}℃ / ${current.relative_humidity_2m}%`;
+      const textB = `${windDirText}の風 ${current.wind_speed_10m}m/s`;
+
+      const text1El = document.getElementById('weather-text-1');
+      const text2El = document.getElementById('weather-text-2');
+      
+      text1El.textContent = textA;
+      text2El.textContent = textB;
+
+      // 3秒ごとの切り替え
+      let isShowingA = true;
+      setInterval(() => {
+        if (isShowingA) {
+          text1El.style.transform = 'translateY(-100%)';
+          text2El.style.transform = 'translateY(0)';
+        } else {
+          text1El.style.transform = 'translateY(0)';
+          text2El.style.transform = 'translateY(100%)';
+        }
+        isShowingA = !isShowingA;
+      }, 3000);
     }
 
     // データの読み込み
@@ -550,21 +675,17 @@
 
     // ダッシュボードへの描画
     function renderDashboard() {
-      // プロフィールの描画
       if (globalData.profile) {
         const p = globalData.profile;
         if (document.getElementById('sidebar-user-id')) document.getElementById('sidebar-user-id').textContent = (p.id && p.id !== 'Unknown') ? p.id : '学籍番号未設定';
         if (document.getElementById('sidebar-user-name')) document.getElementById('sidebar-user-name').textContent = p.name || 'ユーザー';
         
-        // PC版ポップアップ反映
         if (document.getElementById('popup-user-name')) document.getElementById('popup-user-name').textContent = p.name || 'ユーザー';
         if (document.getElementById('popup-user-email')) document.getElementById('popup-user-email').textContent = p.email || '未設定';
 
-        // スマホ版ポップアップ反映
         if (document.getElementById('mobile-popup-user-name')) document.getElementById('mobile-popup-user-name').textContent = p.name || 'ユーザー';
         if (document.getElementById('mobile-popup-user-email')) document.getElementById('mobile-popup-user-email').textContent = p.email || '未設定';
 
-        // イニシャルSVGを生成する関数
         function createAvatarDataUri(text) {
           const initial = encodeURIComponent(text ? text.charAt(0) : 'U');
           return `data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="40" height="40" viewBox="0 0 40 40"><rect width="100%" height="100%" fill="%233b82f6"/><text x="50%" y="50%" dominant-baseline="central" text-anchor="middle" fill="%23ffffff" font-size="20" font-family="sans-serif">${initial}</text></svg>`;
@@ -577,7 +698,6 @@
         if (document.getElementById('popup-user-avatar')) document.getElementById('popup-user-avatar').src = userAvatar;
         if (document.getElementById('mobile-popup-user-avatar')) document.getElementById('mobile-popup-user-avatar').src = userAvatar;
 
-        // 時間帯に応じた挨拶の切り替え
         const currentHour = new Date().getHours();
         let greeting = 'ようこそ';
         if (currentHour >= 4 && currentHour < 6) {
@@ -590,8 +710,6 @@
           greeting = 'こんばんは';
         } else if (currentHour >= 0 && currentHour < 4) {
           greeting = 'もう寝る時間ですよ';
-        } else {
-          greeting = 'ようこそ';
         }
 
         if (document.getElementById('dashboard-welcome-heading')) {
@@ -601,7 +719,6 @@
         if (document.getElementById('dashboard-user-class')) document.getElementById('dashboard-user-class').textContent = p.userClass || '未設定';
       }
 
-      // お知らせの描画
       const homeNotices = document.getElementById('dashboard-notices-list');
       if (homeNotices) {
         homeNotices.innerHTML = globalData.notices.slice(0, 3).map(n => `
@@ -615,7 +732,6 @@
         `).join('');
       }
 
-      // クイックリンクの描画
       const homeLinks = document.getElementById('dashboard-quicklinks-list');
       if (homeLinks) {
         homeLinks.innerHTML = globalData.links.slice(0, 4).map(l => `
@@ -626,7 +742,6 @@
         `).join('');
       }
 
-      // 今日の時間割（月曜日で仮固定）
       const homeContainer = document.getElementById('dashboard-schedule-highlights');
       if (homeContainer) {
         const todaySchedule = globalData.schedule.filter(s => s.day === '月');
@@ -650,19 +765,17 @@
     document.addEventListener('DOMContentLoaded', () => {
       initDateStr();
       initThemeToggle();
-      initServerTime(); // サーバー時刻の初期化処理を呼び出し
+      initServerTime(); 
+      initWeatherWidget(); // 天気ウィジェットの初期化
       loadDashboardData();
 
-      // クリックイベントの委譲
       document.addEventListener('click', (e) => {
-        // --- 画面遷移 (PCサイドバー & スマホ下部タブ) ---
         const hrefTarget = e.target.closest('[data-href]');
         if (hrefTarget) {
           window.location.href = hrefTarget.getAttribute('data-href');
           return;
         }
 
-        // --- 各種ボタンの処理 ---
         if (e.target.closest('.theme-toggle-btn')) {
           toggleTheme();
           return;
@@ -686,7 +799,6 @@
       });
     });
 
-    // 画像エラー時の代替処理（無限ループ完全防止）
     document.addEventListener('error', (e) => {
       if (e.target.tagName && e.target.tagName.toLowerCase() === 'img') {
         if (e.target.dataset.fallbackApplied) return;
