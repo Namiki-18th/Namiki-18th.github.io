@@ -404,7 +404,8 @@
   <script nonce="%%CSP_NONCE%%">
     let globalData = {
       profile: null,
-      calendar: []
+      calendar: [],
+      schedule: null
     };
 
     let calendarCurrentDate = new Date();
@@ -470,9 +471,10 @@
 
     async function loadPageData() {
       try {
-        const [profileRes, calendarRes] = await Promise.all([
+        const [profileRes, calendarRes, scheduleRes] = await Promise.all([
           fetch('/api/profile').catch(err => ({ ok: false })),
-          fetch('/api/calendar').catch(err => ({ ok: false }))
+          fetch('/api/calendar').catch(err => ({ ok: false })),
+          fetch('/api/schedule').catch(err => ({ ok: false }))
         ]);
 
         if (profileRes.status === 401) {
@@ -492,6 +494,7 @@
         } else {
           globalData.calendar = await fetchDefaultCalendarData();
         }
+        if (scheduleRes.ok) globalData.schedule = await scheduleRes.json();
       } catch (err) {
         console.error('データ取得エラー:', err);
         globalData.calendar = await fetchDefaultCalendarData();
@@ -530,6 +533,31 @@
       calendarEvents = events || [];
       calendarCurrentDate = new Date();
       renderCalendar();
+    }
+
+    function getDateKey(date) {
+      return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}-${String(date.getDate()).padStart(2, '0')}`;
+    }
+
+    function getScheduleForDate(dateStr) {
+      const schedule = globalData.schedule;
+      const classKey = globalData.profile?.userClass ? `2-${globalData.profile.userClass.replace('組', '')}` : '2-A';
+      const classData = schedule?.[classKey] || schedule?.['2-A'];
+      if (!classData) return null;
+
+      const meta = schedule._meta || {};
+      const cDays = Array.isArray(meta.cDays) ? meta.cDays : [];
+      const date = new Date(`${dateStr}T00:00:00`);
+      const dayKeys = ['sun', 'mon', 'tue', 'wed', 'thu', 'fri', 'sat'];
+      const dayKey = cDays.includes(dateStr) ? 'c' : dayKeys[date.getDay()];
+      if (dayKey === 'sun' || dayKey === 'sat') return null;
+
+      const startDate = new Date(`${meta.weekStart || '2026-04-06'}T00:00:00`);
+      const daysSinceStart = Math.floor((date - startDate) / 86400000);
+      const weekNumber = Math.floor(daysSinceStart / 7);
+      const firstWeek = meta.weekStartType === 'B' ? 'B' : 'A';
+      const week = (weekNumber % 2 === 0) === (firstWeek === 'A') ? 'weekA' : 'weekB';
+      return { week, dayKey, periods: classData[week]?.[dayKey] || [] };
     }
 
     function renderCalendar() {
@@ -693,10 +721,14 @@
       const d = new Date(dateStr);
       modalDateTitle.textContent = `${d.getFullYear()}年${d.getMonth() + 1}月${d.getDate()}日の予定`;
       
-      if (events.length === 0) {
-        modalContainer.innerHTML = '<p class="gen-30184a">この日の予定はありません。</p>';
-      } else {
-        modalContainer.innerHTML = events.map(e => {
+      const scheduleForDate = getScheduleForDate(dateStr);
+      const scheduleHtml = scheduleForDate ? `
+        <div class="gen-e5c627">
+          <div class="gen-1aecdc">時間割（${scheduleForDate.week === 'weekA' ? 'A週' : 'B週'}${scheduleForDate.dayKey === 'c' ? '・C日課' : ''}）</div>
+          <div class="gen-9803d8">${scheduleForDate.periods.length ? scheduleForDate.periods.map(p => `${p.period}限: ${escapeHtml(p.subject)}`).join('<br>') : '時間割はありません。'}</div>
+        </div>
+      ` : '';
+      const eventsHtml = events.length === 0 ? '<p class="gen-30184a">この日の予定はありません。</p>' : events.map(e => {
           let eventTypeLabel = '';
           if (e.type === 'holiday') eventTypeLabel = '休日・祝日等';
           else if (e.type === 'test') eventTypeLabel = 'テスト';
@@ -713,7 +745,7 @@
             </div>
           `;
         }).join('');
-      }
+      modalContainer.innerHTML = scheduleHtml + eventsHtml;
       
       document.getElementById('day-modal').classList.add('show');
     };

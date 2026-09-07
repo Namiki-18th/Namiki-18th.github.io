@@ -399,8 +399,29 @@
       <div id="page-schedule" class="page-section hidden fade-in space-y-6">
         <div class="app-card content-card">
           <h2 class="content-card-title">📅 時間割データ管理</h2>
-          <p class="content-card-subtitle">曜日ごとの授業予定を一発更新します。</p>
-          <div class="placeholder-text">時間割データ編集インターフェース（API連動可能）</div>
+          <p class="content-card-subtitle">A週・B週の切り替え基準と、C日課の日付を設定します。</p>
+          <form id="form-schedule-settings" class="space-y-4">
+            <div>
+              <label class="gen-f89a84" for="schedule-week-start">基準週の月曜日</label>
+              <input id="schedule-week-start" type="date" required class="gen-623cbe">
+            </div>
+            <div>
+              <label class="gen-f89a84" for="schedule-week-start-type">基準日の週</label>
+              <select id="schedule-week-start-type" class="gen-d51363">
+                <option value="A">A週</option>
+                <option value="B">B週</option>
+              </select>
+            </div>
+            <div>
+              <label class="gen-f89a84" for="schedule-c-day">C日課を追加</label>
+              <div class="gen-98f9c9">
+                <input id="schedule-c-day" type="date" class="gen-623cbe">
+                <button type="button" id="btn-add-c-day" class="button-primary">追加</button>
+              </div>
+              <div id="schedule-c-days" class="space-y-2"></div>
+            </div>
+            <button type="submit" class="button-primary">💾 時間割設定を保存</button>
+          </form>
         </div>
       </div>
 
@@ -574,6 +595,8 @@
       document.getElementById('form-notice')?.addEventListener('submit', handleNoticeSubmit);
       document.getElementById('btn-trigger-sync')?.addEventListener('click', triggerAdminClassroomSync);
       document.getElementById('form-offline-config')?.addEventListener('submit', saveOfflineConfig);
+      document.getElementById('form-schedule-settings')?.addEventListener('submit', saveScheduleSettings);
+      document.getElementById('btn-add-c-day')?.addEventListener('click', addScheduleCDay);
       document.getElementById('btn-load-logs')?.addEventListener('click', loadAdminLogs);
       document.getElementById('btn-load-sessions')?.addEventListener('click', loadAdminSessions);
       document.getElementById('btn-load-reports')?.addEventListener('click', loadAdminReports);
@@ -615,6 +638,16 @@
         });
       }
 
+      const scheduleCDaysContainer = document.getElementById('schedule-c-days');
+      if (scheduleCDaysContainer) {
+        scheduleCDaysContainer.addEventListener('click', (e) => {
+          const button = e.target.closest('.schedule-c-day-remove');
+          if (!button) return;
+          scheduleCDays = scheduleCDays.filter(date => date !== button.dataset.date);
+          renderScheduleCDays();
+        });
+      }
+
       const adminSessionsTable = document.getElementById('admin-sessions-table');
       if (adminSessionsTable) {
         adminSessionsTable.addEventListener('click', (e) => {
@@ -653,6 +686,62 @@
       if (tabId === 'logs') loadAdminLogs();
       if (tabId === 'sessions') loadAdminSessions();
       if (tabId === 'reports') loadAdminReports();
+      if (tabId === 'schedule') loadScheduleSettings();
+    }
+
+    let scheduleCDays = [];
+
+    async function loadScheduleSettings() {
+      try {
+        const res = await fetch('/api/schedule');
+        if (!res.ok) throw new Error('取得失敗');
+        const data = await res.json();
+        const meta = data._meta || {};
+        document.getElementById('schedule-week-start').value = meta.weekStart || '';
+        document.getElementById('schedule-week-start-type').value = meta.weekStartType === 'B' ? 'B' : 'A';
+        scheduleCDays = Array.isArray(meta.cDays) ? [...meta.cDays] : [];
+        renderScheduleCDays();
+      } catch (err) {
+        document.getElementById('schedule-c-days').innerHTML = '<div class="placeholder-text">時間割設定の取得に失敗しました。</div>';
+      }
+    }
+
+    function renderScheduleCDays() {
+      const container = document.getElementById('schedule-c-days');
+      container.innerHTML = scheduleCDays.length ? scheduleCDays.map(date => `
+        <div class="notice-card">
+          <span>${escapeHtml(date)}</span>
+          <button type="button" class="delete-notice-btn schedule-c-day-remove" data-date="${escapeHtml(date)}">削除</button>
+        </div>
+      `).join('') : '<div class="placeholder-text">C日課は登録されていません。</div>';
+    }
+
+    function addScheduleCDay() {
+      const input = document.getElementById('schedule-c-day');
+      if (input.value && !scheduleCDays.includes(input.value)) scheduleCDays.push(input.value);
+      scheduleCDays.sort();
+      input.value = '';
+      renderScheduleCDays();
+    }
+
+    async function saveScheduleSettings(event) {
+      event.preventDefault();
+      try {
+        const res = await fetch('/api/admin/schedule/settings', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            weekStart: document.getElementById('schedule-week-start').value,
+            weekStartType: document.getElementById('schedule-week-start-type').value,
+            cDays: scheduleCDays
+          })
+        });
+        const data = await res.json();
+        if (!res.ok) throw new Error(data.error || '保存失敗');
+        alert('時間割設定を保存しました。');
+      } catch (err) {
+        alert(`時間割設定の保存に失敗しました: ${err.message}`);
+      }
     }
 
     async function loadAdminReports() {

@@ -866,6 +866,19 @@ app.get('/api/notices', ensureAuth, asyncHandler(async (req, res) => res.json(aw
 app.get('/api/classroom', ensureAuth, asyncHandler(async (req, res) => res.json(cachedClassroomData)));
 app.get('/api/calendar', ensureAuth, asyncHandler(async (req, res) => res.json(await safeReadJSON(PATHS.CALENDAR, []))));
 app.get('/api/schedule', ensureAuth, asyncHandler(async (req, res) => res.json(await safeReadJSON(PATHS.SCHEDULE, {}))));
+app.post('/api/admin/schedule/settings', ensureAdmin, writeLimiter, asyncHandler(async (req, res) => {
+  const schedule = await safeReadJSON(PATHS.SCHEDULE, {});
+  const { weekStart, weekStartType, cDays } = req.body || {};
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(weekStart || '') || !['A', 'B'].includes(weekStartType)) {
+    return res.status(400).json({ error: '週設定が不正です。' });
+  }
+  if (!Array.isArray(cDays) || cDays.some(date => !/^\d{4}-\d{2}-\d{2}$/.test(date))) {
+    return res.status(400).json({ error: 'C日課の日付が不正です。' });
+  }
+  schedule._meta = { weekStart, weekStartType, cDays: [...new Set(cDays)].sort() };
+  await safeWriteJSON(PATHS.SCHEDULE, schedule);
+  res.json({ success: true, meta: schedule._meta });
+}));
 app.get('/api/links', ensureAuth, asyncHandler(async (req, res) => res.json(await safeReadJSON(PATHS.LINKS, []))));
 
 const ALLOWED_NOTICE_PRIORITIES = ['high', 'normal', 'low'];
