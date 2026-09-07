@@ -99,8 +99,7 @@ app.use(
           'https://cdn.jsdelivr.net',
           'https://cdnjs.cloudflare.com',
           'https://www.google.com/recaptcha/',
-          'https://www.gstatic.com/recaptcha/',
-          'https://api.open-meteo.com'
+          'https://www.gstatic.com/recaptcha/'
         ],
         scriptSrcAttr: ["'unsafe-inline'"],
         styleSrc: [
