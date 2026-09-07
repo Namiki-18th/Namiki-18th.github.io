@@ -546,6 +546,10 @@
       if (!classData) return null;
 
       const meta = schedule._meta || {};
+      const daySetting = meta.daySettings?.[classKey]?.[dateStr];
+      if (daySetting?.type === 'holiday') return null;
+      if (daySetting?.periods) return { week: daySetting.type === 'B' ? 'weekB' : 'weekA', dayKey: daySetting.type === 'C' ? 'c' : 'custom', periods: daySetting.periods, change: daySetting.change, belongings: daySetting.belongings, note: daySetting.note };
+      if (calendarEvents.some(event => event.date === dateStr && event.type === 'holiday')) return null;
       const cDays = Array.isArray(meta.cDays) ? meta.cDays : [];
       const date = new Date(`${dateStr}T00:00:00`);
       const dayKeys = ['sun', 'mon', 'tue', 'wed', 'thu', 'fri', 'sat'];
@@ -726,6 +730,9 @@
         <div class="gen-e5c627">
           <div class="gen-1aecdc">時間割（${scheduleForDate.week === 'weekA' ? 'A週' : 'B週'}${scheduleForDate.dayKey === 'c' ? '・C日課' : ''}）</div>
           <div class="gen-9803d8">${scheduleForDate.periods.length ? scheduleForDate.periods.map(p => `${p.period}限: ${escapeHtml(p.subject)}`).join('<br>') : '時間割はありません。'}</div>
+          ${scheduleForDate.change ? `<div class="gen-9803d8">授業変更: ${escapeHtml(scheduleForDate.change)}</div>` : ''}
+          ${scheduleForDate.belongings ? `<div class="gen-9803d8">持ち物: ${escapeHtml(scheduleForDate.belongings)}</div>` : ''}
+          ${scheduleForDate.note ? `<div class="gen-9803d8">備考: ${escapeHtml(scheduleForDate.note)}</div>` : ''}
         </div>
       ` : '';
       const eventsHtml = events.length === 0 ? '<p class="gen-30184a">この日の予定はありません。</p>' : events.map(e => {

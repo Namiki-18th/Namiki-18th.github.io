@@ -523,6 +523,24 @@
     .content-card { padding: 1.5rem; }
     .content-card-title { color: var(--color-text-primary); font-size: 1.25rem; font-weight: 700; margin-bottom: 0.25rem; }
     .content-card-subtitle { color: var(--color-text-muted); font-size: 0.875rem; margin-bottom: 1.5rem; border-bottom: 1px solid var(--color-border); padding-bottom: 1.5rem; }
+    .schedule-admin-toolbar, .schedule-admin-editor-heading, .schedule-admin-form-actions { display: flex; align-items: center; justify-content: space-between; gap: 1rem; flex-wrap: wrap; }
+    .schedule-admin-class, .schedule-admin-base-settings label, .schedule-admin-notes label { display: flex; flex-direction: column; gap: 0.4rem; color: var(--color-text-muted); font-size: 0.8rem; font-weight: 600; }
+    .schedule-admin-month-nav { display: flex; align-items: center; gap: 0.75rem; color: var(--color-text-primary); }
+    .button-secondary { padding: 0.55rem 0.8rem; border: 1px solid var(--color-border); border-radius: 0.5rem; color: var(--color-text-secondary); background: var(--color-surface-hover); cursor: pointer; }
+    .schedule-admin-calendar { display: grid; grid-template-columns: repeat(7, minmax(0, 1fr)); gap: 0.35rem; margin: 1rem 0 1.5rem; }
+    .schedule-calendar-weekday { padding: 0.45rem; text-align: center; color: var(--color-text-faint); font-size: 0.75rem; }
+    .schedule-calendar-day { min-height: 4.5rem; padding: 0.5rem; border: 1px solid var(--color-border); border-radius: 0.5rem; background: var(--color-bg); color: var(--color-text-primary); text-align: left; cursor: pointer; }
+    .schedule-calendar-day:hover, .schedule-calendar-day.is-selected { border-color: var(--color-accent-blue); background: var(--color-surface-hover); }
+    .schedule-calendar-day.is-outside { opacity: 0.4; }
+    .schedule-calendar-day span, .schedule-calendar-day small { display: block; }
+    .schedule-calendar-day small { margin-top: 0.35rem; color: var(--color-text-muted); font-size: 0.7rem; }
+    .schedule-calendar-day.type-C small { color: #d97706; }.schedule-calendar-day.type-holiday small { color: #dc2626; }.schedule-calendar-day i { display: inline-block; margin-top: 0.25rem; color: var(--color-accent-blue); font-size: 0.65rem; font-style: normal; }
+    .schedule-admin-editor { border-top: 1px solid var(--color-border); padding-top: 1.5rem; }
+    .schedule-admin-label { color: var(--color-text-faint); font-size: 0.75rem; }.schedule-admin-editor h3 { margin: 0.2rem 0 0; color: var(--color-text-primary); }
+    .schedule-type-buttons { display: flex; gap: 0.35rem; flex-wrap: wrap; }.schedule-type-buttons button { padding: 0.5rem 0.7rem; border: 1px solid var(--color-border); border-radius: 0.4rem; background: var(--color-bg); color: var(--color-text-muted); cursor: pointer; }.schedule-type-buttons button.active { background: var(--color-accent-blue); color: #fff; border-color: var(--color-accent-blue); }
+    .schedule-period-editor { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 0.75rem; margin: 1.25rem 0; }.schedule-period-block { display: flex; align-items: center; gap: 0.5rem; padding: 0.75rem; border: 1px solid var(--color-border); border-radius: 0.5rem; background: var(--color-surface-hover); }.schedule-period-block span { min-width: 2.5rem; color: var(--color-text-muted); font-weight: 700; }.schedule-period-block input, .schedule-admin-notes textarea { width: 100%; padding: 0.55rem; border: 1px solid var(--color-border); border-radius: 0.35rem; background: var(--color-bg); color: var(--color-text-primary); }
+    .schedule-admin-notes { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 0.75rem; }.schedule-admin-base-settings { display: flex; align-items: end; gap: 1rem; flex-wrap: wrap; border-top: 1px solid var(--color-border); margin-top: 1.5rem; padding-top: 1.25rem; }.schedule-admin-base-settings h3 { width: 100%; margin: 0; color: var(--color-text-primary); }
+    @media (max-width: 700px) { .schedule-period-editor, .schedule-admin-notes { grid-template-columns: 1fr; }.schedule-calendar-day { min-height: 3.8rem; padding: 0.35rem; } }
     .notice-card { padding: 1rem; border-radius: 0.75rem; background-color: var(--color-surface-hover); border: 1px solid var(--color-border); margin-bottom: 0.75rem; }
     .notice-card-header { display: flex; align-items: center; gap: 0.5rem; margin-bottom: 0.5rem; }
     .notice-card-date { font-size: 0.75rem; padding: 0.125rem 0.5rem; border-radius: 0.25rem; background-color: var(--color-surface-active); color: var(--color-text-body); }

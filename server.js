@@ -867,14 +867,42 @@ app.get('/api/calendar', ensureAuth, asyncHandler(async (req, res) => res.json(a
 app.get('/api/schedule', ensureAuth, asyncHandler(async (req, res) => res.json(await safeReadJSON(PATHS.SCHEDULE, {}))));
 app.post('/api/admin/schedule/settings', ensureAdmin, writeLimiter, asyncHandler(async (req, res) => {
   const schedule = await safeReadJSON(PATHS.SCHEDULE, {});
-  const { weekStart, weekStartType, cDays } = req.body || {};
+  const { weekStart, weekStartType, cDays, daySettings } = req.body || {};
   if (!/^\d{4}-\d{2}-\d{2}$/.test(weekStart || '') || !['A', 'B'].includes(weekStartType)) {
     return res.status(400).json({ error: '週設定が不正です。' });
   }
   if (!Array.isArray(cDays) || cDays.some(date => !/^\d{4}-\d{2}-\d{2}$/.test(date))) {
     return res.status(400).json({ error: 'C日課の日付が不正です。' });
   }
-  schedule._meta = { weekStart, weekStartType, cDays: [...new Set(cDays)].sort() };
+  if (daySettings !== undefined && (typeof daySettings !== 'object' || Array.isArray(daySettings))) {
+    return res.status(400).json({ error: '日付別設定が不正です。' });
+  }
+  const normalizedDaySettings = {};
+  for (const [classKey, classSettings] of Object.entries(daySettings || {})) {
+    if (!/^\d+-[A-Z]$/.test(classKey) || typeof classSettings !== 'object' || Array.isArray(classSettings)) continue;
+    normalizedDaySettings[classKey] = {};
+    for (const [date, setting] of Object.entries(classSettings)) {
+      if (!/^\d{4}-\d{2}-\d{2}$/.test(date) || typeof setting !== 'object' || Array.isArray(setting)) continue;
+      const type = ['A', 'B', 'C', 'holiday'].includes(setting.type) ? setting.type : undefined;
+      const periods = Array.isArray(setting.periods) ? setting.periods.slice(0, 6).map((period, index) => ({
+        period: index + 1,
+        subject: String(period?.subject || '').slice(0, 100)
+      })) : undefined;
+      normalizedDaySettings[classKey][date] = {
+        ...(type ? { type } : {}),
+        ...(periods ? { periods } : {}),
+        change: String(setting.change || '').slice(0, 500),
+        belongings: String(setting.belongings || '').slice(0, 500),
+        note: String(setting.note || '').slice(0, 500)
+      };
+    }
+  }
+  schedule._meta = {
+    weekStart,
+    weekStartType,
+    cDays: [...new Set(cDays)].sort(),
+    daySettings: normalizedDaySettings
+  };
   await safeWriteJSON(PATHS.SCHEDULE, schedule);
   res.json({ success: true, meta: schedule._meta });
 }));

@@ -399,29 +399,48 @@
       <div id="page-schedule" class="page-section hidden fade-in space-y-6">
         <div class="app-card content-card">
           <h2 class="content-card-title">📅 時間割データ管理</h2>
-          <p class="content-card-subtitle">A週・B週の切り替え基準と、C日課の日付を設定します。</p>
-          <form id="form-schedule-settings" class="space-y-4">
-            <div>
-              <label class="gen-f89a84" for="schedule-week-start">基準週の月曜日</label>
-              <input id="schedule-week-start" type="date" required class="gen-623cbe">
-            </div>
-            <div>
-              <label class="gen-f89a84" for="schedule-week-start-type">基準日の週</label>
-              <select id="schedule-week-start-type" class="gen-d51363">
-                <option value="A">A週</option>
-                <option value="B">B週</option>
+          <p class="content-card-subtitle">カレンダーから日付を選び、その日の週・日課・授業と連絡事項をまとめて管理します。</p>
+          <div class="schedule-admin-toolbar">
+            <label class="schedule-admin-class">クラス
+              <select id="schedule-admin-class" class="gen-d51363">
+                <option value="2-A">2-A組</option>
+                <option value="2-B">2-B組</option>
               </select>
+            </label>
+            <div class="schedule-admin-month-nav">
+              <button type="button" id="schedule-admin-prev" class="button-secondary" aria-label="前の月">←</button>
+              <strong id="schedule-admin-month"></strong>
+              <button type="button" id="schedule-admin-next" class="button-secondary" aria-label="次の月">→</button>
             </div>
-            <div>
-              <label class="gen-f89a84" for="schedule-c-day">C日課を追加</label>
-              <div class="gen-98f9c9">
-                <input id="schedule-c-day" type="date" class="gen-623cbe">
-                <button type="button" id="btn-add-c-day" class="button-primary">追加</button>
+          </div>
+          <div class="schedule-admin-calendar" id="schedule-admin-calendar"></div>
+          <form id="form-schedule-day" class="schedule-admin-editor hidden">
+            <div class="schedule-admin-editor-heading">
+              <div><span class="schedule-admin-label">選択中の日付</span><h3 id="schedule-admin-selected-date"></h3></div>
+              <div class="schedule-type-buttons" id="schedule-type-buttons">
+                <button type="button" data-type="A">A週</button>
+                <button type="button" data-type="B">B週</button>
+                <button type="button" data-type="C">C日課</button>
+                <button type="button" data-type="holiday">休日</button>
               </div>
-              <div id="schedule-c-days" class="space-y-2"></div>
             </div>
-            <button type="submit" class="button-primary">💾 時間割設定を保存</button>
+            <div class="schedule-period-editor" id="schedule-period-editor"></div>
+            <div class="schedule-admin-notes">
+              <label>授業変更<textarea id="schedule-day-change" rows="2" placeholder="例: 3限と4限を入れ替え"></textarea></label>
+              <label>持ち物<textarea id="schedule-day-belongings" rows="2" placeholder="例: 美術道具、体育館シューズ"></textarea></label>
+              <label>備考<textarea id="schedule-day-note" rows="2" placeholder="連絡事項や補足"></textarea></label>
+            </div>
+            <div class="schedule-admin-form-actions">
+              <button type="button" id="schedule-admin-reset" class="button-secondary">通常の時間割に戻す</button>
+              <button type="submit" class="button-primary">この日の設定を保存</button>
+            </div>
           </form>
+          <div class="schedule-admin-base-settings">
+            <h3>週の基準</h3>
+            <label>基準週の月曜日<input id="schedule-week-start" type="date" required class="gen-623cbe"></label>
+            <label>基準日の週<select id="schedule-week-start-type" class="gen-d51363"><option value="A">A週</option><option value="B">B週</option></select></label>
+            <button type="button" id="schedule-admin-save-base" class="button-secondary">週の基準を保存</button>
+          </div>
         </div>
       </div>
 
@@ -595,8 +614,12 @@
       document.getElementById('form-notice')?.addEventListener('submit', handleNoticeSubmit);
       document.getElementById('btn-trigger-sync')?.addEventListener('click', triggerAdminClassroomSync);
       document.getElementById('form-offline-config')?.addEventListener('submit', saveOfflineConfig);
-      document.getElementById('form-schedule-settings')?.addEventListener('submit', saveScheduleSettings);
-      document.getElementById('btn-add-c-day')?.addEventListener('click', addScheduleCDay);
+      document.getElementById('form-schedule-day')?.addEventListener('submit', saveScheduleDay);
+      document.getElementById('schedule-admin-save-base')?.addEventListener('click', saveScheduleBase);
+      document.getElementById('schedule-admin-reset')?.addEventListener('click', resetScheduleDay);
+      document.getElementById('schedule-admin-prev')?.addEventListener('click', () => changeScheduleMonth(-1));
+      document.getElementById('schedule-admin-next')?.addEventListener('click', () => changeScheduleMonth(1));
+      document.getElementById('schedule-admin-class')?.addEventListener('change', renderScheduleAdminCalendar);
       document.getElementById('btn-load-logs')?.addEventListener('click', loadAdminLogs);
       document.getElementById('btn-load-sessions')?.addEventListener('click', loadAdminSessions);
       document.getElementById('btn-load-reports')?.addEventListener('click', loadAdminReports);
@@ -638,15 +661,17 @@
         });
       }
 
-      const scheduleCDaysContainer = document.getElementById('schedule-c-days');
-      if (scheduleCDaysContainer) {
-        scheduleCDaysContainer.addEventListener('click', (e) => {
-          const button = e.target.closest('.schedule-c-day-remove');
-          if (!button) return;
-          scheduleCDays = scheduleCDays.filter(date => date !== button.dataset.date);
-          renderScheduleCDays();
-        });
-      }
+      document.getElementById('schedule-admin-calendar')?.addEventListener('click', (e) => {
+        const day = e.target.closest('[data-schedule-date]');
+        if (day) selectScheduleDate(day.dataset.scheduleDate);
+      });
+      document.getElementById('schedule-type-buttons')?.addEventListener('click', (e) => {
+        const button = e.target.closest('[data-type]');
+        if (!button) return;
+        scheduleSelectedType = button.dataset.type;
+        renderScheduleTypeButtons();
+        renderSchedulePeriods(scheduleSelectedType === 'holiday' ? [] : getSchedulePeriods(scheduleSelectedDate, scheduleSelectedType));
+      });
 
       const adminSessionsTable = document.getElementById('admin-sessions-table');
       if (adminSessionsTable) {
@@ -689,56 +714,152 @@
       if (tabId === 'schedule') loadScheduleSettings();
     }
 
-    let scheduleCDays = [];
+    let scheduleData = {};
+    let scheduleSelectedDate = '';
+    let scheduleSelectedType = 'A';
+    let scheduleAdminMonth = new Date(2026, 8, 1);
 
     async function loadScheduleSettings() {
       try {
         const res = await fetch('/api/schedule');
         if (!res.ok) throw new Error('取得失敗');
-        const data = await res.json();
-        const meta = data._meta || {};
-        document.getElementById('schedule-week-start').value = meta.weekStart || '';
+        scheduleData = await res.json();
+        const meta = scheduleData._meta || {};
+        document.getElementById('schedule-week-start').value = meta.weekStart || '2026-09-07';
         document.getElementById('schedule-week-start-type').value = meta.weekStartType === 'B' ? 'B' : 'A';
-        scheduleCDays = Array.isArray(meta.cDays) ? [...meta.cDays] : [];
-        renderScheduleCDays();
+        renderScheduleAdminCalendar();
       } catch (err) {
-        document.getElementById('schedule-c-days').innerHTML = '<div class="placeholder-text">時間割設定の取得に失敗しました。</div>';
+        document.getElementById('schedule-admin-calendar').innerHTML = '<div class="placeholder-text">時間割設定の取得に失敗しました。</div>';
       }
     }
 
-    function renderScheduleCDays() {
-      const container = document.getElementById('schedule-c-days');
-      container.innerHTML = scheduleCDays.length ? scheduleCDays.map(date => `
-        <div class="notice-card">
-          <span>${escapeHtml(date)}</span>
-          <button type="button" class="delete-notice-btn schedule-c-day-remove" data-date="${escapeHtml(date)}">削除</button>
-        </div>
-      `).join('') : '<div class="placeholder-text">C日課は登録されていません。</div>';
+    function scheduleDateKey(date) {
+      return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}-${String(date.getDate()).padStart(2, '0')}`;
     }
 
-    function addScheduleCDay() {
-      const input = document.getElementById('schedule-c-day');
-      if (input.value && !scheduleCDays.includes(input.value)) scheduleCDays.push(input.value);
-      scheduleCDays.sort();
-      input.value = '';
-      renderScheduleCDays();
+    function getScheduleSetting(date) {
+      const classKey = document.getElementById('schedule-admin-class').value;
+      return scheduleData._meta?.daySettings?.[classKey]?.[date] || null;
     }
 
-    async function saveScheduleSettings(event) {
+    function getScheduleType(date) {
+      const explicit = getScheduleSetting(date)?.type;
+      if (explicit) return explicit;
+      const day = new Date(`${date}T00:00:00`).getDay();
+      if (day === 0 || day === 6) return 'holiday';
+      if ((scheduleData._meta?.cDays || []).includes(date)) return 'C';
+      const start = new Date(`${scheduleData._meta?.weekStart || '2026-09-07'}T00:00:00`);
+      const weekNumber = Math.floor((new Date(`${date}T00:00:00`) - start) / 86400000 / 7);
+      const firstWeek = scheduleData._meta?.weekStartType === 'B' ? 'B' : 'A';
+      return (weekNumber % 2 === 0) === (firstWeek === 'A') ? 'A' : 'B';
+    }
+
+    function renderScheduleAdminCalendar() {
+      document.getElementById('schedule-admin-month').textContent = `${scheduleAdminMonth.getFullYear()}年${scheduleAdminMonth.getMonth() + 1}月`;
+      const first = new Date(scheduleAdminMonth.getFullYear(), scheduleAdminMonth.getMonth(), 1);
+      const start = new Date(first);
+      start.setDate(1 - first.getDay());
+      const labels = ['日', '月', '火', '水', '木', '金', '土'];
+      const cells = labels.map(label => `<div class="schedule-calendar-weekday">${label}</div>`);
+      for (let index = 0; index < 42; index++) {
+        const date = new Date(start);
+        date.setDate(start.getDate() + index);
+        const dateKey = scheduleDateKey(date);
+        const type = getScheduleType(dateKey);
+        const setting = getScheduleSetting(dateKey);
+        cells.push(`<button type="button" class="schedule-calendar-day ${date.getMonth() !== scheduleAdminMonth.getMonth() ? 'is-outside' : ''} ${dateKey === scheduleSelectedDate ? 'is-selected' : ''} type-${type}" data-schedule-date="${dateKey}"><span>${date.getDate()}</span><small>${type === 'holiday' ? '休日' : `${type}週`}</small>${setting?.change ? '<i>変更</i>' : ''}</button>`);
+      }
+      document.getElementById('schedule-admin-calendar').innerHTML = cells.join('');
+    }
+
+    function changeScheduleMonth(offset) {
+      scheduleAdminMonth = new Date(scheduleAdminMonth.getFullYear(), scheduleAdminMonth.getMonth() + offset, 1);
+      renderScheduleAdminCalendar();
+    }
+
+    function selectScheduleDate(date) {
+      scheduleSelectedDate = date;
+      scheduleSelectedType = getScheduleType(date);
+      document.getElementById('form-schedule-day').classList.remove('hidden');
+      document.getElementById('schedule-admin-selected-date').textContent = date;
+      const setting = getScheduleSetting(date);
+      document.getElementById('schedule-day-change').value = setting?.change || '';
+      document.getElementById('schedule-day-belongings').value = setting?.belongings || '';
+      document.getElementById('schedule-day-note').value = setting?.note || '';
+      renderScheduleTypeButtons();
+      renderSchedulePeriods(scheduleSelectedType === 'holiday' ? [] : getSchedulePeriods(date, scheduleSelectedType));
+      renderScheduleAdminCalendar();
+    }
+
+    function renderScheduleTypeButtons() {
+      document.querySelectorAll('#schedule-type-buttons [data-type]').forEach(button => button.classList.toggle('active', button.dataset.type === scheduleSelectedType));
+    }
+
+    function getSchedulePeriods(date, type) {
+      const setting = getScheduleSetting(date);
+      if (setting?.periods) return setting.periods;
+      const classData = scheduleData[document.getElementById('schedule-admin-class').value];
+      const dayKeys = ['sun', 'mon', 'tue', 'wed', 'thu', 'fri', 'sat'];
+      const dayKey = type === 'C' ? 'c' : dayKeys[new Date(`${date}T00:00:00`).getDay()];
+      return classData?.[`week${type}`]?.[dayKey] || [];
+    }
+
+    function renderSchedulePeriods(periods) {
+      document.getElementById('schedule-period-editor').innerHTML = Array.from({ length: 6 }, (_, index) => `<label class="schedule-period-block"><span>${index + 1}限</span><input name="period-${index + 1}" value="${escapeHtml(periods[index]?.subject || '')}" placeholder="授業名"></label>`).join('');
+    }
+
+    function readScheduleDaySetting() {
+      return {
+        type: scheduleSelectedType,
+        periods: Array.from({ length: 6 }, (_, index) => ({ period: index + 1, subject: document.querySelector(`[name="period-${index + 1}"]`).value.trim() })),
+        change: document.getElementById('schedule-day-change').value.trim(),
+        belongings: document.getElementById('schedule-day-belongings').value.trim(),
+        note: document.getElementById('schedule-day-note').value.trim()
+      };
+    }
+
+    async function saveScheduleDay(event) {
       event.preventDefault();
+      const classKey = document.getElementById('schedule-admin-class').value;
+      scheduleData._meta.daySettings = scheduleData._meta.daySettings || {};
+      scheduleData._meta.daySettings[classKey] = scheduleData._meta.daySettings[classKey] || {};
+      scheduleData._meta.daySettings[classKey][scheduleSelectedDate] = readScheduleDaySetting();
+      const cDays = new Set(scheduleData._meta.cDays || []);
+      if (scheduleSelectedType === 'C') cDays.add(scheduleSelectedDate); else cDays.delete(scheduleSelectedDate);
+      scheduleData._meta.cDays = [...cDays].sort();
+      await persistScheduleSettings();
+    }
+
+    function resetScheduleDay() {
+      const classKey = document.getElementById('schedule-admin-class').value;
+      delete scheduleData._meta?.daySettings?.[classKey]?.[scheduleSelectedDate];
+      selectScheduleDate(scheduleSelectedDate);
+      persistScheduleSettings();
+    }
+
+    async function saveScheduleBase() {
+      scheduleData._meta = scheduleData._meta || {};
+      scheduleData._meta.weekStart = document.getElementById('schedule-week-start').value;
+      scheduleData._meta.weekStartType = document.getElementById('schedule-week-start-type').value;
+      await persistScheduleSettings();
+    }
+
+    async function persistScheduleSettings() {
       try {
         const res = await fetch('/api/admin/schedule/settings', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
-            weekStart: document.getElementById('schedule-week-start').value,
-            weekStartType: document.getElementById('schedule-week-start-type').value,
-            cDays: scheduleCDays
+            weekStart: scheduleData._meta.weekStart,
+            weekStartType: scheduleData._meta.weekStartType,
+            cDays: scheduleData._meta.cDays || [],
+            daySettings: scheduleData._meta.daySettings || {}
           })
         });
         const data = await res.json();
         if (!res.ok) throw new Error(data.error || '保存失敗');
         alert('時間割設定を保存しました。');
+        renderScheduleAdminCalendar();
       } catch (err) {
         alert(`時間割設定の保存に失敗しました: ${err.message}`);
       }
