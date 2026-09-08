@@ -452,9 +452,9 @@
             recaptchaToken
           })
         });
-        window.location.href = response.ok ? '/Success.html' : '/Error.html';
+        window.location.href = response.ok ? '/success.html' : '/error/error.html';
       } catch (error) {
-        window.location.href = '/Error.html';
+        window.location.href = '/error/error.html';
       }
     }
 
