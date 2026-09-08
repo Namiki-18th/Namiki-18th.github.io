@@ -13,7 +13,12 @@
       document.documentElement.classList.add(theme);
     })();
   </script>
-  <script src="https://www.google.com/recaptcha/api.js?render=explicit" nonce="%%CSP_NONCE%%"></script>
+  <script nonce="%%CSP_NONCE%%">
+    window.onRecaptchaLoad = function() {
+      window.dispatchEvent(new Event('recaptcha-loaded'));
+    };
+  </script>
+  <script src="https://www.google.com/recaptcha/api.js?onload=onRecaptchaLoad&render=explicit" async defer nonce="%%CSP_NONCE%%"></script>
   <style nonce="%%CSP_NONCE%%">
     .report-form { display: flex; flex-direction: column; gap: 1.25rem; margin-top: 1.5rem; }
     .form-group { display: flex; flex-direction: column; gap: 0.5rem; }
@@ -72,14 +77,19 @@
       error.hidden = false;
     }
 
-    window.addEventListener('DOMContentLoaded', () => {
+    function renderRecaptcha() {
       if (!window.grecaptcha || !'%%RECAPTCHA_V2_SITE_KEY%%') {
-        showError('reCAPTCHAを利用できないため、現在送信できません。');
+        showError('reCAPTCHA v2のサイトキーが設定されていないため、現在送信できません。');
         return;
       }
       recaptchaWidgetId = grecaptcha.render('recaptcha-container', {
         sitekey: '%%RECAPTCHA_V2_SITE_KEY%%'
       });
+    }
+
+    window.addEventListener('DOMContentLoaded', () => {
+      if (window.grecaptcha) renderRecaptcha();
+      else window.addEventListener('recaptcha-loaded', renderRecaptcha, { once: true });
 
       document.getElementById('report-form').addEventListener('submit', async (event) => {
         event.preventDefault();
