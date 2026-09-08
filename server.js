@@ -65,6 +65,8 @@ const io = new Server(server, {
 const PORT = process.env.PORT || 3000;
 const RECAPTCHA_SITE_KEY = process.env.RECAPTCHA_SITE_KEY || '';
 const RECAPTCHA_SECRET_KEY = process.env.RECAPTCHA_SECRET_KEY || '';
+const RECAPTCHA_V2_SITE_KEY = process.env.RECAPTCHA_V2_SITE_KEY || '';
+const RECAPTCHA_V2_SECRET_KEY = process.env.RECAPTCHA_V2_SECRET_KEY || '';
 const DEEPL_AUTH_KEY = process.env.DEEPL_AUTH_KEY || process.env.DEEPL_API_KEY || '';
 const deeplTranslator = DEEPL_AUTH_KEY ? new deepl.Translator(DEEPL_AUTH_KEY) : null;
 const DEEPL_TARGET_LANGUAGES = new Set(['JA', 'EN', 'ZH', 'KO']);
@@ -183,6 +185,7 @@ async function sendHtmlWithNonce(res, filePath) {
     const injected = html
       .replace(/%%CSP_NONCE%%/g, nonce)
       .replace(/%%RECAPTCHA_SITE_KEY%%/g, RECAPTCHA_SITE_KEY)
+      .replace(/%%RECAPTCHA_V2_SITE_KEY%%/g, RECAPTCHA_V2_SITE_KEY)
       .replace(/function handlePersonalSettings\(\) \{ alert\('個人用設定は開発中です。'\); \}/g, "function handlePersonalSettings() { window.location.href = '/setting'; }")
       .replace(/<\/body>/i, `${preferenceScript}</body>`);
     res.set('Content-Type', 'text/html; charset=utf-8');
@@ -241,6 +244,7 @@ app.use((req, res, next) => {
 // 認証不要ルート
 app.get(['/privacy-noauth', '/privacy-noauth.html'], asyncHandler(async (req, res) => await sendHtmlWithNonce(res, path.join(__dirname, 'public', 'privacy.html'))));
 app.get(['/terms-noauth', '/terms-noauth.html'], asyncHandler(async (req, res) => await sendHtmlWithNonce(res, path.join(__dirname, 'public', 'terms.html'))));
+app.get(['/report-noauth', '/report-noauth.html'], asyncHandler(async (req, res) => await sendHtmlWithNonce(res, path.join(__dirname, 'public', 'report-noauth.html'))));
 
 // --- [パス定義 & ストレージ管理] ---
 const DATA_DIR = path.join(__dirname, 'data');
@@ -602,8 +606,8 @@ function checkMaintenanceMode(req, res, next) {
   next();
 }
 
-const publicPaths = ['/', '/login', '/login.html', '/login-deny', '/offline', '/offline.html', '/privacy-noauth', '/terms-noauth', '/auth/google', '/auth/google/callback', '/logout'];
-const publicApiPaths = ['/api/auth', '/api/offline/config'];
+const publicPaths = ['/', '/login', '/login.html', '/login-deny', '/offline', '/offline.html', '/privacy-noauth', '/terms-noauth', '/report-noauth', '/success', '/success.html', '/auth/google', '/auth/google/callback', '/logout'];
+const publicApiPaths = ['/api/auth', '/api/offline/config', '/api/reports/noauth'];
 
 function shouldRequireAuth(req) {
   if (publicPaths.includes(req.path)) return false;
@@ -926,6 +930,21 @@ async function verifyRecaptcha(token, expectedAction) {
   }
 }
 
+async function verifyRecaptchaV2(token) {
+  if (!RECAPTCHA_V2_SECRET_KEY || !token) return false;
+  try {
+    const response = await axios.post(
+      'https://www.google.com/recaptcha/api/siteverify',
+      new URLSearchParams({ secret: RECAPTCHA_V2_SECRET_KEY, response: token }).toString(),
+      { headers: { 'Content-Type': 'application/x-www-form-urlencoded' }, timeout: 5000 }
+    );
+    return response.data.success === true;
+  } catch (error) {
+    console.error('[reCAPTCHA v2 Verification Error]:', error.message);
+    return false;
+  }
+}
+
 app.post(
   '/api/notices',
   ensureAdmin,
@@ -1041,6 +1060,53 @@ app.post(
 
     await safeWriteJSON(PATHS.REPORTS, reports);
     await addLog(req, 'form_submit', req.user.email, `Report ID: ${newReport.id}`);
+    res.json({ success: true, message: '送信が完了しました。' });
+  })
+);
+
+app.post(
+  '/api/reports/noauth',
+  writeLimiter,
+  asyncHandler(async (req, res) => {
+    const { name, email, message, subject, type, recaptchaToken } = req.body;
+
+    if (!(await verifyRecaptchaV2(recaptchaToken))) {
+      return res.status(403).json({ error: 'reCAPTCHA verification failed' });
+    }
+    if (typeof name !== 'string' || !name.trim() || name.length > 100) {
+      return res.status(400).json({ error: 'お名前は必須です。' });
+    }
+    if (typeof email !== 'string' || !email.trim() || email.length > 254 || !/^\S+@\S+\.\S+$/.test(email.trim())) {
+      return res.status(400).json({ error: 'メールアドレスが不正です。' });
+    }
+    if (typeof message !== 'string' || !message.trim()) {
+      return res.status(400).json({ error: '送信内容(message)は必須です。' });
+    }
+    if (message.length > 5000) {
+      return res.status(400).json({ error: '送信内容が長すぎます。' });
+    }
+    if (typeof type !== 'string' || !type.trim() || type.length > 100) {
+      return res.status(400).json({ error: '報告種別が不正です。' });
+    }
+    if (subject !== undefined && (typeof subject !== 'string' || subject.length > 200)) {
+      return res.status(400).json({ error: '件名が長すぎます。' });
+    }
+
+    const reports = await safeReadJSON(PATHS.REPORTS, []);
+    const newReport = {
+      id: Date.now().toString(),
+      userId: email.trim(),
+      userName: name.trim(),
+      userClass: '未ログイン',
+      subject: typeof subject === 'string' && subject.trim() ? subject.trim() : type.trim(),
+      type: type.trim(),
+      message: message.trim(),
+      timestamp: new Date().toISOString()
+    };
+
+    reports.push(newReport);
+    await safeWriteJSON(PATHS.REPORTS, reports);
+    await addLog(req, 'form_submit_noauth', email.trim(), `Report ID: ${newReport.id}`);
     res.json({ success: true, message: '送信が完了しました。' });
   })
 );
