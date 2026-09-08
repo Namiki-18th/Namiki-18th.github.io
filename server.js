@@ -471,7 +471,7 @@ if (process.env.GOOGLE_CLIENT_ID && process.env.GOOGLE_CLIENT_SECRET) {
           const email = String(profile.emails?.[0]?.value || '').trim().toLowerCase();
           const isPrivilegedAdmin = isPrivilegedAdminEmail(email);
 
-          if (!email.endsWith('@namiki-cs.ibk.ed.jp') && !isPrivilegedAdmin) {
+          if (!email.endsWith('.ibk.ed.jp') && !isPrivilegedAdmin) {
             return done(null, false);
           }
 
