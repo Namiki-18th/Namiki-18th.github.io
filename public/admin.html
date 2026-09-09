@@ -405,6 +405,8 @@
               <select id="schedule-admin-class" class="gen-d51363">
                 <option value="2-A">2-A組</option>
                 <option value="2-B">2-B組</option>
+                <option value="2-C">2-C組</option>
+                <option value="2-D">2-D組</option>
               </select>
             </label>
             <div class="schedule-admin-month-nav">
@@ -800,7 +802,8 @@
       if (setting?.periods) return setting.periods;
       const classData = scheduleData[document.getElementById('schedule-admin-class').value];
       const dayKeys = ['sun', 'mon', 'tue', 'wed', 'thu', 'fri', 'sat'];
-      const dayKey = type === 'C' ? 'c' : dayKeys[new Date(`${date}T00:00:00`).getDay()];
+      if (type === 'C') return classData?.weekA?.c || [];
+      const dayKey = dayKeys[new Date(`${date}T00:00:00`).getDay()];
       return classData?.[`week${type}`]?.[dayKey] || [];
     }
 
@@ -811,8 +814,13 @@
     ];
 
     function renderSchedulePeriods(periods) {
-      const subjectOptions = scheduleSubjects.map(subject => `<option value="${escapeHtml(subject)}"></option>`).join('');
-      document.getElementById('schedule-period-editor').innerHTML = `${Array.from({ length: 6 }, (_, index) => `<label class="schedule-period-block"><span>${index + 1}限</span><input name="period-${index + 1}" value="${escapeHtml(periods[index]?.subject || '')}" placeholder="授業名（候補から選択・手入力可）" list="schedule-subject-options"></label>`).join('')}<datalist id="schedule-subject-options">${subjectOptions}</datalist>`;
+      const subjectOptions = scheduleSubjects.map(subject => `<option value="${escapeHtml(subject)}">${escapeHtml(subject)}</option>`).join('');
+      document.getElementById('schedule-period-editor').innerHTML = Array.from({ length: 6 }, (_, index) => `<label class="schedule-period-block"><span>${index + 1}限</span><div class="schedule-period-input-row"><select class="schedule-subject-select" aria-label="${index + 1}限の教科候補"><option value="">候補から選択</option>${subjectOptions}</select><input name="period-${index + 1}" value="${escapeHtml(periods[index]?.subject || '')}" placeholder="教科名を入力"></div></label>`).join('');
+      document.querySelectorAll('#schedule-period-editor .schedule-subject-select').forEach(select => {
+        select.addEventListener('change', () => {
+          if (select.value) select.nextElementSibling.value = select.value;
+        });
+      });
     }
 
     function readScheduleDaySetting() {
