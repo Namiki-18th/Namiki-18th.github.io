@@ -671,7 +671,7 @@
                 const isContinuesToNext = j < 6 && slots[s][j+1] && slots[s][j+1].title === event.title;
                 
                 // overflow-x: auto; を追加して横スクロール可能に修正
-                let styles = `padding: 0.25rem 0.375rem; margin-bottom: 0.25rem; overflow-x: auto; white-space: nowrap; font-size: 0.75rem; height: 1.5rem; line-height: 1rem; box-sizing: border-box;`;
+                let styles = `display: block; max-width: 100%; padding: 0.25rem 0.375rem; margin-bottom: 0.25rem; overflow-x: auto; white-space: nowrap; font-size: 0.75rem; height: 1.5rem; line-height: 1rem; box-sizing: border-box; -webkit-overflow-scrolling: touch;`;
                 
                 if (isContinuedFromPrev) {
                   styles += ` margin-left: -0.5rem; padding-left: 0.5rem; border-top-left-radius: 0; border-bottom-left-radius: 0;`;
