@@ -804,8 +804,15 @@
       return classData?.[`week${type}`]?.[dayKey] || [];
     }
 
+    const scheduleSubjects = [
+      '国語A', '国語B', '代数2', '幾何2', '社会', '理科1', '理科2',
+      '英語G', '英語R', '英語TT', '英語RTT', '体育', '音楽', '美術',
+      '技術・家庭', '道徳', '総合2', 'H. R.', '行事'
+    ];
+
     function renderSchedulePeriods(periods) {
-      document.getElementById('schedule-period-editor').innerHTML = Array.from({ length: 6 }, (_, index) => `<label class="schedule-period-block"><span>${index + 1}限</span><input name="period-${index + 1}" value="${escapeHtml(periods[index]?.subject || '')}" placeholder="授業名"></label>`).join('');
+      const subjectOptions = scheduleSubjects.map(subject => `<option value="${escapeHtml(subject)}"></option>`).join('');
+      document.getElementById('schedule-period-editor').innerHTML = `${Array.from({ length: 6 }, (_, index) => `<label class="schedule-period-block"><span>${index + 1}限</span><input name="period-${index + 1}" value="${escapeHtml(periods[index]?.subject || '')}" placeholder="授業名（候補から選択・手入力可）" list="schedule-subject-options"></label>`).join('')}<datalist id="schedule-subject-options">${subjectOptions}</datalist>`;
     }
 
     function readScheduleDaySetting() {
