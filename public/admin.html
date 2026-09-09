@@ -66,9 +66,11 @@
     .gen-a369a6 { font-size:0.75rem; color:var(--color-text-muted); }
     .gen-ef046d { font-weight:600; color:var(--color-text-primary); font-size:0.95rem; }
     .gen-ef0939 { color:var(--color-accent-red); background:none; border:none; cursor:pointer; font-size:0.875rem; }
+      .sensitive-value { max-width: 24rem; padding: 0; border: 0; background: transparent; color: inherit; font: inherit; text-align: left; cursor: pointer; filter: blur(0.35em); transition: filter 0.15s ease; }
+      .sensitive-value.is-revealed { filter: none; }
+      .sensitive-value:focus-visible { outline: 2px solid var(--color-accent, #60a5fa); outline-offset: 2px; }
     /* カスタムモーダル用のデザイン */
-.custom-modal-overlay {
-  position: fixed; top: 0; left: 0; width: 100vw; height: 100vh;
+      .custom-modal-overlay {
   background: rgba(0, 0, 0, 0.6); backdrop-filter: blur(4px);
   display: flex; align-items: center; justify-content: center;
   z-index: 9999; opacity: 0; transition: opacity 0.3s ease;
@@ -611,6 +613,11 @@
         userToggle.addEventListener('click', toggleAccountMenu);
       }
 
+      document.addEventListener('click', (event) => {
+        const sensitiveValue = event.target.closest('.sensitive-value');
+        if (sensitiveValue) sensitiveValue.classList.add('is-revealed');
+      });
+
       // 各種ボタン・フォームアクション
       document.getElementById('btn-save-all-settings')?.addEventListener('click', saveAllSettings);
       document.getElementById('form-notice')?.addEventListener('submit', handleNoticeSubmit);
@@ -913,8 +920,8 @@
         tbody.innerHTML = sessions.length ? sessions.map((item) => `
           <tr class="gen-4ccb56">
             <td class="gen-c60936">${escapeHtml(item.email)}</td>
-            <td class="gen-300fcd">${escapeHtml(item.device)}</td>
-            <td class="gen-fbd1b5">${escapeHtml(item.ip)}</td>
+            <td class="gen-300fcd"><button type="button" class="sensitive-value" aria-label="クリックして端末情報を表示">${escapeHtml(item.device)}</button></td>
+            <td class="gen-fbd1b5"><button type="button" class="sensitive-value" aria-label="クリックしてIPアドレスを表示">${escapeHtml(item.ip)}</button></td>
             <td class="gen-916915">${new Date(item.lastAccess).toLocaleString('ja-JP')}</td>
             <td class="gen-36239d">${item.isCurrent ? '<span class="gen-891c24">現在の端末</span>' : `<button data-sid="${escapeHtml(item.sessionId)}" class="button-primary revoke-admin-session-btn text-red">切断</button>`}</td>
           </tr>
@@ -1126,7 +1133,7 @@
                 </span>
               </td>
               <td class="gen-c60936">${escapeHtml(l.email)}</td>
-              <td class="gen-fbd1b5">${escapeHtml(l.ip)}</td>
+              <td class="gen-fbd1b5"><button type="button" class="sensitive-value" aria-label="クリックしてIPアドレスを表示">${escapeHtml(l.ip)}</button></td>
               <td class="gen-916915">${escapeHtml(l.details || '-')}</td>
               <td class="gen-916915">${l.statusCode ?? '-'}</td>
             </tr>

@@ -54,6 +54,17 @@ const corsOrigin = rawCorsOrigin
     ? rawCorsOrigin.split(',').map((s) => s.trim())
     : rawCorsOrigin
   : false;
+const configuredOrigins = new Set(
+  (Array.isArray(corsOrigin) ? corsOrigin : corsOrigin ? [corsOrigin] : [])
+    .map((origin) => {
+      try {
+        return new URL(origin).origin;
+      } catch (_) {
+        return null;
+      }
+    })
+    .filter(Boolean)
+);
 
 const io = new Server(server, {
   cors: {
@@ -552,13 +563,18 @@ app.use((req, res, next) => {
   if (!['POST', 'PUT', 'PATCH', 'DELETE'].includes(req.method)) return next();
   const requestOrigin = req.get('origin');
   if (!requestOrigin) return next();
+  let normalizedRequestOrigin;
   try {
-    const expectedOrigin = `${req.protocol}://${req.get('host')}`;
-    if (new URL(requestOrigin).origin !== expectedOrigin) {
-      return res.status(403).json({ error: 'Cross-site request blocked' });
-    }
+    normalizedRequestOrigin = new URL(requestOrigin).origin;
   } catch (_) {
     return res.status(403).json({ error: 'Invalid request origin' });
+  }
+
+  const forwardedHost = isProduction ? req.get('x-forwarded-host')?.split(',')[0].trim() : '';
+  const requestHost = forwardedHost || req.get('host');
+  const sameOrigin = `${req.protocol}://${requestHost}`;
+  if (normalizedRequestOrigin !== sameOrigin && !configuredOrigins.has(normalizedRequestOrigin)) {
+    return res.status(403).json({ error: 'Cross-site request blocked' });
   }
   next();
 });
