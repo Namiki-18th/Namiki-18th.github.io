@@ -883,6 +883,25 @@ app.delete('/api/profile/sessions-all-others', ensureAuth, (req, res, next) => {
 app.get('/api/notices', ensureAuth, asyncHandler(async (req, res) => res.json(await safeReadJSON(PATHS.NOTICES, []))));
 // ▼ ここをキャッシュを返すように変更しました
 app.get('/api/classroom', ensureAuth, asyncHandler(async (req, res) => res.json(cachedClassroomData)));
+
+// ▼ 追加: GASから直接データを受け取るPOSTエンドポイント
+app.post('/api/classroom', ensureApiKeyOrAdmin, asyncHandler(async (req, res) => {
+  const data = req.body;
+  if (data && Array.isArray(data.items)) {
+    cachedClassroomData = data.items;
+    
+    // 再起動時にもデータが保持されるようファイルに保存 (PATHS.CLASSROOMを使用)
+    await safeWriteJSON(PATHS.CLASSROOM, cachedClassroomData);
+    
+    // ログに記録
+    await addLog(req, 'classroom_update', 'system', `GASから ${data.items.length} 件のデータを受信`);
+    
+    res.json({ success: true, message: 'Classroomデータを更新しました。' });
+  } else {
+    res.status(400).json({ error: '無効なデータ形式です。' });
+  }
+}));
+
 app.get('/api/calendar', ensureAuth, asyncHandler(async (req, res) => res.json(await safeReadJSON(PATHS.CALENDAR, []))));
 app.get('/api/schedule', ensureAuth, asyncHandler(async (req, res) => res.json(await safeReadJSON(PATHS.SCHEDULE, {}))));
 app.post('/api/admin/schedule/settings', ensureAdmin, writeLimiter, asyncHandler(async (req, res) => {
@@ -1243,26 +1262,10 @@ async function updateRoadCache() {
 // ▼ 新しく追加した部分です
 let cachedClassroomData = [];
 
-async function updateClassroomCache() {
-  const workerUrl = "https://classroom.namiki-18th.workers.dev/api/classroom";
-  try {
-    const res = await axios.get(workerUrl, { timeout: 10000 });
-    // Cloudflareから返ってくるJSONが { items: [...] } という構造になっていることを想定
-    if (res.data && Array.isArray(res.data.items)) {
-      cachedClassroomData = res.data.items;
-    } else if (Array.isArray(res.data)) {
-      // 万が一配列が直接返ってきた場合のフォールバック
-      cachedClassroomData = res.data;
-    }
-  } catch (err) {
-    console.error('[Classroom API Cache Error]:', err.message);
-  }
-}
+// ※ 直受け取りに変更したため、Cloudflareへのポーリング処理は削除しました
 
 setInterval(updateTransitCache, 60 * 1000);
 setInterval(updateRoadCache, 60 * 1000);
-// ▼ 5分ごとにキャッシュを更新
-setInterval(updateClassroomCache, 5 * 60 * 1000);
 
 app.get('/api/transit', ensureAuth, asyncHandler(async (req, res) => res.json(cachedTransitData)));
 app.get('/api/road', ensureAuth, asyncHandler(async (req, res) => res.json(cachedRoadData)));
@@ -1682,8 +1685,8 @@ async function initServer() {
 
     updateTransitCache();
     updateRoadCache();
-    // ▼ 初期起動時にもClassroomデータを取得してキャッシュ
-    updateClassroomCache();
+    // ▼ 起動時にファイルからキャッシュを復元する処理に変更
+    cachedClassroomData = await safeReadJSON(PATHS.CLASSROOM, []);
 
     server.listen(PORT, () => {
       console.log(`[Server] Running on port ${PORT}`);

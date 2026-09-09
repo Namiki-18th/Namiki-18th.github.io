@@ -151,6 +151,61 @@
     .calendar-cell:hover {
       background: var(--calendar-cell-hover) !important;
     }
+    .calendar-cell {
+      height: 100px;
+      padding: 0.5rem;
+      vertical-align: top;
+      cursor: pointer;
+      transition: background 0.2s;
+    }
+    .calendar-cell.current-month {
+      background: var(--color-bg-secondary);
+      color: var(--color-text-primary);
+    }
+    .calendar-cell.other-month {
+      background: var(--color-bg-tertiary);
+      color: var(--color-text-muted);
+    }
+    .calendar-cell.today {
+      border: 2px solid var(--color-accent-blue-light);
+      font-weight: 700;
+    }
+    .calendar-cell.normal-weight {
+      font-weight: 500;
+    }
+    .calendar-cell.sunday,
+    .calendar-cell.holiday {
+      color: #f87171;
+    }
+    .calendar-cell.saturday {
+      color: #3b82f6;
+    }
+    .event-chip {
+      display: block;
+      max-width: 100%;
+      padding: 0.25rem 0.375rem;
+      margin-bottom: 0.25rem;
+      overflow-x: auto;
+      white-space: nowrap;
+      font-size: 0.75rem;
+      height: 1.5rem;
+      line-height: 1rem;
+      box-sizing: border-box;
+      -webkit-overflow-scrolling: touch;
+      border-radius: 0.25rem;
+    }
+    .event-chip.continued-from-prev {
+      margin-left: -0.5rem;
+      padding-left: 0.5rem;
+      border-top-left-radius: 0;
+      border-bottom-left-radius: 0;
+    }
+    .event-chip.continues-to-next {
+      margin-right: -0.5rem;
+      padding-right: 0.5rem;
+      border-top-right-radius: 0;
+      border-bottom-right-radius: 0;
+    }
 
     /* Tailwind代替用のカスタムクラス */
     .sidebar-header-inner { display: flex; align-items: center; gap: 0.75rem; }
@@ -644,20 +699,7 @@
           const isCurrentMonth = day.getMonth() === month;
           const isToday = day.toDateString() === new Date().toDateString();
 
-          const bgColor = isCurrentMonth ? 'var(--color-bg-secondary)' : 'var(--color-bg-tertiary)';
-          const baseTextColor = isCurrentMonth ? 'var(--color-text-primary)' : 'var(--color-text-muted)';
-          const todayBorder = isToday ? '2px solid var(--color-accent-blue-light)' : 'none';
-
           const hasHoliday = eventsPerDay[j].some(e => e.type === 'holiday');
-          
-          let headerColor = baseTextColor;
-          if (j===6) {
-            headerColor = '#3b82f6'
-          } else if (hasHoliday || j === 0) {
-            headerColor = '#f87171'
-          }
-          
-          const fontWeight = isToday ? '700' : '500';
 
           let dayHtml = '';
           let overflowCount = 0;
@@ -670,25 +712,14 @@
                 const isContinuedFromPrev = j > 0 && slots[s][j-1] && slots[s][j-1].title === event.title;
                 const isContinuesToNext = j < 6 && slots[s][j+1] && slots[s][j+1].title === event.title;
                 
-                // overflow-x: auto; を追加して横スクロール可能に修正
-                let styles = `display: block; max-width: 100%; padding: 0.25rem 0.375rem; margin-bottom: 0.25rem; overflow-x: auto; white-space: nowrap; font-size: 0.75rem; height: 1.5rem; line-height: 1rem; box-sizing: border-box; -webkit-overflow-scrolling: touch;`;
-                
-                if (isContinuedFromPrev) {
-                  styles += ` margin-left: -0.5rem; padding-left: 0.5rem; border-top-left-radius: 0; border-bottom-left-radius: 0;`;
-                } else {
-                  styles += ` border-top-left-radius: 0.25rem; border-bottom-left-radius: 0.25rem;`;
-                }
-                
-                if (isContinuesToNext) {
-                  styles += ` margin-right: -0.5rem; padding-right: 0.5rem; border-top-right-radius: 0; border-bottom-right-radius: 0;`;
-                } else {
-                  styles += ` border-top-right-radius: 0.25rem; border-bottom-right-radius: 0.25rem;`;
-                }
-
                 const finalDisplayText = (!isContinuedFromPrev || j === 0) ? escapeHtml(event.title) : '&nbsp;';
                 const chipClass = event.type === 'no-vacation' ? 'event-chip-no-vacation' : 'event-chip-event';
+                const continuationClasses = [
+                  isContinuedFromPrev ? 'continued-from-prev' : '',
+                  isContinuesToNext ? 'continues-to-next' : ''
+                ].filter(Boolean).join(' ');
                 
-                dayHtml += `<div class="${chipClass}" style="${styles}" title="${escapeHtml(event.title)}">${finalDisplayText}</div>`;
+                dayHtml += `<div class="event-chip ${chipClass} ${continuationClasses}" title="${escapeHtml(event.title)}">${finalDisplayText}</div>`;
               } else {
                 dayHtml += `<div class="gen-14ec71"></div>`;
               }
@@ -703,8 +734,17 @@
 
           const dateString = `${day.getFullYear()}-${String(day.getMonth()+1).padStart(2, '0')}-${String(day.getDate()).padStart(2, '0')}`;
 
+          const cellClasses = [
+            'calendar-cell',
+            isCurrentMonth ? 'current-month' : 'other-month',
+            isToday ? 'today' : '',
+            hasHoliday || j === 0 ? 'holiday' : '',
+            j === 6 ? 'saturday' : '',
+            isToday || !isCurrentMonth ? '' : 'normal-weight'
+          ].filter(Boolean).join(' ');
+
           html += `
-            <td class="calendar-cell" style="height: 100px; padding: 0.5rem; background: ${bgColor}; border: ${todayBorder}; vertical-align: top; color: ${headerColor}; font-weight: ${fontWeight}; cursor: pointer; transition: background 0.2s;" data-date="${dateString}">
+            <td class="${cellClasses}" data-date="${dateString}">
               <div class="gen-682d69">${dayNum}</div>
               <div class="gen-af89d6">
                 ${dayHtml}
