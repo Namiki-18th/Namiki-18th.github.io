@@ -200,6 +200,9 @@ async function sendHtmlWithNonce(res, filePath) {
       .replace(/function handlePersonalSettings\(\) \{ alert\('個人用設定は開発中です。'\); \}/g, "function handlePersonalSettings() { window.location.href = '/setting'; }")
       .replace(/<\/body>/i, `${preferenceScript}</body>`);
     res.set('Content-Type', 'text/html; charset=utf-8');
+    res.set('Cache-Control', 'no-store, no-cache, must-revalidate, proxy-revalidate');
+    res.set('Pragma', 'no-cache');
+    res.set('Expires', '0');
     res.send(injected);
   } catch (err) {
     if (err.code === 'ENOENT') return res.status(404).end('Not Found');

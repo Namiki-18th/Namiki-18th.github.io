@@ -320,9 +320,10 @@
       max-width: 100%;
       padding: 0.25rem 0.375rem;
       margin-bottom: 0.25rem;
-      overflow: hidden;
+      overflow-x: auto;
+      overflow-y: hidden;
       white-space: nowrap;
-      text-overflow: ellipsis;
+      text-overflow: clip;
       font-size: 0.75rem;
       height: 1.5rem;
       line-height: 1rem;
@@ -355,6 +356,15 @@
       width: calc(100% + 1rem);
       max-width: none;
       border-radius: 0;
+    }
+    .event-chip.continues-to-next {
+      overflow: visible;
+      text-overflow: clip;
+      z-index: 2;
+    }
+    .event-chip-label {
+      display: inline-block;
+      min-width: max-content;
     }
 
     /* Tailwind代替用のカスタムクラス */
@@ -877,7 +887,7 @@
                   isContinuesToNext ? 'continues-to-next' : ''
                 ].filter(Boolean).join(' ');
                 
-                dayHtml += `<div class="event-chip ${chipClass} ${continuationClasses}" title="${escapeHtml(event.title)}">${finalDisplayText}</div>`;
+                dayHtml += `<div class="event-chip ${chipClass} ${continuationClasses}" title="${escapeHtml(event.title)}"><span class="event-chip-label">${finalDisplayText}</span></div>`;
               } else {
                 dayHtml += `<div class="gen-14ec71"></div>`;
               }
