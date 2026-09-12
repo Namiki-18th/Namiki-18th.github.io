@@ -95,6 +95,77 @@
     .modal-close-btn:hover {
       color: var(--modal-close-hover);
     }
+    .schedule-modal-card {
+      padding: 1rem;
+      border: 1px solid var(--modal-border);
+      border-radius: 0.5rem;
+      background: var(--color-bg-tertiary, #f3f4f6);
+    }
+    .schedule-modal-heading {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 0.75rem;
+      margin-bottom: 0.75rem;
+    }
+    .schedule-modal-title {
+      margin: 0;
+      font-size: 1rem;
+      font-weight: 700;
+      color: var(--modal-text);
+    }
+    .schedule-modal-badge {
+      flex: 0 0 auto;
+      min-width: 2rem;
+      padding: 0.25rem 0.45rem;
+      border-radius: 0.3rem;
+      color: #ffffff;
+      font-size: 0.8rem;
+      line-height: 1.1;
+      text-align: center;
+      font-weight: 700;
+    }
+    .schedule-modal-badge.type-a { background: #2563eb; }
+    .schedule-modal-badge.type-b { background: #16a34a; }
+    .schedule-modal-badge.type-c { background: #f97316; }
+    .schedule-period-list {
+      display: grid;
+      gap: 0.35rem;
+    }
+    .schedule-period-row {
+      display: grid;
+      grid-template-columns: 3.25rem minmax(0, 1fr);
+      align-items: center;
+      min-height: 2.25rem;
+      border: 1px solid var(--modal-border);
+      border-radius: 0.35rem;
+      background: var(--modal-bg);
+      overflow: hidden;
+    }
+    .schedule-period-number {
+      align-self: stretch;
+      display: grid;
+      place-items: center;
+      background: var(--color-bg-secondary);
+      color: var(--color-text-muted);
+      font-size: 0.75rem;
+      font-weight: 600;
+    }
+    .schedule-period-subject {
+      min-width: 0;
+      padding: 0.45rem 0.65rem;
+      color: var(--modal-text);
+      font-size: 0.9rem;
+      font-weight: 600;
+      overflow-wrap: anywhere;
+    }
+    .schedule-modal-notes {
+      display: grid;
+      gap: 0.3rem;
+      margin-top: 0.75rem;
+      color: var(--color-text-muted);
+      font-size: 0.78rem;
+    }
     .user-info-header {
       display: flex;
       align-items: center;
@@ -802,12 +873,24 @@
       
       const scheduleForDate = getScheduleForDate(dateStr);
       const scheduleHtml = scheduleForDate ? `
-        <div class="gen-e5c627">
-          <div class="gen-1aecdc">時間割（${scheduleForDate.week === 'weekA' ? 'A週' : 'B週'}${scheduleForDate.dayKey === 'c' ? '・C日課' : ''}）</div>
-          <div class="gen-9803d8">${scheduleForDate.periods.length ? scheduleForDate.periods.map(p => `${p.period}限: ${escapeHtml(p.subject)}`).join('<br>') : '時間割はありません。'}</div>
-          ${scheduleForDate.change ? `<div class="gen-9803d8">授業変更: ${escapeHtml(scheduleForDate.change)}</div>` : ''}
-          ${scheduleForDate.belongings ? `<div class="gen-9803d8">持ち物: ${escapeHtml(scheduleForDate.belongings)}</div>` : ''}
-          ${scheduleForDate.note ? `<div class="gen-9803d8">備考: ${escapeHtml(scheduleForDate.note)}</div>` : ''}
+        <div class="schedule-modal-card">
+          <div class="schedule-modal-heading">
+            <h4 class="schedule-modal-title">時間割</h4>
+            <span class="schedule-modal-badge type-${scheduleForDate.dayKey === 'c' ? 'c' : scheduleForDate.week === 'weekA' ? 'a' : 'b'}">${scheduleForDate.dayKey === 'c' ? 'C日課' : scheduleForDate.week === 'weekA' ? 'A週' : 'B週'}</span>
+          </div>
+          <div class="schedule-period-list">
+            ${scheduleForDate.periods.length ? scheduleForDate.periods.map(p => `
+              <div class="schedule-period-row">
+                <span class="schedule-period-number">${p.period}限</span>
+                <span class="schedule-period-subject">${escapeHtml(p.subject) || '未設定'}</span>
+              </div>
+            `).join('') : '<div class="gen-30184a">時間割はありません。</div>'}
+          </div>
+          ${scheduleForDate.change || scheduleForDate.belongings || scheduleForDate.note ? `<div class="schedule-modal-notes">
+            ${scheduleForDate.change ? `<div>授業変更: ${escapeHtml(scheduleForDate.change)}</div>` : ''}
+            ${scheduleForDate.belongings ? `<div>持ち物: ${escapeHtml(scheduleForDate.belongings)}</div>` : ''}
+            ${scheduleForDate.note ? `<div>備考: ${escapeHtml(scheduleForDate.note)}</div>` : ''}
+          </div>` : ''}
         </div>
       ` : '';
       const eventsHtml = events.length === 0 ? '<p class="gen-30184a">この日の予定はありません。</p>' : events.map(e => {
