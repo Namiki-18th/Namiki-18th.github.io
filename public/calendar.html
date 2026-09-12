@@ -58,6 +58,9 @@
       --modal-close: #9ca3af;
       --modal-close-hover: #1f2937;
       --calendar-cell-hover: #f3f4f6; /* セルホバー色（ライトモード） */
+      --calendar-surface: #ffffff;
+      --calendar-surface-muted: #f3f4f6;
+      --calendar-text-muted: #6b7280;
     }
 
     /* 2. モーダル等の色を定義（ダークモード用） */
@@ -68,6 +71,9 @@
       --modal-close: #6b7280;       
       --modal-close-hover: #f3f4f6; 
       --calendar-cell-hover: #1f2937; /* セルホバー色（ダークモード） */
+      --calendar-surface: #0a0a0c;
+      --calendar-surface-muted: #15171a;
+      --calendar-text-muted: #9ca3af;
     }
 
     /* 3. 変数を使ってスタイルを適用 */
@@ -99,7 +105,7 @@
       padding: 1rem;
       border: 1px solid var(--modal-border);
       border-radius: 0.5rem;
-      background: var(--color-bg-tertiary, #f3f4f6);
+      background: var(--calendar-surface-muted);
     }
     .schedule-modal-heading {
       display: flex;
@@ -139,15 +145,15 @@
       min-height: 2.25rem;
       border: 1px solid var(--modal-border);
       border-radius: 0.35rem;
-      background: var(--modal-bg);
+      background: var(--calendar-surface);
       overflow: hidden;
     }
     .schedule-period-number {
       align-self: stretch;
       display: grid;
       place-items: center;
-      background: var(--color-bg-secondary);
-      color: var(--color-text-muted);
+      background: var(--calendar-surface-muted);
+      color: var(--calendar-text-muted);
       font-size: 0.75rem;
       font-weight: 600;
     }
@@ -253,11 +259,11 @@
     .schedule-type-badge.type-b { background: #16a34a; }
     .schedule-type-badge.type-c { background: #f97316; }
     .calendar-cell.current-month {
-      background: var(--color-bg-secondary);
+      background: var(--calendar-surface-muted);
       color: var(--color-text-primary);
     }
     .calendar-cell.other-month {
-      background: var(--color-bg-tertiary);
+      background: var(--calendar-surface);
       color: var(--color-text-muted);
     }
     .calendar-cell.today {
@@ -293,16 +299,19 @@
     .event-chip.continued-from-prev {
       margin-left: -0.5rem;
       padding-left: 0.5rem;
+      width: calc(100% + 0.5rem);
       border-top-left-radius: 0;
       border-bottom-left-radius: 0;
     }
     .event-chip.continues-to-next {
       margin-right: -0.5rem;
       padding-right: 0.5rem;
+      width: calc(100% + 0.5rem);
       border-top-right-radius: 0;
       border-bottom-right-radius: 0;
     }
     .event-chip.continued-from-prev.continues-to-next {
+      width: calc(100% + 1rem);
       border-radius: 0;
     }
 
