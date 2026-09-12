@@ -416,18 +416,6 @@ if (!/^[0-9a-f]{64}$/i.test(process.env.CHAT_ENCRYPTION_KEY || '')) {
 }
 const ENCRYPTION_KEY = Buffer.from(process.env.CHAT_ENCRYPTION_KEY, 'hex');
 
-function sanitizeOfflineMessage(value) {
-  if (typeof value !== 'string') return '';
-  return value
-    .slice(0, 5000)
-    .replace(/&/g, '&amp;')
-    .replace(/</g, '&lt;')
-    .replace(/>/g, '&gt;')
-    .replace(/&lt;br\s*\/??&gt;/gi, '<br>')
-    .replace(/&lt;strong&gt;/gi, '<strong>')
-    .replace(/&lt;\/strong&gt;/gi, '</strong>');
-}
-
 function encrypt(text) {
   const iv = crypto.randomBytes(12);
   const cipher = crypto.createCipheriv('aes-256-gcm', ENCRYPTION_KEY, iv);
@@ -602,28 +590,8 @@ function checkAccountStatus(req, res, next) {
   next();
 }
 
-function checkMaintenanceMode(req, res, next) {
-  if (systemSettings.maintenanceMode) {
-    const isAdmin = req.user?.role === 'admin';
-    const isExempt =
-      req.path === '/' ||
-      req.path === '/login' ||
-      req.path === '/login.html' ||
-      req.path === '/login-deny' ||
-      req.path === '/offline' ||
-      req.path === '/offline.html' ||
-      req.path.startsWith('/api/') ||
-      req.path.startsWith('/auth/') ||
-      req.path.startsWith('/public/') ||
-      req.path.match(/\.(css|js|png|jpg|jpeg|gif|webp|ico|svg|woff|woff2|ttf|eot)$/i);
-
-    if (!isAdmin && !isExempt) return res.redirect('/offline.html');
-  }
-  next();
-}
-
-const publicPaths = ['/', '/login', '/login.html', '/login-deny', '/offline', '/offline.html', '/privacy-noauth', '/terms-noauth', '/report-noauth', '/success', '/success.html', '/auth/google', '/auth/google/callback', '/logout'];
-const publicApiPaths = ['/api/auth', '/api/offline/config', '/api/reports/noauth'];
+const publicPaths = ['/', '/login', '/login.html', '/login-deny', '/privacy-noauth', '/terms-noauth', '/report-noauth', '/success', '/success.html', '/auth/google', '/auth/google/callback', '/logout'];
+const publicApiPaths = ['/api/auth', '/api/reports/noauth'];
 
 function shouldRequireAuth(req) {
   if (publicPaths.includes(req.path)) return false;
@@ -651,9 +619,9 @@ app.use((req, res, next) => {
 
 app.use((req, res, next) => {
   if (shouldRequireAuth(req)) {
-    checkAccountStatus(req, res, () => checkMaintenanceMode(req, res, next));
+    checkAccountStatus(req, res, next);
   } else {
-    checkMaintenanceMode(req, res, next);
+    next();
   }
 });
 
@@ -741,8 +709,6 @@ app.get('/logout', (req, res, next) => {
 ['admin'].forEach((p) => {
   app.get([`/${p}`, `/${p}.html`], ensureAdmin, asyncHandler(async (req, res) => await sendHtmlWithNonce(res, path.join(__dirname, 'public', `${p}.html`))));
 });
-app.get(['/offline', '/offline.html'], asyncHandler(async (req, res) => await sendHtmlWithNonce(res, path.join(__dirname, 'public', 'offline.html'))));
-
 // --- [静的ファイル配信 (画面ルーティングの後ろに配置)] ---
 app.use(
   express.static(path.join(__dirname, 'public'), {
@@ -1039,19 +1005,6 @@ app.delete(
     res.json({ success: true });
   })
 );
-
-app.get('/api/offline/config', (req, res) => {
-  const offlineConfig = systemSettings.offlineConfig || {};
-  res.json({
-    maintenanceMode: systemSettings.maintenanceMode,
-    config: {
-      title: typeof offlineConfig.title === 'string' ? offlineConfig.title.slice(0, 200) : 'Maintenance',
-      subtitle: typeof offlineConfig.subtitle === 'string' ? offlineConfig.subtitle.slice(0, 500) : '只今システムメンテナンス中です',
-      message: sanitizeOfflineMessage(offlineConfig.message || 'サービス向上およびシステム保守のため、一時的に<strong>ログイン後の全機能</strong>を停止しております。<br>ご不便をおかけいたしますが、復旧までしばらくお待ちください。'),
-      recoveryTime: typeof offlineConfig.recoveryTime === 'string' ? offlineConfig.recoveryTime.slice(0, 200) : ''
-    }
-  });
-});
 
 app.post(
   '/api/reports',
@@ -1495,46 +1448,6 @@ app.get('/api/admin/logs', ensureAdmin, (req, res) => {
   res.json(systemLogs);
 });
 
-app.post(
-  '/api/admin/settings/maintenance',
-  ensureAdmin,
-  asyncHandler(async (req, res) => {
-    systemSettings.maintenanceMode = !!req.body.enabled;
-    await safeWriteJSON(PATHS.SETTINGS, systemSettings);
-    io.emit('systemSettingsUpdated', systemSettings);
-    await addLog(req, 'maintenance_toggle', req.user.email, `Status: ${req.body.enabled}`);
-    res.json({ success: true, maintenanceMode: systemSettings.maintenanceMode });
-  })
-);
-
-app.post(
-  '/api/admin/settings/offline',
-  ensureAdmin,
-  asyncHandler(async (req, res) => {
-    const { title, subtitle, message, recoveryTime } = req.body;
-    if (!systemSettings.offlineConfig) systemSettings.offlineConfig = {};
-
-    for (const [name, value, maxLength] of [['title', title, 200], ['subtitle', subtitle, 500], ['recoveryTime', recoveryTime, 200]]) {
-      if (value !== undefined && (typeof value !== 'string' || value.length > maxLength)) {
-        return res.status(400).json({ error: `Invalid offlineConfig.${name}` });
-      }
-    }
-    if (message !== undefined && (typeof message !== 'string' || message.length > 5000)) {
-      return res.status(400).json({ error: 'Invalid offlineConfig.message' });
-    }
-    if (title !== undefined) systemSettings.offlineConfig.title = title;
-    if (subtitle !== undefined) systemSettings.offlineConfig.subtitle = subtitle;
-    if (message !== undefined) systemSettings.offlineConfig.message = sanitizeOfflineMessage(message);
-    if (recoveryTime !== undefined) systemSettings.offlineConfig.recoveryTime = recoveryTime;
-
-    await safeWriteJSON(PATHS.SETTINGS, systemSettings);
-    io.emit('systemSettingsUpdated', systemSettings);
-    await addLog(req, 'offline_config_update', req.user.email, 'Updated offline message config');
-
-    res.json({ success: true, offlineConfig: systemSettings.offlineConfig });
-  })
-);
-
 const ALLOWED_ROLES = ['admin', 'student'];
 const ALLOWED_STATUSES = ['active', 'suspended'];
 const FORBIDDEN_USER_KEYS = new Set(['__proto__', 'constructor', 'prototype']);
@@ -1661,15 +1574,7 @@ async function initServer() {
     await fsPromises.mkdir(SESSIONS_DIR, { recursive: true });
 
     usersDB = await safeReadJSON(PATHS.USERS, defaultUsers);
-    systemSettings = await safeReadJSON(PATHS.SETTINGS, {
-      maintenanceMode: false,
-      offlineConfig: {
-        title: 'Maintenance',
-        subtitle: '只今システムメンテナンス中です',
-        message: 'サービス向上およびシステム保守のため、一時的に<strong>ログイン後の全機能</strong>を停止しております。<br>ご不便をおかけいたしますが、復旧までしばらくお待ちください。',
-        recoveryTime: ''
-      }
-    });
+    systemSettings = await safeReadJSON(PATHS.SETTINGS, {});
     const loadedLogs = await safeReadJSON(PATHS.LOGS, null);
     const logsToLoad = loadedLogs ?? await safeReadJSON(path.join(DATA_DIR, 'logs.json'), []);
     systemLogs = Array.isArray(logsToLoad) ? logsToLoad.slice(0, MAX_LOGS_LIMIT) : [];
