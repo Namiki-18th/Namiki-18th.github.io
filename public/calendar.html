@@ -247,6 +247,7 @@
       vertical-align: top;
       cursor: pointer;
       transition: background 0.2s;
+      overflow: visible;
     }
     .calendar-cell-header {
       display: flex;
@@ -334,6 +335,9 @@
       margin-left: -0.5rem;
       padding-left: 0.5rem;
       width: calc(100% + 0.5rem);
+      max-width: none;
+      position: relative;
+      z-index: 1;
       border-top-left-radius: 0;
       border-bottom-left-radius: 0;
     }
@@ -341,11 +345,15 @@
       margin-right: -0.5rem;
       padding-right: 0.5rem;
       width: calc(100% + 0.5rem);
+      max-width: none;
+      position: relative;
+      z-index: 1;
       border-top-right-radius: 0;
       border-bottom-right-radius: 0;
     }
     .event-chip.continued-from-prev.continues-to-next {
       width: calc(100% + 1rem);
+      max-width: none;
       border-radius: 0;
     }
 
