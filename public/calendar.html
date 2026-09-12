@@ -198,17 +198,28 @@
       background: var(--color-accent-blue-light, #3b82f6);
       color: white;
     }
-    .event-chip-no-vacation {
-      background: #f97316;
+    .event-chip-test {
+      background: #7c3aed;
       color: white;
     }
-
+    .event-chip-ceremony {
+      background: #0891b2;
+      color: white;
+    }
+    .event-chip-school-event {
+      background: #b45309;
+      color: white;
+    }
+    .event-chip-holiday {
+      background: #64748b;
+      color: white;
+    }
     /* イベントチップのスクロールバーを非表示にする */
-    .event-chip-event, .event-chip-no-vacation {
+    .event-chip {
       scrollbar-width: none;
       -ms-overflow-style: none;
     }
-    .event-chip-event::-webkit-scrollbar, .event-chip-no-vacation::-webkit-scrollbar {
+    .event-chip::-webkit-scrollbar {
       display: none;
     }
 
@@ -243,6 +254,19 @@
       justify-content: space-between;
       gap: 0.25rem;
       min-height: 1.5rem;
+    }
+    .calendar-cell-meta {
+      display: inline-flex;
+      align-items: center;
+      gap: 0.25rem;
+      flex: 0 0 auto;
+    }
+    .no-vacation-marker {
+      width: 0.85rem;
+      height: 0.85rem;
+      border: 2px solid #f97316;
+      border-radius: 50%;
+      box-shadow: inset 0 0 0 2px var(--calendar-surface-muted);
     }
     .schedule-type-badge {
       flex: 0 0 auto;
@@ -702,6 +726,11 @@
       return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}-${String(date.getDate()).padStart(2, '0')}`;
     }
 
+    function getEventChipClass(type) {
+      const supportedTypes = new Set(['event', 'test', 'ceremony', 'school-event', 'holiday']);
+      return supportedTypes.has(type) ? `event-chip-${type}` : 'event-chip-event';
+    }
+
     function getScheduleForDate(dateStr) {
       const schedule = globalData.schedule;
       const classKey = globalData.profile?.userClass ? `2-${globalData.profile.userClass.replace('組', '')}` : '2-A';
@@ -764,10 +793,11 @@
                    eventDate.getDate() === day.getDate();
           });
         });
+        const chipEventsPerDay = eventsPerDay.map(events => events.filter(event => event.type !== 'no-vacation'));
 
         const slots = [];
         for (let j = 0; j < 7; j++) {
-          let unassignedEvents = [...eventsPerDay[j]];
+          let unassignedEvents = [...chipEventsPerDay[j]];
 
           // 前日の同名イベントを同じ行へ優先配置して、連続イベントを結合表示する。
           for (let s = 0; s < slots.length; s++) {
@@ -823,7 +853,7 @@
                 const isContinuesToNext = j < 6 && slots[s][j+1] && slots[s][j+1].title === event.title && slots[s][j+1].type === event.type;
                 
                 const finalDisplayText = (!isContinuedFromPrev || j === 0) ? escapeHtml(event.title) : '&nbsp;';
-                const chipClass = event.type === 'no-vacation' ? 'event-chip-no-vacation' : 'event-chip-event';
+                const chipClass = getEventChipClass(event.type);
                 const continuationClasses = [
                   isContinuedFromPrev ? 'continued-from-prev' : '',
                   isContinuesToNext ? 'continues-to-next' : ''
@@ -857,12 +887,16 @@
           const scheduleType = scheduleForDate
             ? (scheduleForDate.dayKey === 'c' ? 'C' : scheduleForDate.week === 'weekA' ? 'A' : 'B')
             : '';
+          const hasNoVacation = eventsPerDay[j].some(event => event.type === 'no-vacation');
 
           html += `
             <td class="${cellClasses}" data-date="${dateString}">
               <div class="calendar-cell-header">
                 <div class="gen-682d69">${dayNum}</div>
-                ${scheduleType ? `<span class="schedule-type-badge type-${scheduleType.toLowerCase()}" title="${scheduleType}週${scheduleType === 'C' ? '・C日課' : ''}">${scheduleType}</span>` : ''}
+                <div class="calendar-cell-meta">
+                  ${hasNoVacation ? '<span class="no-vacation-marker" title="ラーケーション不可日" aria-label="ラーケーション不可日"></span>' : ''}
+                  ${scheduleType ? `<span class="schedule-type-badge type-${scheduleType.toLowerCase()}" title="${scheduleType}週${scheduleType === 'C' ? '・C日課' : ''}">${scheduleType}</span>` : ''}
+                </div>
               </div>
               <div class="gen-af89d6">
                 ${dayHtml}
