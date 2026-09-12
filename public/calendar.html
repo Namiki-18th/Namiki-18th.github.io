@@ -378,11 +378,11 @@
     }
     .event-chip.is-auto-scrolling::-webkit-scrollbar { display: none; }
     .event-chip.is-auto-scrolling .event-chip-label {
-      animation: chipAutoScroll var(--chip-scroll-duration, 6s) ease-in-out infinite alternate;
+      animation: chipAutoScroll var(--chip-scroll-duration, 6s) linear infinite;
     }
     @keyframes chipAutoScroll {
-      0%, 18% { transform: translateX(0); }
-      82%, 100% { transform: translateX(var(--chip-scroll-distance)); }
+      from { transform: translateX(0); }
+      to { transform: translateX(var(--chip-scroll-distance)); }
     }
 
     /* Tailwind代替用のカスタムクラス */
