@@ -760,7 +760,7 @@
 
     function getSchedulePeriods(date, type) {
       const setting = getScheduleSetting(date);
-      if (setting?.periods) return setting.periods;
+      if (setting?.periods && setting.type === type) return setting.periods;
       const classData = scheduleData[document.getElementById('schedule-admin-class').value];
       const dayKeys = ['sun', 'mon', 'tue', 'wed', 'thu', 'fri', 'sat'];
       if (type === 'C') return classData?.weekA?.c || [];
@@ -834,7 +834,9 @@
         });
         const data = await res.json();
         if (!res.ok) throw new Error(data.error || '保存失敗');
+        scheduleData._meta = data.meta || scheduleData._meta;
         alert('時間割設定を保存しました。');
+        if (scheduleSelectedDate) selectScheduleDate(scheduleSelectedDate);
         renderScheduleAdminCalendar();
       } catch (err) {
         alert(`時間割設定の保存に失敗しました: ${err.message}`);

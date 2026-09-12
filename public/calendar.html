@@ -78,6 +78,8 @@
       border-radius: 0.5rem;
       max-width: 90%;
       width: 400px;
+      max-height: min(80vh, 720px);
+      overflow-y: auto;
       border: 1px solid var(--modal-border);
       box-shadow: 0 4px 6px rgba(0,0,0,0.3); 
     }
@@ -158,6 +160,27 @@
       cursor: pointer;
       transition: background 0.2s;
     }
+    .calendar-cell-header {
+      display: flex;
+      align-items: flex-start;
+      justify-content: space-between;
+      gap: 0.25rem;
+      min-height: 1.5rem;
+    }
+    .schedule-type-badge {
+      flex: 0 0 auto;
+      min-width: 1.35rem;
+      padding: 0.1rem 0.25rem;
+      border-radius: 0.25rem;
+      color: #ffffff;
+      font-size: 0.7rem;
+      line-height: 1.2;
+      text-align: center;
+      font-weight: 700;
+    }
+    .schedule-type-badge.type-a { background: #2563eb; }
+    .schedule-type-badge.type-b { background: #16a34a; }
+    .schedule-type-badge.type-c { background: #f97316; }
     .calendar-cell.current-month {
       background: var(--color-bg-secondary);
       color: var(--color-text-primary);
@@ -185,15 +208,17 @@
       max-width: 100%;
       padding: 0.25rem 0.375rem;
       margin-bottom: 0.25rem;
-      overflow-x: auto;
+      overflow: hidden;
       white-space: nowrap;
+      text-overflow: ellipsis;
       font-size: 0.75rem;
       height: 1.5rem;
       line-height: 1rem;
       box-sizing: border-box;
-      -webkit-overflow-scrolling: touch;
       border-radius: 0.25rem;
     }
+    .gen-b56181 { overflow-x: auto; -webkit-overflow-scrolling: touch; }
+    .gen-2016c3 { min-width: 760px; }
     .event-chip.continued-from-prev {
       margin-left: -0.5rem;
       padding-left: 0.5rem;
@@ -660,22 +685,24 @@
         const slots = [];
         for (let j = 0; j < 7; j++) {
           let unassignedEvents = [...eventsPerDay[j]];
-          
+
+          // 前日の同名イベントを同じ行へ優先配置して、連続イベントを結合表示する。
           for (let s = 0; s < slots.length; s++) {
-            if (j > 0 && slots[s][j-1]) {
-              const prevEvent = slots[s][j-1];
-              const matchingEventIndex = unassignedEvents.findIndex(e => e.title === prevEvent.title);
+            slots[s][j] = null;
+          }
+          if (j > 0) {
+            for (let s = 0; s < slots.length; s++) {
+              const previousEvent = slots[s][j - 1];
+              const matchingEventIndex = previousEvent
+                ? unassignedEvents.findIndex(event => event.title === previousEvent.title)
+                : -1;
               if (matchingEventIndex !== -1) {
                 slots[s][j] = unassignedEvents[matchingEventIndex];
                 unassignedEvents.splice(matchingEventIndex, 1);
-              } else {
-                slots[s][j] = null;
               }
-            } else {
-              slots[s][j] = null;
             }
           }
-          
+
           for (const event of unassignedEvents) {
             let placed = false;
             for (let s = 0; s < slots.length; s++) {
@@ -743,9 +770,17 @@
             isToday || !isCurrentMonth ? '' : 'normal-weight'
           ].filter(Boolean).join(' ');
 
+          const scheduleForDate = getScheduleForDate(dateString);
+          const scheduleType = scheduleForDate
+            ? (scheduleForDate.dayKey === 'c' ? 'C' : scheduleForDate.week === 'weekA' ? 'A' : 'B')
+            : '';
+
           html += `
             <td class="${cellClasses}" data-date="${dateString}">
-              <div class="gen-682d69">${dayNum}</div>
+              <div class="calendar-cell-header">
+                <div class="gen-682d69">${dayNum}</div>
+                ${scheduleType ? `<span class="schedule-type-badge type-${scheduleType.toLowerCase()}" title="${scheduleType}週${scheduleType === 'C' ? '・C日課' : ''}">${scheduleType}</span>` : ''}
+              </div>
               <div class="gen-af89d6">
                 ${dayHtml}
               </div>
