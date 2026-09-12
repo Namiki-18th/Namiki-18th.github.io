@@ -302,6 +302,9 @@
       border-top-right-radius: 0;
       border-bottom-right-radius: 0;
     }
+    .event-chip.continued-from-prev.continues-to-next {
+      border-radius: 0;
+    }
 
     /* Tailwind代替用のカスタムクラス */
     .sidebar-header-inner { display: flex; align-items: center; gap: 0.75rem; }
@@ -765,7 +768,7 @@
             for (let s = 0; s < slots.length; s++) {
               const previousEvent = slots[s][j - 1];
               const matchingEventIndex = previousEvent
-                ? unassignedEvents.findIndex(event => event.title === previousEvent.title)
+                ? unassignedEvents.findIndex(event => event.title === previousEvent.title && event.type === previousEvent.type)
                 : -1;
               if (matchingEventIndex !== -1) {
                 slots[s][j] = unassignedEvents[matchingEventIndex];
@@ -807,8 +810,8 @@
             const event = slots[s][j];
             if (s < MAX_SLOTS) {
               if (event) {
-                const isContinuedFromPrev = j > 0 && slots[s][j-1] && slots[s][j-1].title === event.title;
-                const isContinuesToNext = j < 6 && slots[s][j+1] && slots[s][j+1].title === event.title;
+                const isContinuedFromPrev = j > 0 && slots[s][j-1] && slots[s][j-1].title === event.title && slots[s][j-1].type === event.type;
+                const isContinuesToNext = j < 6 && slots[s][j+1] && slots[s][j+1].title === event.title && slots[s][j+1].type === event.type;
                 
                 const finalDisplayText = (!isContinuedFromPrev || j === 0) ? escapeHtml(event.title) : '&nbsp;';
                 const chipClass = event.type === 'no-vacation' ? 'event-chip-no-vacation' : 'event-chip-event';
