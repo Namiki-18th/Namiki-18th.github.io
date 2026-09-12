@@ -329,7 +329,12 @@
       line-height: 1rem;
       box-sizing: border-box;
       border-radius: 0.25rem;
+      touch-action: pan-x;
+      scrollbar-width: thin;
+      scrollbar-color: var(--color-text-faint) transparent;
     }
+    .event-chip::-webkit-scrollbar { display: block; height: 4px; }
+    .event-chip::-webkit-scrollbar-thumb { background: var(--color-text-faint); border-radius: 999px; }
     .gen-b56181 { overflow-x: auto; -webkit-overflow-scrolling: touch; }
     .gen-2016c3 { min-width: 760px; }
     .event-chip.continued-from-prev {
@@ -365,6 +370,19 @@
     .event-chip-label {
       display: inline-block;
       min-width: max-content;
+      width: max-content;
+    }
+    .event-chip.is-auto-scrolling {
+      overflow: hidden;
+      scrollbar-width: none;
+    }
+    .event-chip.is-auto-scrolling::-webkit-scrollbar { display: none; }
+    .event-chip.is-auto-scrolling .event-chip-label {
+      animation: chipAutoScroll var(--chip-scroll-duration, 6s) ease-in-out infinite alternate;
+    }
+    @keyframes chipAutoScroll {
+      0%, 18% { transform: translateX(0); }
+      82%, 100% { transform: translateX(var(--chip-scroll-distance)); }
     }
 
     /* Tailwind代替用のカスタムクラス */
@@ -882,9 +900,11 @@
                 
                 const finalDisplayText = (!isContinuedFromPrev || j === 0) ? escapeHtml(event.title) : '&nbsp;';
                 const chipClass = getEventChipClass(event.type);
+                const isStandalone = !isContinuedFromPrev && !isContinuesToNext;
                 const continuationClasses = [
                   isContinuedFromPrev ? 'continued-from-prev' : '',
-                  isContinuesToNext ? 'continues-to-next' : ''
+                  isContinuesToNext ? 'continues-to-next' : '',
+                  isStandalone ? 'auto-scroll-candidate' : ''
                 ].filter(Boolean).join(' ');
                 
                 dayHtml += `<div class="event-chip ${chipClass} ${continuationClasses}" title="${escapeHtml(event.title)}"><span class="event-chip-label">${finalDisplayText}</span></div>`;
@@ -940,6 +960,20 @@
         html += '</tr>';
       }
       tbody.innerHTML = html;
+      prepareAutoScrollingChips();
+    }
+
+    function prepareAutoScrollingChips() {
+      requestAnimationFrame(() => {
+        document.querySelectorAll('.event-chip.auto-scroll-candidate').forEach(chip => {
+          const label = chip.querySelector('.event-chip-label');
+          if (!label || label.scrollWidth <= chip.clientWidth) return;
+          const distance = label.scrollWidth - chip.clientWidth;
+          chip.style.setProperty('--chip-scroll-distance', `-${distance}px`);
+          chip.style.setProperty('--chip-scroll-duration', `${Math.max(5, Math.min(14, distance * 0.06))}s`);
+          chip.classList.add('is-auto-scrolling');
+        });
+      });
     }
 
     function showDayDetails(dateStr) {
@@ -1062,6 +1096,14 @@
             showDayDetails(cell.dataset.date);
           }
         });
+        calendarBody.addEventListener('wheel', (e) => {
+          const chip = e.target.closest('.event-chip');
+          if (!chip || chip.classList.contains('continues-to-next') || chip.scrollWidth <= chip.clientWidth) return;
+          if (Math.abs(e.deltaY) > Math.abs(e.deltaX)) {
+            chip.scrollLeft += e.deltaY;
+            e.preventDefault();
+          }
+        }, { passive: false });
       }
 
       const modalOverlay = document.getElementById('day-modal');
