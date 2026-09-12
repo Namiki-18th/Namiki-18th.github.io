@@ -898,13 +898,17 @@
             ? (scheduleForDate.dayKey === 'c' ? 'C' : scheduleForDate.week === 'weekA' ? 'A' : 'B')
             : '';
           const hasNoVacation = eventsPerDay[j].some(event => event.type === 'no-vacation');
+          const holidayNames = [...new Set(eventsPerDay[j]
+            .filter(event => event.type === 'holiday')
+            .map(event => String(event.title || '').trim())
+            .filter(Boolean))];
 
           html += `
             <td class="${cellClasses}" data-date="${dateString}">
               <div class="calendar-cell-header">
                 <div class="gen-682d69">${dayNum}</div>
                 <div class="calendar-cell-meta">
-                  ${hasHoliday ? '<span class="holiday-label">休日</span>' : ''}
+                  ${hasHoliday ? `<span class="holiday-label" title="${escapeHtml(holidayNames.join('、'))}">${escapeHtml(holidayNames.join('、'))}</span>` : ''}
                   ${hasNoVacation ? '<span class="no-vacation-marker" title="ラーケーション不可日" aria-label="ラーケーション不可日"></span>' : ''}
                   ${scheduleType ? `<span class="schedule-type-badge type-${scheduleType.toLowerCase()}" title="${scheduleType}週${scheduleType === 'C' ? '・C日課' : ''}">${scheduleType}</span>` : ''}
                 </div>
