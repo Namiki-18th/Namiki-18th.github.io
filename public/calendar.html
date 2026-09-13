@@ -970,12 +970,16 @@
 
     function startChipAutoScroll(chip, label, distance) {
       const pixelsPerSecond = 24;
-      const duration = Math.max(1, distance / pixelsPerSecond);
+      const travelDuration = Math.max(1, distance / pixelsPerSecond);
+      const endPauseDuration = 1.2;
+      const cycleDuration = travelDuration + endPauseDuration;
       const startedAt = performance.now();
       const animate = (now) => {
         if (!chip.isConnected || !label.isConnected) return;
-        const elapsed = ((now - startedAt) / 1000) % duration;
-        const offset = Math.min(distance, elapsed * pixelsPerSecond);
+        const elapsed = ((now - startedAt) / 1000) % cycleDuration;
+        const offset = Math.min(distance, elapsed < travelDuration
+          ? elapsed * pixelsPerSecond
+          : distance);
         label.style.transform = `translateX(-${offset}px)`;
         requestAnimationFrame(animate);
       };
