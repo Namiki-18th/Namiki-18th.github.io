@@ -4,15 +4,199 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>送信完了</title>
-  <link rel="stylesheet" href="/style.css">
+
+  <!-- Google Fonts & Font Awesome -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&family=Noto+Sans+JP:wght@400;500;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+
+  <style>
+    :root {
+      --bg-gradient-start: #121212;
+      --bg-gradient-end: #000000;
+      --card-bg: rgba(18, 18, 18, 0.85);
+      --card-border: rgba(255, 255, 255, 0.12);
+      
+      --text-primary: #f8fafc;
+      --text-secondary: #94a3b8;
+      
+      --accent-green: #10b981;
+      --button-bg: #2563eb;
+      --button-hover: #1d4ed8;
+    }
+
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+
+    body {
+      font-family: 'Inter', 'Noto Sans JP', sans-serif;
+      background: #000000;
+      background: radial-gradient(circle at top, #141414 0%, #000000 100%);
+      color: var(--text-primary);
+      min-height: 100vh;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      overflow-x: hidden;
+    }
+
+    .content-area {
+      display: grid;
+      place-items: center;
+      min-height: 100vh;
+      width: 100%;
+      padding: 1.5rem;
+    }
+
+    .app-card {
+      width: 100%;
+      max-width: 30rem;
+      background: var(--card-bg);
+      backdrop-filter: blur(16px);
+      -webkit-backdrop-filter: blur(16px);
+      border: 1px solid var(--card-border);
+      border-radius: 1.5rem;
+      padding: 3rem 2rem;
+      text-align: center;
+      position: relative;
+      animation: cardAppear 0.6s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+    }
+
+    .success-icon-wrapper {
+      width: 5.5rem;
+      height: 5.5rem;
+      margin: 0 auto 1.75rem auto;
+      background: rgba(16, 185, 129, 0.08);
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: var(--accent-green);
+    }
+
+    .animated-icon {
+      width: 100%;
+      height: 100%;
+      overflow: visible;
+    }
+
+    .circle-path {
+      stroke-dasharray: 140;
+      stroke-dashoffset: 140;
+      animation: drawCircle 0.6s cubic-bezier(0.65, 0, 0.45, 1) forwards;
+      transform: rotate(-90deg);
+      transform-origin: 50% 50%;
+    }
+
+    .check-path {
+      stroke-dasharray: 40;
+      stroke-dashoffset: 40;
+      animation: drawCheck 0.45s cubic-bezier(0.65, 0, 0.45, 1) 0.35s forwards;
+    }
+
+    @keyframes drawCircle {
+      0% {
+        stroke-dashoffset: 140;
+      }
+      100% {
+        stroke-dashoffset: 0;
+      }
+    }
+
+    @keyframes drawCheck {
+      0% {
+        stroke-dashoffset: 40;
+      }
+      100% {
+        stroke-dashoffset: 0;
+      }
+    }
+
+    .content-card-title {
+      font-size: 1.65rem;
+      font-weight: 700;
+      color: var(--text-primary);
+      margin-bottom: 0.75rem;
+      letter-spacing: -0.02em;
+    }
+
+    .content-card-subtitle {
+      font-size: 0.975rem;
+      color: var(--text-secondary);
+      line-height: 1.6;
+      margin-bottom: 2.25rem;
+    }
+
+    .button-primary {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 0.5rem;
+      width: 100%;
+      padding: 0.875rem 1.75rem;
+      font-size: 1rem;
+      font-weight: 600;
+      color: #ffffff;
+      text-decoration: none;
+      background-color: var(--button-bg);
+      border-radius: 0.75rem;
+      transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+      cursor: pointer;
+      border: none;
+    }
+
+    .button-primary:hover {
+      background-color: var(--button-hover);
+      transform: translateY(-2px);
+    }
+
+    .button-primary:active {
+      transform: translateY(0);
+    }
+
+    @keyframes cardAppear {
+      from {
+        opacity: 0;
+        transform: translateY(20px) scale(0.96);
+      }
+      to {
+        opacity: 1;
+        transform: translateY(0) scale(1);
+      }
+    }
+
+    @media (max-width: 480px) {
+      .app-card {
+        padding: 2.25rem 1.5rem;
+      }
+      .content-card-title {
+        font-size: 1.4rem;
+      }
+    }
+  </style>
 </head>
 <body>
-  <main class="content-area" style="display:grid; place-items:center; min-height:100vh;">
-    <section class="app-card content-card" style="max-width:32rem; text-align:center;">
+
+  <main class="content-area">
+    <section class="app-card content-card">
+      <div class="success-icon-wrapper">
+        <svg class="animated-icon" viewBox="0 0 50 50">
+          <circle class="circle-path" cx="25" cy="25" r="21" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" />
+          <path class="check-path" d="M15 25 L22 32 L35 17" fill="none" stroke="currentColor" stroke-width="3.5" stroke-linecap="round" stroke-linejoin="round" />
+        </svg>
+      </div>
       <h1 class="content-card-title">送信が完了しました</h1>
-      <p class="content-card-subtitle">お問い合わせ内容を受け付けました。</p>
-      <a class="button-primary" href="/index">ホームへ戻る</a>
+      <p class="content-card-subtitle">お問い合わせ内容を受け付けました。<br>確認後、担当者よりご連絡いたします。</p>
+      <a class="button-primary" href="/index">
+        <i class="fa-solid fa-house"></i>
+        ホームへ戻る
+      </a>
     </section>
   </main>
+
 </body>
 </html>
