@@ -585,9 +585,11 @@ function checkAccountStatus(req, res, next) {
   if (req.isAuthenticated() && req.user) {
     const currentUser = usersDB[req.user.email];
     if (currentUser?.status === 'suspended' && !isPrivilegedAdminEmail(req.user.email)) {
-      return req.xhr || req.path.startsWith('/api/')
-        ? res.status(403).json({ error: 'Suspended' })
-        : res.redirect('/suspended.html');
+      return destroySessionsForEmail(req.user.email)
+        .then(() => req.xhr || req.path.startsWith('/api/')
+          ? res.status(403).json({ error: 'Suspended' })
+          : res.redirect('/suspended.html'))
+        .catch(next);
     }
   }
   next();
@@ -806,6 +808,20 @@ app.delete('/api/profile', ensureAuth, asyncHandler(async (req, res) => {
 
 function getSessionOwner(sessionData) {
   return sessionData?.passport?.user;
+}
+
+function destroySessionsForEmail(email) {
+  return new Promise((resolve, reject) => {
+    sessionStore.all((err, sessions) => {
+      if (err) return reject(err);
+      const sessionIds = Object.entries(sessions)
+        .filter(([, data]) => getSessionOwner(data) === email)
+        .map(([sessionId]) => sessionId);
+      Promise.all(sessionIds.map((sessionId) => new Promise((sessionResolve, sessionReject) => {
+        sessionStore.destroy(sessionId, (destroyErr) => destroyErr ? sessionReject(destroyErr) : sessionResolve());
+      }))).then(resolve).catch(reject);
+    });
+  });
 }
 
 app.get('/api/profile/sessions', ensureAuth, (req, res, next) => {
@@ -1478,11 +1494,13 @@ app.post('/api/admin/user/:email', ensureAdmin, asyncHandler(async (req, res) =>
     if (!ALLOWED_ROLES.includes(role)) return res.status(400).json({ error: 'Invalid role' });
     usersDB[email].role = role;
   }
+  const wasSuspended = usersDB[email].status === 'suspended';
   if (status !== undefined) {
     if (!ALLOWED_STATUSES.includes(status)) return res.status(400).json({ error: 'Invalid status' });
     usersDB[email].status = status;
   }
   await saveUsersDB();
+  if (!wasSuspended && usersDB[email].status === 'suspended') await destroySessionsForEmail(email);
   await addLog(req, 'user_update', req.user.email, `Updated target: ${email}`);
   res.json({ success: true });
 }));
