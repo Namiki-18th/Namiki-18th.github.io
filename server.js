@@ -593,7 +593,7 @@ function checkAccountStatus(req, res, next) {
   next();
 }
 
-const publicPaths = ['/', '/login', '/login.html', '/login-deny', '/privacy-noauth', '/terms-noauth', '/report-noauth', '/success', '/success.html', '/auth/google', '/auth/google/callback', '/logout'];
+const publicPaths = ['/', '/login', '/login.html', '/login-deny', '/privacy-noauth', '/terms-noauth', '/report-noauth', '/success', '/success.html', '/suspended', '/suspended.html', '/auth/google', '/auth/google/callback', '/logout'];
 const publicApiPaths = ['/api/auth', '/api/reports/noauth'];
 
 function shouldRequireAuth(req) {
