@@ -139,6 +139,60 @@ async function sendHtmlWithNonce(res, filePath) {
     const html = await fsPromises.readFile(filePath, 'utf8');
     const nonce = res.locals.cspNonce;
     const preferenceScript = `<script nonce="${nonce}">
+      (function() {
+        const nativeFetch = window.fetch.bind(window);
+        let activeRequests = 0;
+        let showTimer = null;
+        let hideTimer = null;
+        let loadingElement = null;
+
+        function getLoadingElement() {
+          if (loadingElement) return loadingElement;
+          loadingElement = document.createElement('div');
+          loadingElement.className = 'global-loading-indicator';
+          loadingElement.setAttribute('role', 'status');
+          loadingElement.setAttribute('aria-live', 'polite');
+          loadingElement.innerHTML = '<div class="global-loading-progress"></div><div class="global-loading-message"><span class="global-loading-spinner" aria-hidden="true"></span><span>データを取得中...</span></div>';
+          document.body.appendChild(loadingElement);
+          return loadingElement;
+        }
+
+        function showLoading() {
+          if (hideTimer) {
+            clearTimeout(hideTimer);
+            hideTimer = null;
+          }
+          getLoadingElement().classList.add('is-visible');
+        }
+
+        function finishLoading() {
+          if (activeRequests > 0) return;
+          if (showTimer) {
+            clearTimeout(showTimer);
+            showTimer = null;
+          }
+          if (!loadingElement) return;
+          loadingElement.classList.remove('is-visible');
+          hideTimer = setTimeout(() => {
+            if (activeRequests === 0 && loadingElement) {
+              loadingElement.remove();
+              loadingElement = null;
+            }
+          }, 240);
+        }
+
+        window.fetch = function(...args) {
+          activeRequests += 1;
+          if (activeRequests === 1) {
+            showTimer = setTimeout(showLoading, 100);
+          }
+          return nativeFetch(...args).finally(() => {
+            activeRequests = Math.max(0, activeRequests - 1);
+            finishLoading();
+          });
+        };
+      })();
+
       window.applyDeepLTranslation = async function(targetLanguage) {
         if (!targetLanguage || targetLanguage === 'JA') return;
         const textNodes = [];

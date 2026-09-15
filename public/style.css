@@ -744,4 +744,63 @@
   cursor: pointer;
   color: var(--color-text-secondary);
 }
-.full-grid-width { grid-column: 1 / -1; }
+    .full-grid-width { grid-column: 1 / -1; }
+
+    /* fetch中の表示を全ページで統一 */
+    .global-loading-indicator {
+        position: fixed;
+        inset: 0;
+        z-index: 1000;
+        pointer-events: none;
+        opacity: 0;
+        transition: opacity 0.2s ease;
+    }
+    .global-loading-indicator.is-visible { opacity: 1; }
+    .global-loading-progress {
+        position: absolute;
+        top: 0;
+        left: 0;
+        width: 35%;
+        height: 3px;
+        background: var(--color-accent-blue-light);
+        box-shadow: 0 0 12px color-mix(in srgb, var(--color-accent-blue) 70%, transparent);
+        animation: global-loading-progress 1.1s ease-in-out infinite;
+    }
+    .global-loading-message {
+        position: absolute;
+        top: 1rem;
+        left: 50%;
+        display: inline-flex;
+        align-items: center;
+        gap: 0.5rem;
+        padding: 0.4rem 0.75rem;
+        color: var(--color-text-secondary);
+        background: color-mix(in srgb, var(--color-surface) 94%, transparent);
+        border: 1px solid var(--color-border);
+        border-radius: 9999px;
+        box-shadow: 0 8px 24px rgba(0, 0, 0, 0.18);
+        font-size: 0.75rem;
+        transform: translateX(-50%);
+        backdrop-filter: blur(10px);
+    }
+    .global-loading-spinner {
+        width: 0.85rem;
+        height: 0.85rem;
+        border: 2px solid color-mix(in srgb, var(--color-accent-blue) 25%, transparent);
+        border-top-color: var(--color-accent-blue-light);
+        border-radius: 50%;
+        animation: global-loading-spin 0.75s linear infinite;
+    }
+    @keyframes global-loading-progress {
+        0% { transform: translateX(-120%); }
+        50% { transform: translateX(180%); }
+        100% { transform: translateX(300%); }
+    }
+    @keyframes global-loading-spin {
+        to { transform: rotate(360deg); }
+    }
+    @media (prefers-reduced-motion: reduce) {
+        .global-loading-indicator { transition: none; }
+        .global-loading-progress,
+        .global-loading-spinner { animation-duration: 1.8s; }
+    }
