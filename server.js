@@ -582,6 +582,9 @@ app.use((req, res, next) => {
 
 // --- [アクセス制御ミドルウェア] ---
 function checkAccountStatus(req, res, next) {
+  const suspendedSession = suspendedSessionIds.delete(req.sessionID);
+  if (suspendedSession && !req.path.startsWith('/api/')) return res.redirect('/suspended.html');
+  if (suspendedSession) return res.status(403).json({ error: 'Suspended' });
   if (req.isAuthenticated() && req.user) {
     const currentUser = usersDB[req.user.email];
     if (currentUser?.status === 'suspended' && !isPrivilegedAdminEmail(req.user.email)) {
@@ -810,6 +813,8 @@ function getSessionOwner(sessionData) {
   return sessionData?.passport?.user;
 }
 
+const suspendedSessionIds = new Set();
+
 function destroySessionsForEmail(email) {
   return new Promise((resolve, reject) => {
     sessionStore.all((err, sessions) => {
@@ -817,6 +822,7 @@ function destroySessionsForEmail(email) {
       const sessionIds = Object.entries(sessions)
         .filter(([, data]) => getSessionOwner(data) === email)
         .map(([sessionId]) => sessionId);
+      sessionIds.forEach((sessionId) => suspendedSessionIds.add(sessionId));
       Promise.all(sessionIds.map((sessionId) => new Promise((sessionResolve, sessionReject) => {
         sessionStore.destroy(sessionId, (destroyErr) => destroyErr ? sessionReject(destroyErr) : sessionResolve());
       }))).then(resolve).catch(reject);
