@@ -352,7 +352,7 @@
                 <h3 class="card-title"><span class="card-icon--yellow">🔔</span> 最新のお知らせ</h3>
                 <button data-href="/notice" class="card-link-button">すべて見る &rarr;</button>
               </div>
-              <div id="dashboard-notices-list" class="space-y-3">
+              <div id="dashboard-notices-list" class="space-y-3" data-api-loading="/api/notices">
                 <div class="skeleton-loader-row">
                   <div class="flex-1 space-y-3">
                     <div class="skeleton-bar skeleton-bar--lg"></div>
@@ -367,7 +367,7 @@
                 <h3 class="card-title"><span class="card-icon--green">📅</span> 本日のハイライト</h3>
                 <button data-href="/schedule" class="card-link-button">詳細 &rarr;</button>
               </div>
-              <div id="dashboard-schedule-highlights" class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+              <div id="dashboard-schedule-highlights" class="grid grid-cols-1 sm:grid-cols-2 gap-3" data-api-loading="/api/schedule">
                 <div class="placeholder-text">読み込み中...</div>
               </div>
             </div>
@@ -378,7 +378,7 @@
               <div class="card-header-row">
                 <h3 class="card-title"><span class="card-icon--purple">🔗</span> クイックリンク</h3>
               </div>
-              <div id="dashboard-quicklinks-list" class="space-y-2">
+              <div id="dashboard-quicklinks-list" class="space-y-2" data-api-loading="/api/links">
                 <div class="placeholder-text">読み込み中...</div>
               </div>
             </div>

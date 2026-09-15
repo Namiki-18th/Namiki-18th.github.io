@@ -906,6 +906,7 @@
           
           titleEl.textContent = url;
           displayEl.textContent = 'データを読み込み中...';
+          displayEl.dataset.apiLoading = url;
           
           try {
             const res = await fetch(url);
@@ -915,6 +916,9 @@
             displayEl.textContent = JSON.stringify(data, null, 2);
           } catch (err) {
             displayEl.textContent = 'データの取得に失敗しました:\n' + err.message;
+          } finally {
+            delete displayEl.dataset.apiLoading;
+            displayEl.classList.remove('api-loading');
           }
         });
       });

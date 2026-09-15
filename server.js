@@ -143,8 +143,39 @@ async function sendHtmlWithNonce(res, filePath) {
         const nativeFetch = window.fetch.bind(window);
         let activeRequests = 0;
         let showTimer = null;
+        let messageTimer = null;
         let hideTimer = null;
         let loadingElement = null;
+        const apiLoadingCounts = new WeakMap();
+
+        function getRequestPath(resource) {
+          try {
+            return new URL(resource instanceof Request ? resource.url : resource, window.location.href).pathname;
+          } catch {
+            return '';
+          }
+        }
+
+        function setApiLoading(resource, isLoading) {
+          const path = getRequestPath(resource);
+          if (!path) return;
+          document.querySelectorAll('[data-api-loading]').forEach((element) => {
+            const targets = element.dataset.apiLoading.split(',').map((target) => target.trim());
+            if (!targets.includes(path)) return;
+            const counts = apiLoadingCounts.get(element) || new Map();
+            const currentCount = counts.get(path) || 0;
+            if (isLoading) {
+              counts.set(path, currentCount + 1);
+              apiLoadingCounts.set(element, counts);
+              element.classList.add('api-loading');
+            } else if (currentCount <= 1) {
+              counts.delete(path);
+              element.classList.toggle('api-loading', counts.size > 0);
+            } else {
+              counts.set(path, currentCount - 1);
+            }
+          });
+        }
 
         function getLoadingElement() {
           if (loadingElement) return loadingElement;
@@ -163,6 +194,9 @@ async function sendHtmlWithNonce(res, filePath) {
             hideTimer = null;
           }
           getLoadingElement().classList.add('is-visible');
+          messageTimer = setTimeout(() => {
+            if (activeRequests > 0 && loadingElement) loadingElement.classList.add('is-long-running');
+          }, 450);
         }
 
         function finishLoading() {
@@ -171,8 +205,13 @@ async function sendHtmlWithNonce(res, filePath) {
             clearTimeout(showTimer);
             showTimer = null;
           }
+          if (messageTimer) {
+            clearTimeout(messageTimer);
+            messageTimer = null;
+          }
           if (!loadingElement) return;
           loadingElement.classList.remove('is-visible');
+          loadingElement.classList.remove('is-long-running');
           hideTimer = setTimeout(() => {
             if (activeRequests === 0 && loadingElement) {
               loadingElement.remove();
@@ -183,10 +222,12 @@ async function sendHtmlWithNonce(res, filePath) {
 
         window.fetch = function(...args) {
           activeRequests += 1;
+          setApiLoading(args[0], true);
           if (activeRequests === 1) {
-            showTimer = setTimeout(showLoading, 100);
+            showTimer = setTimeout(showLoading, 250);
           }
           return nativeFetch(...args).finally(() => {
+            setApiLoading(args[0], false);
             activeRequests = Math.max(0, activeRequests - 1);
             finishLoading();
           });
