@@ -302,6 +302,11 @@
                 <span class="gen-0e0434">サイドメニューを常に展開する</span>
               </label>
 
+              <label class="gen-5f3073">
+                <input type="checkbox" id="setting-sidebar-hover-disabled" class="gen-5c41db">
+                <span class="gen-0e0434">カーソルを当ててもサイドメニューを展開しない</span>
+              </label>
+
               <div class="gen-08cddd"></div>
 
             </div>
@@ -503,6 +508,7 @@
         document.getElementById('setting-show-road').checked = prefs.dashboard?.showRoad !== false;
         document.getElementById('setting-show-notices').checked = prefs.dashboard?.showNotices !== false;
         document.getElementById('setting-sidebar-expanded').checked = prefs.dashboard?.sidebarExpanded === true;
+        document.getElementById('setting-sidebar-hover-disabled').checked = prefs.dashboard?.sidebarHoverDisabled === true;
 
       } catch (err) {
         window.location.href = '/login';
@@ -582,6 +588,7 @@
       const showRoad = document.getElementById('setting-show-road').checked;
       const showNotices = document.getElementById('setting-show-notices').checked;
       const sidebarExpanded = document.getElementById('setting-sidebar-expanded').checked;
+      const sidebarHoverDisabled = document.getElementById('setting-sidebar-hover-disabled').checked;
 
       try {
         const res = await fetch('/api/profile/preferences', {
@@ -589,13 +596,14 @@
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
             preferences: {
-              dashboard: { showTransit, showRoad, showNotices, sidebarExpanded },
+              dashboard: { showTransit, showRoad, showNotices, sidebarExpanded, sidebarHoverDisabled },
             }
           })
         });
 
         if (res.ok) {
           document.body.classList.toggle('sidebar-fixed-expanded', sidebarExpanded);
+          document.body.classList.toggle('sidebar-hover-disabled', sidebarHoverDisabled);
           alert('表示・通知設定を保存しました。');
         } else {
           alert('保存に失敗しました。');
