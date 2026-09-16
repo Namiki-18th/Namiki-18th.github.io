@@ -329,8 +329,8 @@
           </div>
           <div class="overflow-x-auto">
             <table class="gen-3eac61">
-              <thead><tr class="gen-ec0641"><th class="gen-6f9be4">ユーザー</th><th class="gen-6f9be4">端末</th><th class="gen-6f9be4">IP</th><th class="gen-6f9be4">有効期限</th><th class="gen-6f9be4">操作</th></tr></thead>
-              <tbody id="admin-sessions-table"><tr><td colspan="5" class="placeholder-text gen-cfedb1">セッションを読み込んでいます...</td></tr></tbody>
+              <thead><tr class="gen-ec0641"><th class="gen-6f9be4">ユーザー</th><th class="gen-6f9be4">端末</th><th class="gen-6f9be4">有効期限</th><th class="gen-6f9be4">操作</th></tr></thead>
+              <tbody id="admin-sessions-table"><tr><td colspan="4" class="placeholder-text gen-cfedb1">セッションを読み込んでいます...</td></tr></tbody>
             </table>
           </div>
         </div>
@@ -517,7 +517,6 @@
                   <th class="gen-6f9be4">日時</th>
                   <th class="gen-6f9be4">アクション</th>
                   <th class="gen-6f9be4">ユーザー(Email)</th>
-                  <th class="gen-6f9be4">IPアドレス</th>
                   <th class="gen-6f9be4">詳細</th>
                   <th class="gen-6f9be4">HTTP</th>
                 </tr>
@@ -868,7 +867,7 @@
     async function loadAdminSessions() {
       const tbody = document.getElementById('admin-sessions-table');
       if (!tbody) return;
-      tbody.innerHTML = '<tr><td colspan="5" class="placeholder-text gen-cfedb1">読み込み中...</td></tr>';
+      tbody.innerHTML = '<tr><td colspan="4" class="placeholder-text gen-cfedb1">読み込み中...</td></tr>';
       try {
         const res = await fetch('/api/admin/sessions');
         if (!res.ok) throw new Error('取得失敗');
@@ -877,13 +876,12 @@
           <tr class="gen-4ccb56">
             <td class="gen-c60936">${escapeHtml(item.email)}</td>
             <td class="gen-300fcd"><button type="button" class="sensitive-value" aria-label="クリックして端末情報を表示">${escapeHtml(item.device)}</button></td>
-            <td class="gen-fbd1b5"><button type="button" class="sensitive-value" aria-label="クリックしてIPアドレスを表示">${escapeHtml(item.ip)}</button></td>
             <td class="gen-916915">${new Date(item.lastAccess).toLocaleString('ja-JP')}</td>
             <td class="gen-36239d">${item.isCurrent ? '<span class="gen-891c24">現在の端末</span>' : `<button data-sid="${escapeHtml(item.sessionId)}" class="button-primary revoke-admin-session-btn text-red">切断</button>`}</td>
           </tr>
-        `).join('') : '<tr><td colspan="5" class="placeholder-text gen-cfedb1">セッションはありません。</td></tr>';
+        `).join('') : '<tr><td colspan="4" class="placeholder-text gen-cfedb1">セッションはありません。</td></tr>';
       } catch (err) {
-        tbody.innerHTML = '<tr><td colspan="5" class="placeholder-text gen-dbd0ea">セッションの取得に失敗しました。</td></tr>';
+        tbody.innerHTML = '<tr><td colspan="4" class="placeholder-text gen-dbd0ea">セッションの取得に失敗しました。</td></tr>';
       }
     }
 
@@ -1072,13 +1070,13 @@
     async function loadAdminLogs() {
       const tbody = document.getElementById('admin-logs-table');
       try {
-        tbody.innerHTML = '<tr><td colspan="6" class="placeholder-text gen-cfedb1">読み込み中...</td></tr>';
+        tbody.innerHTML = '<tr><td colspan="5" class="placeholder-text gen-cfedb1">読み込み中...</td></tr>';
         const res = await fetch('/api/admin/logs');
         if (!res.ok) throw new Error('ログの取得に失敗しました');
         const logs = await res.json();
         
         if (!logs.length) {
-          tbody.innerHTML = '<tr><td colspan="6" class="placeholder-text gen-cfedb1">ログデータがありません。</td></tr>';
+          tbody.innerHTML = '<tr><td colspan="5" class="placeholder-text gen-cfedb1">ログデータがありません。</td></tr>';
           return;
         }
 
@@ -1093,7 +1091,6 @@
                 </span>
               </td>
               <td class="gen-c60936">${escapeHtml(l.email)}</td>
-              <td class="gen-fbd1b5"><button type="button" class="sensitive-value" aria-label="クリックしてIPアドレスを表示">${escapeHtml(l.ip)}</button></td>
               <td class="gen-916915">${escapeHtml(l.details || '-')}</td>
               <td class="gen-916915">${l.statusCode ?? '-'}</td>
             </tr>

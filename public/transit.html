@@ -1,0 +1,74 @@
+<!DOCTYPE html>
+<html lang="ja" class="dark">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>交通情報 - 並木中等教育学校18回生</title>
+  <link rel="stylesheet" href="/assets/css/app.css">
+  <link rel="stylesheet" href="/style.css">
+  <link rel="icon" href="/favicon.ico" type="image/x-icon">
+</head>
+<body>
+  <main class="app-main">
+    <div class="content-area">
+      <header class="page-header">
+        <p class="text-sm-muted">通学に役立つ最新情報</p>
+        <h1>交通情報</h1>
+        <p class="content-card-subtitle">鉄道や道路の状況をまとめて確認できます。</p>
+      </header>
+
+      <section class="transit-grid" aria-label="交通情報一覧">
+        <article class="transit-card" data-transit-card="jr">
+          <div class="transit-header">
+            <h2 class="transit-name">JR常磐線</h2>
+            <span class="transit-status" data-transit-status>取得中</span>
+          </div>
+          <p class="transit-body" data-transit-detail>最新の情報を取得しています...</p>
+        </article>
+        <article class="transit-card" data-transit-card="tx">
+          <div class="transit-header">
+            <h2 class="transit-name">つくばエクスプレス</h2>
+            <span class="transit-status" data-transit-status>取得中</span>
+          </div>
+          <p class="transit-body" data-transit-detail>最新の情報を取得しています...</p>
+        </article>
+        <article class="transit-card" data-transit-card="road">
+          <div class="transit-header">
+            <h2 class="transit-name">道路交通情報</h2>
+            <span class="transit-status" data-transit-status>取得中</span>
+          </div>
+          <p class="transit-body" data-transit-detail>最新の情報を取得しています...</p>
+        </article>
+      </section>
+
+      <p id="transit-error" class="placeholder-text" hidden>交通情報を取得できませんでした。時間をおいて再度お試しください。</p>
+    </div>
+  </main>
+
+  <script nonce="%%CSP_NONCE%%">
+    const transitSources = [
+      { key: 'jr', url: '/api/transit', dataKey: 'jr' },
+      { key: 'tx', url: '/api/transit', dataKey: 'tx' },
+      { key: 'road', url: '/api/road', dataKey: null }
+    ];
+
+    async function loadTransitSource(source) {
+      const response = await fetch(source.url);
+      if (!response.ok) throw new Error(`HTTP ${response.status}`);
+      const payload = await response.json();
+      const data = source.dataKey ? payload[source.dataKey] : payload;
+      const card = document.querySelector(`[data-transit-card="${source.key}"]`);
+      if (!card || !data) return;
+      card.querySelector('[data-transit-status]').textContent = data.status || '情報なし';
+      card.querySelector('[data-transit-detail]').textContent = data.detail || '詳細情報はありません。';
+      card.dataset.transitTrouble = data.isTrouble ? 'true' : 'false';
+    }
+
+    Promise.allSettled(transitSources.map(loadTransitSource)).then((results) => {
+      if (results.every((result) => result.status === 'rejected')) {
+        document.getElementById('transit-error').hidden = false;
+      }
+    });
+  </script>
+</body>
+</html>

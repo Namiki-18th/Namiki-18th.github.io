@@ -472,15 +472,12 @@ function scheduleLogSave() {
 }
 
 async function addLog(req, action, email, details = '', statusCode = null) {
-  const ip = req.ip || req.socket?.remoteAddress || 'Unknown';
-
   const userAgent = req.headers['user-agent'] || 'Unknown';
 
   const logEntry = {
     timestamp: new Date().toISOString(),
     action,
     email,
-    ip,
     userAgent,
     details,
     statusCode,
@@ -668,7 +665,6 @@ app.use((req, res, next) => {
 app.use((req, res, next) => {
   if (!req.isAuthenticated() || req.session.__metadata) return next();
   req.session.__metadata = {
-    ip: req.ip || req.socket.remoteAddress || '不明',
     device: req.headers['user-agent'] || '不明な端末',
     lastAccess: new Date().toISOString()
   };
@@ -806,7 +802,12 @@ app.get('/logout', (req, res, next) => {
   });
 });
 
-['index', 'terms', 'privacy', 'report', 'link', 'calendar', 'schedule', 'chat', 'notice', 'classroom', 'setting'].forEach((p) => {
+app.all(['/chat', '/chat.html'], (req, res) => sendErrorPage(res, 410));
+app.all(['/api/chat', '/api/chat/*'], ensureAuth, (req, res) => {
+  res.status(404).json({ error: 'Chat feature is unavailable' });
+});
+
+['index', 'terms', 'privacy', 'report', 'link', 'calendar', 'schedule', 'transit', 'notice', 'classroom', 'setting'].forEach((p) => {
   app.get([`/${p}`, `/${p}.html`], ensureAuth, asyncHandler(async (req, res) => await sendHtmlWithNonce(res, path.join(__dirname, 'public', `${p}.html`))));
 });
 ['admin'].forEach((p) => {
@@ -933,7 +934,6 @@ app.get('/api/profile/sessions', ensureAuth, (req, res, next) => {
       .map(([sessionId, data]) => ({
         sessionId,
         device: data.__metadata?.device || '不明な端末',
-        ip: data.__metadata?.ip || '不明',
         lastAccess: data.cookie?.expires || data.__metadata?.lastAccess || new Date().toISOString(),
         isCurrent: sessionId === req.sessionID
       }));
@@ -1543,7 +1543,6 @@ app.get('/api/admin/sessions', ensureAdmin, (req, res, next) => {
       sessionId,
       email: getSessionOwner(data) || '未認証',
       device: data.__metadata?.device || '不明な端末',
-      ip: data.__metadata?.ip || '不明',
       lastAccess: data.cookie?.expires || data.__metadata?.lastAccess || new Date().toISOString(),
       isCurrent: sessionId === req.sessionID
     }));
@@ -1702,6 +1701,10 @@ async function initServer() {
     systemLogs = Array.isArray(logsToLoad) ? logsToLoad.slice(0, MAX_LOGS_LIMIT) : [];
     let logsChanged = loadedLogs === null && systemLogs.length > 0;
     systemLogs = systemLogs.map((entry) => {
+      if (Object.prototype.hasOwnProperty.call(entry, 'ip')) {
+        delete entry.ip;
+        logsChanged = true;
+      }
       if (entry.action !== 'request' || (entry.statusCode !== null && entry.statusCode !== undefined) || typeof entry.details !== 'string') return entry;
       const match = entry.details.match(/^([A-Z]+) (.+) -> (\d{3})$/);
       if (!match) return entry;

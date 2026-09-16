@@ -299,10 +299,6 @@
 
               <div class="gen-08cddd"></div>
 
-              <label class="gen-5f3073">
-                <input type="checkbox" id="setting-chat-sound" class="gen-5c41db">
-                <span class="gen-0e0434">チャット受信時に通知音を鳴らす</span>
-              </label>
             </div>
 
             <button type="submit" class="button-primary">💾 表示・通知設定を保存</button>
@@ -501,7 +497,6 @@
         document.getElementById('setting-show-transit').checked = prefs.dashboard?.showTransit !== false;
         document.getElementById('setting-show-road').checked = prefs.dashboard?.showRoad !== false;
         document.getElementById('setting-show-notices').checked = prefs.dashboard?.showNotices !== false;
-        document.getElementById('setting-chat-sound').checked = prefs.notifications?.chatSound !== false;
 
       } catch (err) {
         window.location.href = '/login';
@@ -580,7 +575,6 @@
       const showTransit = document.getElementById('setting-show-transit').checked;
       const showRoad = document.getElementById('setting-show-road').checked;
       const showNotices = document.getElementById('setting-show-notices').checked;
-      const chatSound = document.getElementById('setting-chat-sound').checked;
 
       try {
         const res = await fetch('/api/profile/preferences', {
@@ -589,7 +583,6 @@
           body: JSON.stringify({
             preferences: {
               dashboard: { showTransit, showRoad, showNotices },
-              notifications: { chatSound }
             }
           })
         });
