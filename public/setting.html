@@ -297,6 +297,11 @@
                 <span class="gen-0e0434">お知らせウィジェットを表示する</span>
               </label>
 
+              <label class="gen-5f3073">
+                <input type="checkbox" id="setting-sidebar-expanded" class="gen-5c41db">
+                <span class="gen-0e0434">サイドメニューを常に展開する</span>
+              </label>
+
               <div class="gen-08cddd"></div>
 
             </div>
@@ -497,6 +502,7 @@
         document.getElementById('setting-show-transit').checked = prefs.dashboard?.showTransit !== false;
         document.getElementById('setting-show-road').checked = prefs.dashboard?.showRoad !== false;
         document.getElementById('setting-show-notices').checked = prefs.dashboard?.showNotices !== false;
+        document.getElementById('setting-sidebar-expanded').checked = prefs.dashboard?.sidebarExpanded === true;
 
       } catch (err) {
         window.location.href = '/login';
@@ -575,6 +581,7 @@
       const showTransit = document.getElementById('setting-show-transit').checked;
       const showRoad = document.getElementById('setting-show-road').checked;
       const showNotices = document.getElementById('setting-show-notices').checked;
+      const sidebarExpanded = document.getElementById('setting-sidebar-expanded').checked;
 
       try {
         const res = await fetch('/api/profile/preferences', {
@@ -582,12 +589,13 @@
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
             preferences: {
-              dashboard: { showTransit, showRoad, showNotices },
+              dashboard: { showTransit, showRoad, showNotices, sidebarExpanded },
             }
           })
         });
 
         if (res.ok) {
+          document.body.classList.toggle('sidebar-fixed-expanded', sidebarExpanded);
           alert('表示・通知設定を保存しました。');
         } else {
           alert('保存に失敗しました。');

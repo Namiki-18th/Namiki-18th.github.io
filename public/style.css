@@ -204,35 +204,6 @@
         margin-left: 0.75rem;
     }
 
-    .sidebar-expand-toggle {
-        position: absolute;
-        top: 50%;
-        right: -0.8rem;
-        z-index: 110;
-        display: grid;
-        width: 1.6rem;
-        height: 2.6rem;
-        place-items: center;
-        padding: 0;
-        border: 1px solid var(--color-border);
-        border-radius: 0 0.5rem 0.5rem 0;
-        background: var(--color-surface);
-        color: var(--color-text-muted);
-        box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
-        cursor: pointer;
-        transform: translateY(-50%);
-        font-size: 1.25rem;
-        line-height: 1;
-    }
-    .sidebar-expand-toggle:hover,
-    .sidebar-expand-toggle:focus-visible {
-        color: var(--color-text-primary);
-        background: var(--color-surface-hover);
-    }
-    .sidebar-fixed-expanded .sidebar-expand-toggle span {
-        transform: rotate(180deg);
-    }
-
     .app-main {
         flex: 1;
         min-width: 0;
@@ -769,9 +740,6 @@
 }
 
 @media (max-width: 767px) {
-    .sidebar-expand-toggle {
-        display: none;
-    }
     .account-popup-menu {
         position: fixed;
         top: 4.1rem;
