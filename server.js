@@ -287,6 +287,55 @@ async function sendHtmlWithNonce(res, filePath) {
         document.dispatchEvent(new CustomEvent('namiki:preferences-ready', { detail: preferences }));
         if (preferences.language) window.applyDeepLTranslation(preferences.language).catch(() => {});
       }).catch(() => {});
+
+      function closeAccountMenus(target) {
+        document.querySelectorAll('.account-popup-menu.show').forEach((menu) => {
+          const toggle = menu.closest('.sidebar-footer')?.querySelector('.sidebar-user-row')
+            || document.getElementById('mobile-user-avatar-btn');
+          if (!menu.contains(target) && !toggle?.contains(target)) {
+            menu.classList.remove('show');
+            menu.style.removeProperty('display');
+          }
+        });
+      }
+
+      function initCommonNavigation() {
+        const sidebar = document.querySelector('.sidebar');
+        if (sidebar && !sidebar.querySelector('.sidebar-expand-toggle')) {
+          const toggle = document.createElement('button');
+          const expanded = localStorage.getItem('namiki-sidebar-expanded') === 'true';
+          toggle.type = 'button';
+          toggle.className = 'sidebar-expand-toggle';
+          toggle.setAttribute('aria-label', 'サイドメニューの展開状態を切り替え');
+          toggle.setAttribute('aria-pressed', String(expanded));
+          toggle.title = expanded ? 'サイドメニューを格納' : 'サイドメニューを常に展開';
+          toggle.innerHTML = '<span aria-hidden="true">‹</span>';
+          sidebar.appendChild(toggle);
+          document.body.classList.toggle('sidebar-fixed-expanded', expanded);
+          toggle.addEventListener('click', (event) => {
+            event.stopPropagation();
+            const nextExpanded = !document.body.classList.contains('sidebar-fixed-expanded');
+            document.body.classList.toggle('sidebar-fixed-expanded', nextExpanded);
+            localStorage.setItem('namiki-sidebar-expanded', String(nextExpanded));
+            toggle.setAttribute('aria-pressed', String(nextExpanded));
+            toggle.title = nextExpanded ? 'サイドメニューを格納' : 'サイドメニューを常に展開';
+            toggle.querySelector('span').textContent = nextExpanded ? '›' : '‹';
+          });
+          toggle.querySelector('span').textContent = expanded ? '›' : '‹';
+        }
+
+        document.querySelectorAll('[data-href="/transit"] svg.icon-nav').forEach((icon) => {
+          icon.innerHTML = '<path d="M5 16h14l-1-6H6l-1 6Z"></path><path d="M7 10 8.5 6h7L17 10M7 19h.01M17 19h.01M5 16v3m14-3v3"></path>';
+          icon.setAttribute('aria-hidden', 'true');
+        });
+      }
+
+      document.addEventListener('click', (event) => closeAccountMenus(event.target));
+      if (document.readyState === 'loading') {
+        document.addEventListener('DOMContentLoaded', initCommonNavigation, { once: true });
+      } else {
+        initCommonNavigation();
+      }
     </script>`;
     const injected = html
       .replace(/%%CSP_NONCE%%/g, nonce)

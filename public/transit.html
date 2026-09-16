@@ -9,6 +9,42 @@
   <link rel="icon" href="/favicon.ico" type="image/x-icon">
 </head>
 <body>
+  <aside class="sidebar">
+    <div class="sidebar-header" data-href="/index">
+      <div class="flex items-center gap-3">
+        <div class="logo-badge"><img src="/logo.webp" alt="Logo" class="logo-badge-img"></div>
+        <h1 class="font-bold text-sm sidebar-brand-text">並木中等教育学校18回生<br><span class="text-xs font-normal sidebar-brand-tagline">ダッシュボード</span></h1>
+      </div>
+    </div>
+    <nav class="sidebar-nav">
+      <a href="/index" class="sidebar-nav-button" title="ホーム"><span class="icon-nav" aria-hidden="true">⌂</span><span class="sidebar-nav-text">ホーム</span></a>
+      <a href="/schedule" class="sidebar-nav-button" title="時間割"><span class="icon-nav" aria-hidden="true">◷</span><span class="sidebar-nav-text">時間割</span></a>
+      <a href="/notice" class="sidebar-nav-button" title="お知らせ"><span class="icon-nav" aria-hidden="true">!</span><span class="sidebar-nav-text">お知らせ</span></a>
+      <a href="/link" class="sidebar-nav-button" title="リンク"><span class="icon-nav" aria-hidden="true">↗</span><span class="sidebar-nav-text">リンク</span></a>
+      <a href="/calendar" class="sidebar-nav-button" title="カレンダー"><span class="icon-nav" aria-hidden="true">□</span><span class="sidebar-nav-text">カレンダー</span></a>
+      <a href="/classroom" class="sidebar-nav-button" title="Classroom"><span class="icon-nav" aria-hidden="true">▣</span><span class="sidebar-nav-text">Classroom</span></a>
+      <a href="/transit" class="sidebar-nav-button active" title="交通情報"><svg class="icon-nav transit-nav-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M5 16h14l-1-6H6l-1 6Z"></path><path d="M7 10 8.5 6h7L17 10M7 19h.01M17 19h.01M5 16v3m14-3v3"></path></svg><span class="sidebar-nav-text">交通情報</span></a>
+    </nav>
+    <div class="sidebar-footer">
+      <div id="account-popup-menu" class="account-popup-menu">
+        <div class="user-info-header popup-header-spacing"><span id="popup-user-name" class="popup-name-text">読み込み中...</span><span id="popup-user-email" class="popup-email-text">読み込み中...</span></div>
+        <a href="/setting" class="account-popup-item">設定</a>
+        <a href="/logout" class="account-popup-item text-red">ログアウト</a>
+      </div>
+      <div id="sidebar-user-toggle" class="sidebar-user-row" title="ユーザーメニュー">
+        <div class="sidebar-avatar-image" aria-hidden="true"></div>
+        <div class="sidebar-user-info"><span class="sidebar-user-name-text">アカウント</span><span class="sidebar-user-id-text">メニュー</span></div>
+      </div>
+    </div>
+  </aside>
+  <header class="mobile-topbar">
+    <a href="/index" class="mobile-brand-name">並木中等教育学校18回生</a>
+    <button id="mobile-user-avatar-btn" type="button" aria-label="ユーザーメニュー">●</button>
+    <div id="mobile-account-popup-menu" class="account-popup-menu">
+      <a href="/setting" class="account-popup-item">設定</a>
+      <a href="/logout" class="account-popup-item text-red">ログアウト</a>
+    </div>
+  </header>
   <main class="app-main">
     <div class="content-area">
       <header class="page-header">
@@ -67,6 +103,19 @@
     Promise.allSettled(transitSources.map(loadTransitSource)).then((results) => {
       if (results.every((result) => result.status === 'rejected')) {
         document.getElementById('transit-error').hidden = false;
+      }
+    });
+
+    document.addEventListener('click', (event) => {
+      if (event.target.closest('#sidebar-user-toggle')) {
+        event.stopPropagation();
+        document.getElementById('account-popup-menu')?.classList.toggle('show');
+      }
+      if (event.target.closest('#mobile-user-avatar-btn')) {
+        event.stopPropagation();
+        const menu = document.getElementById('mobile-account-popup-menu');
+        menu?.classList.toggle('show');
+        if (menu) menu.style.display = menu.classList.contains('show') ? 'block' : 'none';
       }
     });
   </script>
