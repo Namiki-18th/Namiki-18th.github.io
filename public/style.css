@@ -171,7 +171,7 @@
     .sidebar-fixed-expanded .sidebar {
         width: 16rem;
     }
-    .sidebar-hover-disabled:not(.sidebar-fixed-expanded) .sidebar:hover {
+    .sidebar-hover-disabled .sidebar:hover {
         width: 4.5rem;
     }
     @media (min-width: 768px) {
@@ -206,12 +206,34 @@
         max-width: 200px;
         margin-left: 0.75rem;
     }
-    .sidebar-hover-disabled:not(.sidebar-fixed-expanded) .sidebar:hover .sidebar-brand-text,
-    .sidebar-hover-disabled:not(.sidebar-fixed-expanded) .sidebar:hover .sidebar-nav-text,
-    .sidebar-hover-disabled:not(.sidebar-fixed-expanded) .sidebar:hover .sidebar-user-info {
+    .sidebar-hover-disabled .sidebar:hover .sidebar-brand-text,
+    .sidebar-hover-disabled .sidebar:hover .sidebar-nav-text,
+    .sidebar-hover-disabled .sidebar:hover .sidebar-user-info {
         opacity: 0;
         max-width: 0;
         margin-left: 0;
+    }
+    html.sidebar-fixed-expanded .sidebar,
+    body.sidebar-fixed-expanded .sidebar,
+    html.sidebar-fixed-expanded .sidebar:hover,
+    body.sidebar-fixed-expanded .sidebar:hover {
+        width: 16rem;
+    }
+    html.sidebar-fixed-expanded .sidebar-brand-text,
+    html.sidebar-fixed-expanded .sidebar-nav-text,
+    html.sidebar-fixed-expanded .sidebar-user-info,
+    body.sidebar-fixed-expanded .sidebar-brand-text,
+    body.sidebar-fixed-expanded .sidebar-nav-text,
+    body.sidebar-fixed-expanded .sidebar-user-info,
+    html.sidebar-fixed-expanded .sidebar:hover .sidebar-brand-text,
+    html.sidebar-fixed-expanded .sidebar:hover .sidebar-nav-text,
+    html.sidebar-fixed-expanded .sidebar:hover .sidebar-user-info,
+    body.sidebar-fixed-expanded .sidebar:hover .sidebar-brand-text,
+    body.sidebar-fixed-expanded .sidebar:hover .sidebar-nav-text,
+    body.sidebar-fixed-expanded .sidebar:hover .sidebar-user-info {
+        opacity: 1;
+        max-width: 200px;
+        margin-left: 0.75rem;
     }
 
     .app-main {

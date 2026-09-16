@@ -604,6 +604,8 @@
         if (res.ok) {
           document.body.classList.toggle('sidebar-fixed-expanded', sidebarExpanded);
           document.body.classList.toggle('sidebar-hover-disabled', sidebarHoverDisabled);
+          document.documentElement.classList.toggle('sidebar-fixed-expanded', sidebarExpanded);
+          document.documentElement.classList.toggle('sidebar-hover-disabled', sidebarHoverDisabled);
           alert('表示・通知設定を保存しました。');
         } else {
           alert('保存に失敗しました。');

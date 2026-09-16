@@ -269,6 +269,8 @@ async function sendHtmlWithNonce(res, filePath) {
         root.classList.add(theme);
         document.body.classList.toggle('sidebar-fixed-expanded', preferences.dashboard?.sidebarExpanded === true);
         document.body.classList.toggle('sidebar-hover-disabled', preferences.dashboard?.sidebarHoverDisabled === true);
+        root.classList.toggle('sidebar-fixed-expanded', preferences.dashboard?.sidebarExpanded === true);
+        root.classList.toggle('sidebar-hover-disabled', preferences.dashboard?.sidebarHoverDisabled === true);
         localStorage.setItem('namiki-theme', theme);
         const fontSizes = { small: '0.9', medium: '1', large: '1.1' };
         root.style.setProperty('--namiki-font-scale', fontSizes[preferences.fontSize] || '1');
