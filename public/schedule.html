@@ -466,6 +466,22 @@
       renderSchedule();
     }
 
+    function getScheduleDateForDay(dayIndex) {
+      const meta = globalData.schedule?._meta;
+      if (!meta?.weekStart) return null;
+      const today = new Date();
+      const monday = new Date(today);
+      const day = monday.getDay() || 7;
+      monday.setDate(monday.getDate() - day + 1);
+      const weekStart = new Date(`${meta.weekStart}T00:00:00`);
+      const currentWeekNumber = Math.floor((monday - weekStart) / 86400000 / 7);
+      const actualWeek = (currentWeekNumber % 2 === 0) === (meta.weekStartType !== 'B') ? 'A' : 'B';
+      if (actualWeek !== currentWeek) monday.setDate(monday.getDate() + 7);
+      const date = new Date(monday);
+      date.setDate(date.getDate() + dayIndex);
+      return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}-${String(date.getDate()).padStart(2, '0')}`;
+    }
+
     function renderSchedule() {
       const classKey = `2-${currentClass}`;
       const classData = globalData.schedule && globalData.schedule[classKey];
@@ -486,8 +502,10 @@
         { key: 'c',   label: 'C' }
       ];
 
-      container.innerHTML = dayKeys.map(d => {
-        const periods = weekData ? (weekData[d.key] || []) : [];
+      container.innerHTML = dayKeys.map((d, index) => {
+        const date = d.key === 'c' ? null : getScheduleDateForDay(index);
+        const override = date && globalData.schedule?._meta?.daySettings?.[classKey]?.[date];
+        const periods = override?.periods || (weekData ? (weekData[d.key] || []) : []);
         return `
           <div class="day-column">
             <div class="day-header">${d.label}曜日</div>

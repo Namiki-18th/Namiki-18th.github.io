@@ -406,6 +406,7 @@ const PATHS = {
 async function safeWriteJSON(filePath, data) {
   const tempPath = `${filePath}.${Date.now()}.${Math.random().toString(36).substring(2)}.tmp`;
   try {
+    await fsPromises.mkdir(path.dirname(filePath), { recursive: true });
     await fsPromises.writeFile(tempPath, JSON.stringify(data, null, 2), 'utf8');
     await fsPromises.rename(tempPath, filePath);
   } catch (err) {

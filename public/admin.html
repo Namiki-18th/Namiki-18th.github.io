@@ -796,6 +796,7 @@
     async function saveScheduleDay(event) {
       event.preventDefault();
       const classKey = document.getElementById('schedule-admin-class').value;
+      scheduleData._meta = scheduleData._meta || {};
       scheduleData._meta.daySettings = scheduleData._meta.daySettings || {};
       scheduleData._meta.daySettings[classKey] = scheduleData._meta.daySettings[classKey] || {};
       scheduleData._meta.daySettings[classKey][scheduleSelectedDate] = readScheduleDaySetting();
