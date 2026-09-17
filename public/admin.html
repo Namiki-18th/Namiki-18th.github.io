@@ -822,12 +822,17 @@
 
     async function persistScheduleSettings() {
       try {
+        scheduleData._meta = scheduleData._meta || {};
+        const weekStart = document.getElementById('schedule-week-start').value || scheduleData._meta.weekStart || '2026-09-07';
+        const weekStartType = document.getElementById('schedule-week-start-type').value || scheduleData._meta.weekStartType || 'A';
+        scheduleData._meta.weekStart = weekStart;
+        scheduleData._meta.weekStartType = weekStartType;
         const res = await fetch('/api/admin/schedule/settings', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
-            weekStart: scheduleData._meta.weekStart,
-            weekStartType: scheduleData._meta.weekStartType,
+            weekStart,
+            weekStartType,
             cDays: scheduleData._meta.cDays || [],
             daySettings: scheduleData._meta.daySettings || {}
           })

@@ -482,6 +482,12 @@
       return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}-${String(date.getDate()).padStart(2, '0')}`;
     }
 
+    function getScheduleCDate() {
+      const cDays = globalData.schedule?._meta?.cDays || [];
+      return Array.from({ length: 5 }, (_, index) => getScheduleDateForDay(index))
+        .find(date => date && cDays.includes(date)) || null;
+    }
+
     function renderSchedule() {
       const classKey = `2-${currentClass}`;
       const classData = globalData.schedule && globalData.schedule[classKey];
@@ -503,7 +509,7 @@
       ];
 
       container.innerHTML = dayKeys.map((d, index) => {
-        const date = d.key === 'c' ? null : getScheduleDateForDay(index);
+        const date = d.key === 'c' ? getScheduleCDate() : getScheduleDateForDay(index);
         const override = date && globalData.schedule?._meta?.daySettings?.[classKey]?.[date];
         const periods = override?.periods || (weekData ? (weekData[d.key] || []) : []);
         return `
