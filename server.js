@@ -997,19 +997,14 @@ app.delete('/api/profile/sessions-all-others', ensureAuth, (req, res, next) => {
 });
 
 app.get('/api/notices', ensureAuth, asyncHandler(async (req, res) => res.json(await safeReadJSON(PATHS.NOTICES, []))));
-// ▼ ここをキャッシュを返すように変更しました
 app.get('/api/classroom', ensureAuth, asyncHandler(async (req, res) => res.json(cachedClassroomData)));
 
-// ▼ 追加: GASから直接データを受け取るPOSTエンドポイント
 app.post('/api/classroom', ensureApiKeyOrAdmin, asyncHandler(async (req, res) => {
   const data = req.body;
   if (data && Array.isArray(data.items)) {
     cachedClassroomData = data.items;
     
-    // 再起動時にもデータが保持されるようファイルに保存 (PATHS.CLASSROOMを使用)
     await safeWriteJSON(PATHS.CLASSROOM, cachedClassroomData);
-    
-    // ログに記録
     await addLog(req, 'classroom_update', 'system', `GASから ${data.items.length} 件のデータを受信`);
     
     res.json({ success: true, message: 'Classroomデータを更新しました。' });
@@ -1249,7 +1244,6 @@ app.post(
   })
 );
 
-// --- [キャッシュ機能: 運行情報・道路交通情報] ---
 let cachedTransitData = {
   jr: { status: '取得中', detail: '最新情報を取得しています...', isTrouble: false },
   tx: { status: '取得中', detail: '最新情報を取得しています...', isTrouble: false },
@@ -1361,11 +1355,7 @@ async function updateRoadCache() {
   }
 }
 
-// --- [キャッシュ機能: Classroomデータ] ---
-// ▼ 新しく追加した部分です
 let cachedClassroomData = [];
-
-// ※ 直受け取りに変更したため、Cloudflareへのポーリング処理は削除しました
 
 setInterval(updateTransitCache, 60 * 1000);
 setInterval(updateRoadCache, 60 * 1000);
@@ -1565,6 +1555,30 @@ app.post('/api/chat/read', ensureAuth, writeLimiter, asyncHandler(async (req, re
 
 // --- [管理者向け API] ---
 app.get('/api/admin/users', ensureAdmin, (req, res) => res.json(Object.values(usersDB)));
+
+// 名簿データ取得API
+app.get('/api/admin/students', ensureAdmin, (req, res) => {
+  if (unlockModule && typeof unlockModule.getAllStudents === 'function') {
+    res.json(unlockModule.getAllStudents());
+  } else {
+    res.status(501).json({ error: '名簿モジュールが読み込まれていません' });
+  }
+});
+
+// 名簿データ更新(再暗号化)API
+app.post('/api/admin/students', ensureAdmin, writeLimiter, asyncHandler(async (req, res) => {
+  if (!unlockModule || typeof unlockModule.updateStudents !== 'function') {
+    return res.status(501).json({ error: '名簿モジュールが読み込まれていません' });
+  }
+  const newStudents = req.body;
+  if (!newStudents || typeof newStudents !== 'object' || Array.isArray(newStudents)) {
+    return res.status(400).json({ error: '無効なデータ形式です。' });
+  }
+  
+  unlockModule.updateStudents(newStudents);
+  await addLog(req, 'students_update', req.user.email, '名簿データを更新しました');
+  res.json({ success: true, message: '名簿データを更新しました。' });
+}));
 
 app.get('/api/admin/sessions', ensureAdmin, (req, res, next) => {
   sessionStore.all((err, sessions) => {

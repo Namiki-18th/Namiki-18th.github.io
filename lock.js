@@ -11,8 +11,31 @@ import crypto from "crypto";
 import fs from "fs";
 
 const key = crypto.randomBytes(32);
-fs.writeFileSync(".env", `STUDENT_KEY=${key.toString("hex")}`);
+const keyHex = key.toString("hex");
 
+// .env ファイルを安全に書き換える処理
+const envFilePath = ".env";
+let envContent = "";
+
+if (fs.existsSync(envFilePath)) {
+    envContent = fs.readFileSync(envFilePath, "utf8");
+}
+
+const envRegex = /^STUDENT_KEY=.*$/m;
+if (envRegex.test(envContent)) {
+    // 既存の STUDENT_KEY があれば置換する
+    envContent = envContent.replace(envRegex, `STUDENT_KEY=${keyHex}`);
+} else {
+    // 存在しなければ末尾に追記する
+    if (envContent.length > 0 && !envContent.endsWith("\n")) {
+        envContent += "\n";
+    }
+    envContent += `STUDENT_KEY=${keyHex}\n`;
+}
+
+fs.writeFileSync(envFilePath, envContent);
+
+// 暗号化処理
 const iv = crypto.randomBytes(12);
 const data = fs.readFileSync("students.json");
 

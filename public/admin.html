@@ -34,9 +34,7 @@
     .gen-98f9c9 { margin-top:1rem; padding-bottom: 1rem; border-bottom: 1px solid var(--color-border); }
     .gen-5f3073 { display:flex; align-items:center; gap:0.5rem; cursor:pointer; }
     .gen-5c41db { transform: scale(1.2); }
-    .gen-0e0434 { font-size:0.875rem; font-weight:600; }
-    .gen-988c5f { margin-top: 1rem; }
-    .gen-628c88 { font-size:0.95rem; font-weight:600; color:var(--color-text-primary); }
+    .gen-0e0434 { font-size:0.95rem; font-weight:600; color:var(--color-text-primary); }
     .gen-f89a84 { display:block; font-size:0.875rem; color:var(--color-text-secondary); margin-bottom:0.25rem; }
     .gen-623cbe { width:100%; padding:0.6rem; background:var(--color-bg); border:1px solid var(--color-border); border-radius:0.375rem; color:var(--color-text-primary); }
     .gen-d92c17 { padding: 0.5rem 1rem; font-size: 0.85rem; }
@@ -74,6 +72,7 @@
   background: rgba(0, 0, 0, 0.6); backdrop-filter: blur(4px);
   display: flex; align-items: center; justify-content: center;
   z-index: 9999; opacity: 0; transition: opacity 0.3s ease;
+  position: fixed; top: 0; left: 0; width: 100vw; height: 100vh;
 }
 .custom-modal {
   background: var(--color-bg, #ffffff);
@@ -191,6 +190,10 @@
         <svg class="icon-nav" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z" /></svg>
         <span class="sidebar-nav-text">ユーザー管理</span>
       </button>
+      <button id="sidebar-nav-students" class="sidebar-nav-button admin-tab-btn" data-tab="students" title="生徒名簿管理">
+        <svg class="icon-nav" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 14l9-5-9-5-9 5 9 5z"/><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 14l6.16-3.422a12.083 12.083 0 01.665 6.479A11.952 11.952 0 0112 20.055a11.952 11.952 0 01-6.824-2.998 12.078 12.078 0 01.665-6.479L12 14z"/></svg>
+        <span class="sidebar-nav-text">生徒名簿管理</span>
+      </button>
       <button id="sidebar-nav-sessions" class="sidebar-nav-button admin-tab-btn" data-tab="sessions" title="セッション管理">
         <svg class="icon-nav" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 17v-2a4 4 0 018 0v2m-4-8a3 3 0 100-6 3 3 0 000 6zm-7 8v-2a4 4 0 014-4" /></svg>
         <span class="sidebar-nav-text">セッション管理</span>
@@ -276,6 +279,7 @@
 
     <div class="mobile-tab-bar">
       <button id="mobile-nav-users" class="mobile-nav-button active admin-tab-btn" data-tab="users">ユーザー</button>
+      <button id="mobile-nav-students" class="mobile-nav-button admin-tab-btn" data-tab="students">生徒名簿</button>
       <button id="mobile-nav-sessions" class="mobile-nav-button admin-tab-btn" data-tab="sessions">セッション</button>
       <button id="mobile-nav-reports" class="mobile-nav-button admin-tab-btn" data-tab="reports">レポート</button>
       <button id="mobile-nav-notices" class="mobile-nav-button admin-tab-btn" data-tab="notices">お知らせ</button>
@@ -315,6 +319,51 @@
               <tr><td colspan="5" class="placeholder-text gen-c590b8">ユーザーデータを読み込んでいます...</td></tr>
             </tbody>
           </table>
+        </div>
+      </div>
+
+      <!-- 追加: 生徒名簿（student.json）管理セクション -->
+      <div id="page-students" class="page-section hidden fade-in space-y-6">
+        <div class="app-card content-card">
+          <div class="gen-93a5df">
+            <div>
+              <h2 class="content-card-title">🎓 生徒名簿データ管理 (student.json)</h2>
+              <p class="content-card-subtitle">学籍情報・出席番号・出席番号別データを管理・一括更新します。</p>
+            </div>
+            <div class="flex gap-2">
+              <button id="btn-add-student" class="button-primary gen-e2b6ce">➕ 生徒新規追加</button>
+              <button id="btn-load-students" class="button-secondary gen-e2b6ce">🔄 再読み込み</button>
+            </div>
+          </div>
+
+          <div class="gen-a8f441 gen-09cbfd" style="grid-template-columns: 2fr 1fr; gap: 0.5rem;">
+            <input type="text" id="student-search-input" placeholder="出席番号・氏名・学籍番号で検索..." class="gen-07e2e8">
+            <select id="student-class-filter" class="gen-07e2e8">
+              <option value="">全クラス表示</option>
+              <option value="2-A">2-A組</option>
+              <option value="2-B">2-B組</option>
+              <option value="2-C">2-C組</option>
+              <option value="2-D">2-D組</option>
+            </select>
+          </div>
+
+          <div class="overflow-x-auto">
+            <table class="gen-3eac61">
+              <thead>
+                <tr class="gen-ec0641">
+                  <th class="gen-6f9be4">学籍番号 / ID</th>
+                  <th class="gen-6f9be4">クラス</th>
+                  <th class="gen-6f9be4">出席番号</th>
+                  <th class="gen-6f9be4">氏名</th>
+                  <th class="gen-6f9be4">フリガナ</th>
+                  <th class="gen-36239d">操作</th>
+                </tr>
+              </thead>
+              <tbody id="admin-students-table">
+                <tr><td colspan="6" class="placeholder-text gen-cfedb1">生徒データを読み込んでいます...</td></tr>
+              </tbody>
+            </table>
+          </div>
         </div>
       </div>
 
@@ -473,6 +522,7 @@
             <button class="button-primary api-fetch-btn" data-url="/api/classroom">📚 Classroom</button>
             <button class="button-primary api-fetch-btn" data-url="/api/calendar">📅 カレンダー</button>
             <button class="button-primary api-fetch-btn" data-url="/api/schedule">⏰ 時間割</button>
+            <button class="button-primary api-fetch-btn" data-url="/api/students">🎓 生徒名簿 (students.json)</button>
             <button class="button-primary api-fetch-btn" data-url="/api/links">🔗 リンク集</button>
             <button class="button-primary api-fetch-btn" data-url="/api/admin/reports">⚠️ レポート</button>
           </div>
@@ -537,6 +587,7 @@
 
   <script nonce="%%CSP_NONCE%%">
     let usersData = [];
+    let studentsData = [];
 
     // イベントリスナーの登録処理
     document.addEventListener('DOMContentLoaded', () => {
@@ -591,6 +642,12 @@
       document.getElementById('btn-load-sessions')?.addEventListener('click', loadAdminSessions);
       document.getElementById('btn-load-reports')?.addEventListener('click', loadAdminReports);
 
+      // 生徒名簿関連のイベントハンドラ
+      document.getElementById('btn-load-students')?.addEventListener('click', loadAdminStudents);
+      document.getElementById('btn-add-student')?.addEventListener('click', () => openStudentEditModal());
+      document.getElementById('student-search-input')?.addEventListener('input', renderStudentsTable);
+      document.getElementById('student-class-filter')?.addEventListener('change', renderStudentsTable);
+
       // 動的生成されるボタン用デリゲーション（ユーザー管理）
       const adminUserTable = document.getElementById('admin-user-table');
       if (adminUserTable) {
@@ -606,6 +663,24 @@
             const btn = e.target.closest('.delete-user-btn');
             const email = btn.getAttribute('data-email');
             deleteUser(email);
+          }
+        });
+      }
+
+      // 動的生成されるボタン用デリゲーション（生徒名簿管理）
+      const adminStudentsTable = document.getElementById('admin-students-table');
+      if (adminStudentsTable) {
+        adminStudentsTable.addEventListener('click', (e) => {
+          const editBtn = e.target.closest('.edit-student-btn');
+          if (editBtn) {
+            const id = editBtn.getAttribute('data-id');
+            const student = studentsData.find(s => String(s.id) === String(id));
+            if (student) openStudentEditModal(student);
+          }
+          const delBtn = e.target.closest('.delete-student-btn');
+          if (delBtn) {
+            const id = delBtn.getAttribute('data-id');
+            deleteStudent(id);
           }
         });
       }
@@ -669,6 +744,7 @@
       const mobileNav = document.getElementById(`mobile-nav-${tabId}`);
       if (mobileNav) mobileNav.classList.add('active');
 
+      if (tabId === 'students') loadAdminStudents();
       if (tabId === 'notices') loadAdminNotices();
       if (tabId === 'logs') loadAdminLogs();
       if (tabId === 'sessions') loadAdminSessions();
@@ -845,6 +921,177 @@
         renderScheduleAdminCalendar();
       } catch (err) {
         alert(`時間割設定の保存に失敗しました: ${err.message}`);
+      }
+    }
+
+    /* --- 生徒名簿 (student.json) 管理機能 --- */
+    async function loadAdminStudents() {
+      const tbody = document.getElementById('admin-students-table');
+      if (!tbody) return;
+      tbody.innerHTML = '<tr><td colspan="6" class="placeholder-text gen-cfedb1">生徒データを読み込んでいます...</td></tr>';
+      try {
+        const res = await fetch('/api/students');
+        if (!res.ok) throw new Error('生徒データの取得に失敗しました');
+        studentsData = await res.json();
+        renderStudentsTable();
+      } catch (err) {
+        tbody.innerHTML = '<tr><td colspan="6" class="placeholder-text gen-dbd0ea">生徒データの取得に失敗しました。</td></tr>';
+      }
+    }
+
+    function renderStudentsTable() {
+      const tbody = document.getElementById('admin-students-table');
+      if (!tbody) return;
+
+      const query = (document.getElementById('student-search-input')?.value || '').toLowerCase().trim();
+      const classFilter = document.getElementById('student-class-filter')?.value || '';
+
+      const filtered = studentsData.filter(s => {
+        const matchesClass = !classFilter || s.class === classFilter;
+        const matchesQuery = !query || 
+          String(s.id || '').toLowerCase().includes(query) ||
+          String(s.number || '').includes(query) ||
+          String(s.name || '').toLowerCase().includes(query) ||
+          String(s.kana || '').toLowerCase().includes(query);
+        return matchesClass && matchesQuery;
+      });
+
+      if (!filtered.length) {
+        tbody.innerHTML = '<tr><td colspan="6" class="placeholder-text gen-cfedb1">該当する生徒が見つかりません。</td></tr>';
+        return;
+      }
+
+      tbody.innerHTML = filtered.map(s => `
+        <tr class="gen-4ccb56">
+          <td class="gen-fbd1b5">${escapeHtml(s.id || '-')}</td>
+          <td class="gen-6f9be4"><span class="gen-891c24">${escapeHtml(s.class || '-')}</span></td>
+          <td class="gen-300fcd">${escapeHtml(s.number ? s.number + '番' : '-')}</td>
+          <td class="gen-c60936 font-semibold">${escapeHtml(s.name || '-')}</td>
+          <td class="gen-916915">${escapeHtml(s.kana || '-')}</td>
+          <td class="gen-22a4ad" style="white-space: nowrap;">
+            <button data-id="${escapeHtml(s.id)}" class="button-primary edit-student-btn gen-795a98">編集</button>
+            <button data-id="${escapeHtml(s.id)}" class="delete-student-btn gen-ef0939" style="margin-left: 0.25rem; padding: 0.35rem 0.5rem; border: 1px solid #dc2626; border-radius: 4px; display: inline-flex; align-items: center; justify-content: center; background: transparent; cursor: pointer; color: #dc2626;" title="削除">
+              <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#dc2626" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <polyline points="3 6 5 6 21 6"></polyline>
+                <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path>
+              </svg>
+            </button>
+          </td>
+        </tr>
+      `).join('');
+    }
+
+    function openStudentEditModal(student = null) {
+      const isEdit = !!student;
+      const overlay = document.createElement('div');
+      overlay.className = 'custom-modal-overlay';
+      
+      const modal = document.createElement('div');
+      modal.className = 'custom-modal';
+      modal.style.maxWidth = '480px';
+      
+      modal.innerHTML = `
+        <div class="custom-modal-header" style="color: var(--color-text-primary);">
+          <svg width="24" height="24" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" /></svg>
+          <h3>${isEdit ? '生徒情報の編集' : '生徒データの新規追加'}</h3>
+        </div>
+        <div class="space-y-3" style="margin-bottom: 1.5rem; text-align: left;">
+          <div>
+            <label class="gen-114f3e">学籍番号 / ID</label>
+            <input type="text" id="modal-student-id" class="gen-623cbe" value="${escapeHtml(student?.id || '')}" ${isEdit ? 'readonly style="opacity: 0.7;"' : ''} placeholder="例: 18001">
+          </div>
+          <div class="gen-a8f441">
+            <div>
+              <label class="gen-114f3e">クラス</label>
+              <select id="modal-student-class" class="gen-623cbe">
+                <option value="2-A" ${student?.class === '2-A' ? 'selected' : ''}>2-A</option>
+                <option value="2-B" ${student?.class === '2-B' ? 'selected' : ''}>2-B</option>
+                <option value="2-C" ${student?.class === '2-C' ? 'selected' : ''}>2-C</option>
+                <option value="2-D" ${student?.class === '2-D' ? 'selected' : ''}>2-D</option>
+              </select>
+            </div>
+            <div>
+              <label class="gen-114f3e">出席番号</label>
+              <input type="number" id="modal-student-number" class="gen-623cbe" value="${escapeHtml(student?.number || '')}" placeholder="1">
+            </div>
+          </div>
+          <div>
+            <label class="gen-114f3e">氏名</label>
+            <input type="text" id="modal-student-name" class="gen-623cbe" value="${escapeHtml(student?.name || '')}" placeholder="例: 並木 太郎">
+          </div>
+          <div>
+            <label class="gen-114f3e">フリガナ</label>
+            <input type="text" id="modal-student-kana" class="gen-623cbe" value="${escapeHtml(student?.kana || '')}" placeholder="例: ナミキ タロウ">
+          </div>
+        </div>
+        <div class="custom-modal-actions">
+          <button id="modal-student-cancel" class="custom-modal-btn-cancel">キャンセル</button>
+          <button id="modal-student-save" class="button-primary gen-e2b6ce">${isEdit ? '変更保存' : '追加する'}</button>
+        </div>
+      `;
+      
+      overlay.appendChild(modal);
+      document.body.appendChild(overlay);
+      
+      requestAnimationFrame(() => {
+        overlay.style.opacity = '1';
+        modal.style.transform = 'translateY(0) scale(1)';
+      });
+      
+      const closeModal = () => {
+        overlay.style.opacity = '0';
+        modal.style.transform = 'translateY(20px) scale(0.95)';
+        setTimeout(() => { if (overlay.parentNode) overlay.remove(); }, 300);
+      };
+      
+      document.getElementById('modal-student-cancel').onclick = closeModal;
+      document.getElementById('modal-student-save').onclick = async () => {
+        const id = document.getElementById('modal-student-id').value.trim();
+        const studentClass = document.getElementById('modal-student-class').value;
+        const number = parseInt(document.getElementById('modal-student-number').value, 10);
+        const name = document.getElementById('modal-student-name').value.trim();
+        const kana = document.getElementById('modal-student-kana').value.trim();
+
+        if (!id || !name) {
+          alert('学籍番号と氏名は必須項目です。');
+          return;
+        }
+
+        const studentData = { id, class: studentClass, number, name, kana };
+
+        try {
+          const res = await fetch('/api/admin/students', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(studentData)
+          });
+          const data = await res.json();
+          if (res.ok && data.success) {
+            alert(isEdit ? '生徒情報を更新しました。' : '生徒を追加しました。');
+            closeModal();
+            loadAdminStudents();
+          } else {
+            alert('保存失敗: ' + (data.error || '不明なエラー'));
+          }
+        } catch (err) {
+          alert('通信エラーが発生しました。');
+        }
+      };
+    }
+
+    async function deleteStudent(id) {
+      if (!confirm(`学籍番号 [${id}] の生徒情報を削除しますか？`)) return;
+      try {
+        const res = await fetch(`/api/admin/students/${encodeURIComponent(id)}`, { method: 'DELETE' });
+        const data = await res.json();
+        if (res.ok && data.success) {
+          alert('生徒情報を削除しました。');
+          loadAdminStudents();
+        } else {
+          alert('削除失敗: ' + (data.error || '不明なエラー'));
+        }
+      } catch (err) {
+        alert('通信エラーが発生しました。');
       }
     }
 
@@ -1133,78 +1380,71 @@
       }
     }
 
-    // ユーザー削除機能（カスタムプロンプト版）
-    // ユーザー削除機能（モダンCSS適用版）
-// ユーザー削除機能（外部CSSファイル利用版）
-async function deleteUser(encodedEmail) {
-  const decodedEmail = decodeURIComponent(encodedEmail);
-  
-  // 背景のオーバーレイ
-  const overlay = document.createElement('div');
-  overlay.className = 'custom-modal-overlay';
-  
-  // モーダルウィンドウ本体
-  const modal = document.createElement('div');
-  modal.className = 'custom-modal';
-  
-  modal.innerHTML = `
-    <div class="custom-modal-header">
-      <svg width="28" height="28" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
-        <path stroke-linecap="round" stroke-linejoin="round" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"/>
-      </svg>
-      <h3>ユーザーの完全削除</h3>
-    </div>
-    <p class="custom-modal-desc">
-      この操作は取り消せません。<br>確認のため、以下のメールアドレスを入力してください。
-    </p>
-    <div class="custom-modal-email">${decodedEmail}</div>
-    <input type="text" id="custom-prompt-input" class="custom-modal-input" placeholder="正確に入力してください">
-    <div class="custom-modal-actions">
-      <button id="custom-prompt-cancel" class="custom-modal-btn-cancel">キャンセル</button>
-      <button id="custom-prompt-ok" class="custom-modal-btn-ok">削除を実行</button>
-    </div>
-  `;
-  
-  overlay.appendChild(modal);
-  document.body.appendChild(overlay);
-  
-  // アニメーション発火
-  requestAnimationFrame(() => {
-    overlay.style.opacity = '1';
-    modal.style.transform = 'translateY(0) scale(1)';
-  });
-  
-  // 閉じる処理
-  const closeModal = () => {
-    overlay.style.opacity = '0';
-    modal.style.transform = 'translateY(20px) scale(0.95)';
-    setTimeout(() => { if (overlay.parentNode) overlay.remove(); }, 300);
-  };
-  
-  // ボタンイベント
-  document.getElementById('custom-prompt-cancel').onclick = closeModal;
-  document.getElementById('custom-prompt-ok').onclick = async () => {
-    const inputEl = document.getElementById('custom-prompt-input');
-    if (inputEl.value.trim() !== decodedEmail) {
-      alert('入力されたメールアドレスが一致しません。');
-      return; 
+    async function deleteUser(encodedEmail) {
+      const decodedEmail = decodeURIComponent(encodedEmail);
+      
+      const overlay = document.createElement('div');
+      overlay.className = 'custom-modal-overlay';
+      
+      const modal = document.createElement('div');
+      modal.className = 'custom-modal';
+      
+      modal.innerHTML = `
+        <div class="custom-modal-header">
+          <svg width="28" height="28" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"/>
+          </svg>
+          <h3>ユーザーの完全削除</h3>
+        </div>
+        <p class="custom-modal-desc">
+          この操作は取り消せません。<br>確認のため、以下のメールアドレスを入力してください。
+        </p>
+        <div class="custom-modal-email">${decodedEmail}</div>
+        <input type="text" id="custom-prompt-input" class="custom-modal-input" placeholder="正確に入力してください">
+        <div class="custom-modal-actions">
+          <button id="custom-prompt-cancel" class="custom-modal-btn-cancel">キャンセル</button>
+          <button id="custom-prompt-ok" class="custom-modal-btn-ok">削除を実行</button>
+        </div>
+      `;
+      
+      overlay.appendChild(modal);
+      document.body.appendChild(overlay);
+      
+      requestAnimationFrame(() => {
+        overlay.style.opacity = '1';
+        modal.style.transform = 'translateY(0) scale(1)';
+      });
+      
+      const closeModal = () => {
+        overlay.style.opacity = '0';
+        modal.style.transform = 'translateY(20px) scale(0.95)';
+        setTimeout(() => { if (overlay.parentNode) overlay.remove(); }, 300);
+      };
+      
+      document.getElementById('custom-prompt-cancel').onclick = closeModal;
+      document.getElementById('custom-prompt-ok').onclick = async () => {
+        const inputEl = document.getElementById('custom-prompt-input');
+        if (inputEl.value.trim() !== decodedEmail) {
+          alert('入力されたメールアドレスが一致しません。');
+          return; 
+        }
+        
+        closeModal();
+        try {
+          const res = await fetch(`/api/admin/user/${encodedEmail}`, { method: 'DELETE', headers: { 'Content-Type': 'application/json' }});
+          const data = await res.json();
+          if (res.ok && data.success) {
+            alert('アカウントを正常に削除しました。');
+            loadAdminData(); 
+          } else {
+            alert('削除失敗: ' + (data.error || '不明なエラー'));
+          }
+        } catch (err) {
+          alert('通信エラーが発生しました。');
+        }
+      };
     }
-    
-    closeModal();
-    try {
-      const res = await fetch(`/api/admin/user/${encodedEmail}`, { method: 'DELETE', headers: { 'Content-Type': 'application/json' }});
-      const data = await res.json();
-      if (res.ok && data.success) {
-        alert('アカウントを正常に削除しました。');
-        loadAdminData(); 
-      } else {
-        alert('削除失敗: ' + (data.error || '不明なエラー'));
-      }
-    } catch (err) {
-      alert('通信エラーが発生しました。');
-    }
-  };
-}
+
     async function saveAllSettings() {
       if (!confirm('全ユーザーの表示変更内容を保存しますか？')) return;
       try {
