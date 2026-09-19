@@ -486,6 +486,19 @@
 
   <script nonce="%%CSP_NONCE%%">
     let currentProfile = null;
+    let deferredPrompt = null; // PWAインストールプロンプト用変数
+
+    // PWAインストールの準備
+    window.addEventListener('beforeinstallprompt', (e) => {
+      e.preventDefault();
+      deferredPrompt = e;
+    });
+
+    // インストール完了時の処理
+    window.addEventListener('appinstalled', () => {
+      deferredPrompt = null;
+      console.log('PWAのインストールが完了しました');
+    });
 
     document.addEventListener('DOMContentLoaded', () => {
       // ヘッダー・ロゴクリック
@@ -520,12 +533,13 @@
         userToggle.addEventListener('click', toggleAccountMenu);
       }
 
-      // フォームイベント
+      // フォーム・ボタンイベント
       document.getElementById('form-profile')?.addEventListener('submit', saveProfileSettings);
       document.getElementById('form-appearance')?.addEventListener('submit', saveAppearanceSettings);
       document.getElementById('form-dashboard')?.addEventListener('submit', saveDashboardSettings);
       document.getElementById('form-delete-account')?.addEventListener('submit', handleDeleteAccount);
       document.getElementById('btn-revoke-all-sessions')?.addEventListener('click', revokeAllOtherSessions);
+      document.getElementById('btn-install-pwa')?.addEventListener('click', handlePwaInstall);
 
       // セッション個別切断（デリゲーション）
       const sessionTableBody = document.getElementById('session-table-body');
@@ -548,6 +562,19 @@
         document.getElementById('theme-toggle-switch')?.classList.add('on');
       }
     });
+
+    async function handlePwaInstall() {
+      if (deferredPrompt) {
+        deferredPrompt.prompt();
+        const { outcome } = await deferredPrompt.userChoice;
+        if (outcome === 'accepted') {
+          console.log('ユーザーがPWAのインストールを承認しました');
+        }
+        deferredPrompt = null;
+      } else {
+        alert('現在インストールプロンプトを表示できません。すでにインストールされているか、ご利用のブラウザがPWAに対応していない可能性があります。');
+      }
+    }
 
     function switchTab(tabId) {
       document.querySelectorAll('.page-section').forEach(el => el.classList.add('hidden'));
