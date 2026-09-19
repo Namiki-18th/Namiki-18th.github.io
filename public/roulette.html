@@ -1,0 +1,840 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ルーレット</title>
+</head>
+<style>
+    * {
+        box-sizing: border-box;
+    }
+
+    body {
+        margin: 0;
+        width: 100vw;
+        height: 100vh;
+        background-color: #f8fafc;
+        display: flex;
+        font-family: sans-serif;
+        overflow: hidden;
+        position: relative;
+        transition: background 0.5s ease;
+    }
+
+    /* 先生確定演出時：中心から波打つレインボー背景 */
+    body.rainbow-mode {
+        background: radial-gradient(
+            circle at center,
+            #ff0000 0%,
+            #ff7f00 14%,
+            #ffff00 28%,
+            #00ff00 42%,
+            #00ffff 56%,
+            #0000ff 70%,
+            #8b00ff 84%,
+            #ff0000 100%
+        );
+        background-size: 200% 200%;
+        animation: rippleRainbow 1.2s linear infinite;
+    }
+
+    @keyframes rippleRainbow {
+        0% {
+            background-size: 100% 100%;
+            background-position: center;
+        }
+        50% {
+            background-size: 250% 250%;
+            background-position: center;
+        }
+        100% {
+            background-size: 400% 400%;
+            background-position: center;
+        }
+    }
+
+    /* 紙吹雪（エフェクト）用Canvas */
+    #confettiCanvas {
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: 100vw;
+        height: 100vh;
+        pointer-events: none;
+        z-index: 90;
+    }
+
+    /* サイドバー開閉切り替えボタン */
+    .sidebar-toggle-btn {
+        position: absolute;
+        top: 16px;
+        left: 16px;
+        z-index: 30;
+        width: 40px;
+        height: 40px;
+        background-color: #ffffff;
+        border: 2px solid #e2e8f0;
+        border-radius: 8px;
+        cursor: pointer;
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        font-size: 20px;
+        color: #2d3748;
+        box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+        transition: background-color 0.2s;
+    }
+
+    .sidebar-toggle-btn:hover {
+        background-color: #edf2f7;
+    }
+
+    /* 左側：固定サイドバー */
+    .sidebar {
+        width: 280px;
+        height: 100vh;
+        background-color: #ffffff;
+        border-right: 2px solid #e2e8f0;
+        padding: 68px 20px 20px 20px;
+        display: flex;
+        flex-direction: column;
+        box-shadow: 4px 0 12px rgba(0, 0, 0, 0.03);
+        z-index: 20;
+        flex-shrink: 0;
+        transition: margin-left 0.3s ease;
+    }
+
+    .sidebar.collapsed {
+        margin-left: -280px;
+    }
+
+    /* クラス切替タブ */
+    .class-selector-title {
+        font-size: 13px;
+        font-weight: bold;
+        color: #718096;
+        margin-bottom: 8px;
+    }
+
+    .class-tabs {
+        display: grid;
+        grid-template-columns: repeat(4, 1fr);
+        gap: 6px;
+        margin-bottom: 20px;
+    }
+
+    .tab-btn {
+        padding: 8px 0;
+        font-size: 14px;
+        font-weight: bold;
+        border: 2px solid #cbd5e0;
+        background-color: #f7fafc;
+        color: #4a5568;
+        border-radius: 6px;
+        cursor: pointer;
+        transition: all 0.2s ease;
+    }
+
+    .tab-btn:hover {
+        background-color: #edf2f7;
+    }
+
+    .tab-btn.active {
+        background-color: #3182ce;
+        color: #ffffff;
+        border-color: #3182ce;
+    }
+
+    /* 履歴エリア */
+    .history-title {
+        font-size: 16px;
+        font-weight: bold;
+        color: #2d3748;
+        border-bottom: 2px solid #e2e8f0;
+        padding-bottom: 8px;
+        margin-bottom: 12px;
+        text-align: center;
+    }
+
+    .history-list {
+        list-style: none;
+        padding: 0;
+        margin: 0;
+        overflow-y: auto;
+        flex-grow: 1;
+    }
+
+    .history-item {
+        background-color: #f7fafc;
+        border: 1px solid #e2e8f0;
+        border-radius: 6px;
+        padding: 8px 12px;
+        margin-bottom: 8px;
+        font-size: 14px;
+        font-weight: bold;
+        color: #4a5568;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+    }
+
+    .history-item .count {
+        font-size: 11px;
+        color: #a0aec0;
+    }
+
+    .history-empty {
+        color: #a0aec0;
+        font-size: 13px;
+        text-align: center;
+        margin-top: 20px;
+    }
+
+    /* 中央メインエリア（ルーレット） */
+    .main-container {
+        flex-grow: 1;
+        height: 100vh;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        gap: 24px;
+        position: relative;
+    }
+
+    #roulette {
+        display: block;
+    }
+
+    #spinBtn {
+        padding: 14px 48px;
+        font-size: 22px;
+        font-weight: bold;
+        color: #ffffff;
+        background-color: #e53e3e;
+        border: none;
+        border-radius: 8px;
+        cursor: pointer;
+        box-shadow: 0 4px 14px rgba(229, 62, 62, 0.4);
+        transition: transform 0.1s, background-color 0.2s;
+        z-index: 10;
+    }
+
+    #spinBtn:hover {
+        background-color: #c53030;
+    }
+
+    #spinBtn:active {
+        transform: scale(0.95);
+    }
+
+    #spinBtn:disabled {
+        background-color: #a0aec0;
+        cursor: not-allowed;
+        box-shadow: none;
+    }
+
+    /* モーダル */
+    .modal-overlay {
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: 100vw;
+        height: 100vh;
+        background-color: rgba(0, 0, 0, 0.6);
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        z-index: 100;
+        opacity: 0;
+        visibility: hidden;
+        transition: opacity 0.3s ease, visibility 0.3s ease;
+    }
+
+    .modal-overlay.active {
+        opacity: 1;
+        visibility: visible;
+    }
+
+    .modal-card {
+        background-color: #2d3748;
+        color: #ffffff;
+        padding: 28px 40px;
+        border-radius: 12px;
+        box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.3);
+        text-align: center;
+        min-width: 300px;
+        transform: translateY(-20px);
+        transition: transform 0.3s ease;
+    }
+
+    .modal-card.teacher-special {
+        background-color: #1a202c;
+        border: 3px solid #ff4757;
+        box-shadow: 0 0 30px rgba(255, 71, 87, 0.8);
+        animation: pulseModal 1s infinite alternate;
+    }
+
+    @keyframes pulseModal {
+        0% { transform: scale(1); }
+        100% { transform: scale(1.05); }
+    }
+
+    .modal-overlay.active .modal-card {
+        transform: translateY(0);
+    }
+
+    .modal-title {
+        font-size: 14px;
+        color: #a0aec0;
+        margin-bottom: 8px;
+    }
+
+    .modal-result {
+        font-size: 32px;
+        font-weight: bold;
+        margin-bottom: 24px;
+        color: #48bb78;
+    }
+
+    .modal-result.rainbow-text {
+        font-size: 42px;
+        background: linear-gradient(to right, #ff0000, #ff7f00, #ffff00, #00ff00, #00ffff, #0000ff, #8b00ff);
+        -webkit-background-clip: text;
+        -webkit-text-fill-color: transparent;
+        animation: rainbowText 0.8s linear infinite;
+    }
+
+    @keyframes rainbowText {
+        0% { filter: hue-rotate(0deg); }
+        100% { filter: hue-rotate(360deg); }
+    }
+
+    .modal-buttons {
+        display: flex;
+        justify-content: center;
+        gap: 16px;
+    }
+
+    .btn-action {
+        padding: 10px 24px;
+        font-size: 16px;
+        font-weight: bold;
+        border: none;
+        border-radius: 6px;
+        cursor: pointer;
+        transition: background-color 0.2s;
+    }
+
+    .btn-absent {
+        background-color: #718096;
+        color: #ffffff;
+    }
+
+    .btn-absent:hover {
+        background-color: #4a5568;
+    }
+
+    .btn-ok {
+        background-color: #3182ce;
+        color: #ffffff;
+    }
+
+    .btn-ok:hover {
+        background-color: #2b6cb0;
+    }
+</style>
+
+<body>
+    <!-- エフェクト描画用Canvas -->
+    <canvas id="confettiCanvas"></canvas>
+
+    <!-- サイドバー開閉用ボタン -->
+    <button class="sidebar-toggle-btn" id="toggleBtn" onclick="toggleSidebar()">☰</button>
+
+    <!-- 左側：固定サイドバー -->
+    <div class="sidebar" id="sidebar">
+        <!-- クラス選択 -->
+        <div class="class-selector-title">クラス選択</div>
+        <div class="class-tabs">
+            <button class="tab-btn active" onclick="switchClass('A')">A</button>
+            <button class="tab-btn" onclick="switchClass('B')">B</button>
+            <button class="tab-btn" onclick="switchClass('C')">C</button>
+            <button class="tab-btn" onclick="switchClass('D')">D</button>
+        </div>
+
+        <!-- 履歴エリア -->
+        <div class="history-title"><span id="currentClassTitle">A組</span> 当選履歴</div>
+        <ul id="historyList" class="history-list">
+            <div id="emptyMsg" class="history-empty">まだ履歴はありません</div>
+        </ul>
+    </div>
+
+    <!-- 中央：ルーレットメインエリア -->
+    <div class="main-container">
+        <div style="position: relative; display: flex; justify-content: center; align-items: center;">
+            <!-- 針（矢印） -->
+            <div style="
+                position: absolute;
+                top: -10px;
+                width: 0;
+                height: 0;
+                border-left: 15px solid transparent;
+                border-right: 15px solid transparent;
+                border-top: 25px solid #ff4757;
+                z-index: 10;
+            "></div>
+            <canvas id="roulette" width="500" height="500"></canvas>
+        </div>
+
+        <button id="spinBtn" onclick="spin()">SPIN</button>
+    </div>
+
+    <!-- 結果モーダル -->
+    <div id="resultModal" class="modal-overlay">
+        <div class="modal-card" id="modalCard">
+            <div class="modal-title"><span id="modalClassLabel">A組</span> 当選結果</div>
+            <div id="resultText" class="modal-result">先生</div>
+            <div class="modal-buttons">
+                <button class="btn-action btn-absent" onclick="handleAbsent()">欠席</button>
+                <button class="btn-action btn-ok" id="modalOkBtn" onclick="handleOk()">OK</button>
+            </div>
+        </div>
+    </div>
+
+<script>
+    const INITIAL_PEOPLE = 41;
+    let currentClass = 'A';
+    let currentAngle = 0;
+    let isSpinning = false;
+    let isModalOpen = false;
+    let lastWinnerSliceIndex = -1;
+    let lastPlayedSliceIndex = -1;
+
+    // --- キーボード操作（Enter / Space）のイベントリスナー ---
+    document.addEventListener('keydown', (event) => {
+        if (event.code === 'Enter' || event.code === 'Space') {
+            event.preventDefault(); // スペースキーでのページスクロール等を防止
+
+            if (isModalOpen) {
+                // モーダル表示中は「OK」を実行
+                handleOk();
+            } else {
+                // 通常時は「SPIN」を実行
+                spin();
+            }
+        }
+    });
+
+    // サイドバー開閉
+    function toggleSidebar() {
+        const sidebar = document.getElementById('sidebar');
+        const toggleBtn = document.getElementById('toggleBtn');
+        sidebar.classList.toggle('collapsed');
+        
+        toggleBtn.textContent = sidebar.classList.contains('collapsed') ? '☰' : '✕';
+    }
+
+    // クラスごとの状態管理
+    const classData = {
+        'A': { participants: [], history: [] },
+        'B': { participants: [], history: [] },
+        'C': { participants: [], history: [] },
+        'D': { participants: [], history: [] }
+    };
+
+    function shuffleArray(array) {
+        for (let i = array.length - 1; i > 0; i--) {
+            const j = Math.floor(Math.random() * (i + 1));
+            [array[i], array[j]] = [array[j], array[i]];
+        }
+    }
+
+    function initClassData() {
+        ['A', 'B', 'C', 'D'].forEach(c => {
+            const list = Array.from({ length: INITIAL_PEOPLE }, (_, i) => i);
+            shuffleArray(list);
+            classData[c].participants = list;
+            classData[c].history = [];
+        });
+    }
+
+    initClassData();
+
+    const canvas = document.getElementById('roulette');
+    const ctx = canvas.getContext('2d');
+
+    const centerX = canvas.width / 2;
+    const centerY = canvas.height / 2;
+    const radius = 250;
+
+    function toRad(deg) {
+        return deg * (Math.PI / 180);
+    }
+
+    // --- Web Audio API を使った音効 ---
+    let audioCtx = null;
+
+    function playTickSound() {
+        if (!audioCtx) {
+            audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+        }
+        if (audioCtx.state === 'suspended') {
+            audioCtx.resume();
+        }
+
+        const osc = audioCtx.createOscillator();
+        const gain = audioCtx.createGain();
+
+        osc.type = 'triangle';
+        osc.frequency.setValueAtTime(600, audioCtx.currentTime);
+        osc.frequency.exponentialRampToValueAtTime(100, audioCtx.currentTime + 0.015);
+
+        gain.gain.setValueAtTime(0.15, audioCtx.currentTime);
+        gain.gain.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + 0.015);
+
+        osc.connect(gain);
+        gain.connect(audioCtx.destination);
+
+        osc.start();
+        osc.stop(audioCtx.currentTime + 0.015);
+    }
+
+    function playFanfareSound() {
+        if (!audioCtx) return;
+        const notes = [261.63, 329.63, 392.00, 523.25, 659.25, 783.99, 1046.50];
+        notes.forEach((freq, idx) => {
+            const osc = audioCtx.createOscillator();
+            const gain = audioCtx.createGain();
+            osc.type = 'triangle';
+            osc.frequency.value = freq;
+
+            const startTime = audioCtx.currentTime + idx * 0.07;
+            gain.gain.setValueAtTime(0.25, startTime);
+            gain.gain.exponentialRampToValueAtTime(0.001, startTime + 0.35);
+
+            osc.connect(gain);
+            gain.connect(audioCtx.destination);
+
+            osc.start(startTime);
+            osc.stop(startTime + 0.35);
+        });
+    }
+
+    // --- 紙吹雪（Confetti）エフェクト ---
+    const confettiCanvas = document.getElementById('confettiCanvas');
+    const cCtx = confettiCanvas.getContext('2d');
+    let confettiParticles = [];
+    let confettiAnimationId = null;
+
+    function resizeConfetti() {
+        confettiCanvas.width = window.innerWidth;
+        confettiCanvas.height = window.innerHeight;
+    }
+    window.addEventListener('resize', resizeConfetti);
+    resizeConfetti();
+
+    function createConfetti() {
+        confettiParticles = [];
+        const colors = ['#ff0000', '#ff7f00', '#ffff00', '#00ff00', '#00ffff', '#0000ff', '#8b00ff', '#ffffff'];
+        for (let i = 0; i < 200; i++) {
+            confettiParticles.push({
+                x: Math.random() * confettiCanvas.width,
+                y: Math.random() * confettiCanvas.height - confettiCanvas.height,
+                size: Math.random() * 10 + 4,
+                color: colors[Math.floor(Math.random() * colors.length)],
+                speedY: Math.random() * 4 + 2,
+                speedX: Math.random() * 3 - 1.5,
+                rotation: Math.random() * 360,
+                rotSpeed: Math.random() * 12 - 6
+            });
+        }
+    }
+
+    function renderConfetti() {
+        cCtx.clearRect(0, 0, confettiCanvas.width, confettiCanvas.height);
+        confettiParticles.forEach(p => {
+            p.y += p.speedY;
+            p.x += p.speedX;
+            p.rotation += p.rotSpeed;
+
+            if (p.y > confettiCanvas.height) {
+                p.y = -10;
+                p.x = Math.random() * confettiCanvas.width;
+            }
+
+            cCtx.save();
+            cCtx.translate(p.x, p.y);
+            cCtx.rotate(toRad(p.rotation));
+            cCtx.fillStyle = p.color;
+            cCtx.fillRect(-p.size / 2, -p.size / 2, p.size, p.size);
+            cCtx.restore();
+        });
+
+        confettiAnimationId = requestAnimationFrame(renderConfetti);
+    }
+
+    function startConfetti() {
+        createConfetti();
+        renderConfetti();
+    }
+
+    function stopConfetti() {
+        if (confettiAnimationId) {
+            cancelAnimationFrame(confettiAnimationId);
+            confettiAnimationId = null;
+        }
+        cCtx.clearRect(0, 0, confettiCanvas.width, confettiCanvas.height);
+    }
+
+    // --- クラス切り替え ---
+    function switchClass(className) {
+        if (isSpinning) return;
+
+        currentClass = className;
+
+        document.querySelectorAll('.tab-btn').forEach(btn => {
+            btn.classList.toggle('active', btn.textContent === className);
+        });
+
+        document.getElementById('currentClassTitle').textContent = `${className}組`;
+        document.getElementById('modalClassLabel').textContent = `${className}組`;
+
+        renderHistory();
+
+        currentAngle = 0;
+        drawRoulette();
+        updateSpinButtonState();
+    }
+
+    function renderHistory() {
+        const historyList = document.getElementById('historyList');
+        historyList.innerHTML = '';
+
+        const history = classData[currentClass].history;
+
+        if (history.length === 0) {
+            historyList.innerHTML = '<div id="emptyMsg" class="history-empty">まだ履歴はありません</div>';
+            return;
+        }
+
+        history.forEach((item, index) => {
+            const li = document.createElement('li');
+            li.className = 'history-item';
+            li.innerHTML = `<span>${item}</span><span class="count">${history.length - index}回目</span>`;
+            historyList.appendChild(li);
+        });
+    }
+
+    function updateSpinButtonState() {
+        const participants = classData[currentClass].participants;
+        document.getElementById('spinBtn').disabled = participants.length === 0;
+    }
+
+    // --- Canvas 描画処理 ---
+    function drawRoulette() {
+        ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+        const participants = classData[currentClass].participants;
+        const total = participants.length;
+
+        if (total === 0) {
+            ctx.fillStyle = '#1a202c';
+            ctx.beginPath();
+            ctx.arc(centerX, centerY, radius, 0, Math.PI * 2);
+            ctx.fill();
+
+            ctx.fillStyle = '#ffffff';
+            ctx.font = 'bold 24px sans-serif';
+            ctx.textAlign = 'center';
+            ctx.textBaseline = 'middle';
+            ctx.fillText(`${currentClass}組 全員終了！`, centerX, centerY);
+            return;
+        }
+
+        const sliceAngle = 360 / total;
+
+        const normalizedAngle = (270 - (currentAngle % 360) + 360) % 360;
+        const currentSliceIndex = Math.floor(normalizedAngle / sliceAngle) % total;
+
+        if (isSpinning && currentSliceIndex !== lastPlayedSliceIndex) {
+            playTickSound();
+            lastPlayedSliceIndex = currentSliceIndex;
+        }
+
+        ctx.save();
+        ctx.translate(centerX, centerY);
+        ctx.rotate(toRad(currentAngle));
+        ctx.translate(-centerX, -centerY);
+
+        for (let i = 0; i < total; i++) {
+            const startDeg = i * sliceAngle;
+            const endDeg = (i + 1) * sliceAngle;
+
+            ctx.beginPath();
+            ctx.moveTo(centerX, centerY);
+            ctx.arc(centerX, centerY, radius, toRad(startDeg), toRad(endDeg));
+            ctx.closePath();
+
+            ctx.fillStyle = (i % 2 === 0) ? '#4a5568' : '#2d3748';
+            ctx.fill();
+
+            ctx.strokeStyle = '#ffffff';
+            ctx.lineWidth = 1;
+            ctx.stroke();
+
+            ctx.save();
+            ctx.translate(centerX, centerY);
+
+            const midAngle = startDeg + (sliceAngle / 2);
+            ctx.rotate(toRad(midAngle));
+
+            ctx.fillStyle = '#ffffff';
+            ctx.font = total > 20 ? 'bold 12px sans-serif' : 'bold 16px sans-serif';
+            ctx.textBaseline = 'middle';
+
+            const participantId = participants[i];
+            const label = (participantId === 0) ? '先生' : `${participantId}`;
+
+            if (midAngle > 90 && midAngle < 270) {
+                ctx.rotate(Math.PI);
+                ctx.textAlign = 'left';
+                ctx.fillText(label, -radius + 15, 0);
+            } else {
+                ctx.textAlign = 'right';
+                ctx.fillText(label, radius - 15, 0);
+            }
+
+            ctx.restore();
+        }
+
+        ctx.restore();
+
+        const currentParticipantId = participants[currentSliceIndex];
+        const currentLabel = (currentParticipantId === 0) ? '先生' : `${currentParticipantId}`;
+        const centerRadius = 45;
+
+        ctx.beginPath();
+        ctx.arc(centerX, centerY, centerRadius, 0, Math.PI * 2);
+        ctx.fillStyle = '#1a202c';
+        ctx.fill();
+        ctx.strokeStyle = '#ff4757';
+        ctx.lineWidth = 3;
+        ctx.stroke();
+
+        ctx.fillStyle = '#ffffff';
+        ctx.font = (currentParticipantId === 0) ? 'bold 20px sans-serif' : 'bold 26px sans-serif';
+        ctx.textAlign = 'center';
+        ctx.textBaseline = 'middle';
+        ctx.fillText(currentLabel, centerX, centerY);
+    }
+
+    // --- 回転処理 ---
+    function spin() {
+        const participants = classData[currentClass].participants;
+        if (isSpinning || isModalOpen || participants.length === 0) return;
+
+        isSpinning = true;
+        document.getElementById('spinBtn').disabled = true;
+
+        const total = participants.length;
+        const sliceAngle = 360 / total;
+
+        lastWinnerSliceIndex = Math.floor(Math.random() * total);
+
+        const targetSliceAngle = 270 - (lastWinnerSliceIndex * sliceAngle + sliceAngle / 2);
+        const extraRounds = 360 * 8;
+        const targetAngle = currentAngle + extraRounds + ((targetSliceAngle - (currentAngle % 360) + 360) % 360);
+
+        const startAngle = currentAngle;
+        const duration = 1000;
+        const startTime = performance.now();
+
+        function animate(currentTime) {
+            const elapsed = currentTime - startTime;
+            const progress = Math.min(elapsed / duration, 1);
+
+            const easeOut = 1 - Math.pow(1 - progress, 3);
+            
+            currentAngle = startAngle + (targetAngle - startAngle) * easeOut;
+            drawRoulette();
+
+            if (progress < 1) {
+                requestAnimationFrame(animate);
+            } else {
+                isSpinning = false;
+
+                const winnerParticipantId = participants[lastWinnerSliceIndex];
+                const isTeacher = (winnerParticipantId === 0);
+                const winnerText = isTeacher ? '★ 先生 ★' : `${winnerParticipantId} 番`;
+                
+                showModal(winnerText, isTeacher);
+            }
+        }
+
+        requestAnimationFrame(animate);
+    }
+
+    // モーダル＆確定演出の呼び出し
+    function showModal(text, isTeacher) {
+        isModalOpen = true;
+        const resultTextEl = document.getElementById('resultText');
+        const modalCardEl = document.getElementById('modalCard');
+
+        resultTextEl.textContent = text;
+
+        if (isTeacher) {
+            document.body.classList.add('rainbow-mode');
+            modalCardEl.classList.add('teacher-special');
+            resultTextEl.classList.add('rainbow-text');
+
+            startConfetti();
+            playFanfareSound();
+        }
+
+        document.getElementById('resultModal').classList.add('active');
+    }
+
+    function closeModal() {
+        isModalOpen = false;
+        document.getElementById('resultModal').classList.remove('active');
+        
+        document.body.classList.remove('rainbow-mode');
+        document.getElementById('modalCard').classList.remove('teacher-special');
+        document.getElementById('resultText').classList.remove('rainbow-text');
+        stopConfetti();
+    }
+
+    function handleOk() {
+        if (!isModalOpen) return;
+
+        const participants = classData[currentClass].participants;
+        if (lastWinnerSliceIndex !== -1 && participants.length > 0) {
+            const winnerParticipantId = participants[lastWinnerSliceIndex];
+            const winnerText = (winnerParticipantId === 0) ? '先生' : `${winnerParticipantId} 番`;
+
+            classData[currentClass].history.unshift(winnerText);
+            renderHistory();
+
+            participants.splice(lastWinnerSliceIndex, 1);
+            lastWinnerSliceIndex = -1;
+        }
+        closeModal();
+        
+        drawRoulette();
+        updateSpinButtonState();
+    }
+
+    function handleAbsent() {
+        if (!isModalOpen) return;
+
+        lastWinnerSliceIndex = -1;
+        closeModal();
+        updateSpinButtonState();
+    }
+
+    drawRoulette();
+</script>
+</body>
+</html>
