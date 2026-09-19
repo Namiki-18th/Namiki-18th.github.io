@@ -141,17 +141,84 @@
   color: var(--color-text-primary, #111827);
 }
 
-/* クリック時に少しへこむエフェクト */
 .btn-copy-modern:active {
   transform: scale(0.95);
 }
 
-/* コピー成功時のスタイル */
 .btn-copy-modern.success {
   background-color: #dcfce7;
   color: #166534;
   border-color: #bbf7d0;
 }
+
+/* UI用アイコン＆トグルスイッチ追加スタイル */
+.inline-icon {
+  width: 1.125rem;
+  height: 1.125rem;
+  display: inline-block;
+  vertical-align: middle;
+  flex-shrink: 0;
+}
+.btn-flex-icon {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.375rem;
+}
+.title-flex-icon {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+/* アカウント状態トグルスイッチ */
+.status-toggle-wrapper {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+.status-toggle {
+  position: relative;
+  display: inline-block;
+  width: 40px;
+  height: 22px;
+}
+.status-toggle input {
+  opacity: 0;
+  width: 0;
+  height: 0;
+}
+.status-slider {
+  position: absolute;
+  cursor: pointer;
+  top: 0; left: 0; right: 0; bottom: 0;
+  background-color: #ef4444;
+  transition: .2s ease-in-out;
+  border-radius: 22px;
+}
+.status-slider:before {
+  position: absolute;
+  content: "";
+  height: 16px;
+  width: 16px;
+  left: 3px;
+  bottom: 3px;
+  background-color: white;
+  transition: .2s ease-in-out;
+  border-radius: 50%;
+}
+.status-toggle input:checked + .status-slider {
+  background-color: #10b981;
+}
+.status-toggle input:checked + .status-slider:before {
+  transform: translateX(18px);
+}
+.status-toggle-label {
+  font-size: 0.8rem;
+  font-weight: 600;
+  min-width: 2.2rem;
+}
+.status-toggle-label.active { color: #10b981; }
+.status-toggle-label.suspended { color: #ef4444; }
   </style>
   <script src="/socket.io/socket.io.js" nonce="%%CSP_NONCE%%"></script>
   
@@ -176,7 +243,7 @@
       <div class="flex items-center gap-3">
         <div class="logo-badge">
           <img src="/logo.webp" alt="Logo" class="logo-badge-img" id="sidebar-logo" />
-          <span class="logo-badge-emoji gen-93b8ea" id="sidebar-logo-fallback">⚙️</span>
+          <svg id="sidebar-logo-fallback" class="gen-93b8ea icon-sm text-secondary" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z"/></svg>
         </div>
         <h1 class="font-bold text-sm sidebar-brand-name sidebar-brand-text">
           管理者パネル<br>
@@ -268,7 +335,10 @@
   <div class="app-main">
     <header class="mobile-topbar">
       <div class="flex items-center gap-2 gen-24b531" id="mobile-header-brand">
-        <h1 class="font-bold text-sm mobile-brand-name">⚙️ 管理者コントロール</h1>
+        <h1 class="font-bold text-sm mobile-brand-name flex items-center gap-1.5">
+          <svg class="inline-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z"/></svg>
+          管理者コントロール
+        </h1>
       </div>
       <div class="flex items-center gap-3">
         <button class="theme-toggle-btn gen-ca678e">
@@ -298,8 +368,9 @@
               <p class="welcome-date-text">User Authorization & Class Control</p>
               <h2 class="welcome-heading-text">ユーザー権限・クラス・アカウント設定</h2>
             </div>
-            <button id="btn-save-all-settings" class="button-primary">
-              💾 全ユーザーの一括保存
+            <button id="btn-save-all-settings" class="button-primary btn-flex-icon">
+              <svg class="inline-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7H5a2 2 0 00-2 2v9a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-3m-1 4l-3 3m0 0l-3-3m3 3V4"/></svg>
+              全ユーザーの一括保存
             </button>
           </div>
         </div>
@@ -327,12 +398,21 @@
         <div class="app-card content-card">
           <div class="gen-93a5df">
             <div>
-              <h2 class="content-card-title">🎓 生徒名簿データ管理 (student.json)</h2>
+              <h2 class="content-card-title title-flex-icon">
+                <svg class="inline-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 14l9-5-9-5-9 5 9 5z"/><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 14l6.16-3.422a12.083 12.083 0 01.665 6.479A11.952 11.952 0 0112 20.055a11.952 11.952 0 01-6.824-2.998 12.078 12.078 0 01.665-6.479L12 14z"/></svg>
+                生徒名簿データ管理 (student.json)
+              </h2>
               <p class="content-card-subtitle">学籍情報・出席番号・出席番号別データを管理・一括更新します。</p>
             </div>
             <div class="flex gap-2">
-              <button id="btn-add-student" class="button-primary gen-e2b6ce">➕ 生徒新規追加</button>
-              <button id="btn-load-students" class="button-secondary gen-e2b6ce">🔄 再読み込み</button>
+              <button id="btn-add-student" class="button-primary gen-e2b6ce btn-flex-icon">
+                <svg class="inline-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/></svg>
+                生徒新規追加
+              </button>
+              <button id="btn-load-students" class="button-secondary gen-e2b6ce btn-flex-icon">
+                <svg class="inline-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"/></svg>
+                再読み込み
+              </button>
             </div>
           </div>
 
@@ -406,7 +486,10 @@
       <!-- 2. お知らせ作成・管理セクション -->
       <div id="page-notices" class="page-section hidden fade-in space-y-6">
         <div class="app-card content-card">
-          <h2 class="content-card-title">📢 お知らせの新規配信</h2>
+          <h2 class="content-card-title title-flex-icon">
+            <svg class="inline-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5.882V19.24a1.76 1.76 0 01-3.417.592l-2.147-6.15M18 13a3 3 0 100-6M5.436 13.683A4.001 4.001 0 017 6h1.832c.41 0 .789.24 1.002.618L12.5 12.5"/></svg>
+            お知らせの新規配信
+          </h2>
           <p class="content-card-subtitle">ダッシュボードおよびClassroom連携タブへ即座に反映されます。</p>
           <form id="form-notice" class="space-y-4">
             <div>
@@ -424,9 +507,9 @@
               <div>
                 <label class="gen-114f3e">タイプ / アイコン</label>
                 <select id="notice-type" class="gen-07e2e8">
-                  <option value="announcement">📢 お知らせ</option>
-                  <option value="courseWork">📝 課題</option>
-                  <option value="material">📚 資料・添付</option>
+                  <option value="announcement">お知らせ</option>
+                  <option value="courseWork">課題</option>
+                  <option value="material">資料・添付</option>
                 </select>
               </div>
             </div>
@@ -449,7 +532,10 @@
       <!-- 3. 時間割・スケジュール設定 -->
       <div id="page-schedule" class="page-section hidden fade-in space-y-6">
         <div class="app-card content-card">
-          <h2 class="content-card-title">📅 時間割データ管理</h2>
+          <h2 class="content-card-title title-flex-icon">
+            <svg class="inline-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"/></svg>
+            時間割データ管理
+          </h2>
           <p class="content-card-subtitle">カレンダーから日付を選び、その日の週・日課・授業と連絡事項をまとめて管理します。</p>
           <div class="schedule-admin-toolbar">
             <label class="schedule-admin-class">クラス
@@ -502,8 +588,9 @@
         <div class="app-card status-card">
           <h3 class="status-card-title">Google Classroom / GAS 同期連携設定</h3>
           <p class="content-card-subtitle gen-09cbfd">External API & Webhook URL: <code>/api/classroom</code></p>
-          <button id="btn-trigger-sync" class="button-primary">
-            🔄 テスト用同期リクエストを送信
+          <button id="btn-trigger-sync" class="button-primary btn-flex-icon">
+            <svg class="inline-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"/></svg>
+            テスト用同期リクエストを送信
           </button>
           <pre id="admin-sync-log" class="gen-07ea9a">ログ待ち...</pre>
         </div>
@@ -512,19 +599,49 @@
       <!-- 6. 各種APIデータ セクション -->
       <div id="page-apidata" class="page-section hidden fade-in space-y-6">
         <div class="app-card content-card">
-          <h2 class="content-card-title">📡 各種APIデータ確認</h2>
+          <h2 class="content-card-title title-flex-icon">
+            <svg class="inline-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 7v10c0 2.21 3.582 4 8 4s8-1.79 8-4V7M4 7c0 2.21 3.582 4 8 4s8-1.79 8-4M4 7c0-2.21 3.582-4 8-4s8 1.79 8 4m0 5c0 2.21-3.582 4-8 4s-8-1.79-8-4"/></svg>
+            各種APIデータ確認
+          </h2>
           <p class="content-card-subtitle">システム内で提供されているAPIの生データ（JSON）を確認できます。</p>
           
           <div class="gen-a8f441" style="grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); margin-bottom: 1rem;">
-            <button class="button-primary api-fetch-btn" data-url="/api/transit">🚇 運行情報</button>
-            <button class="button-primary api-fetch-btn" data-url="/api/road">🚗 道路交通情報</button>
-            <button class="button-primary api-fetch-btn" data-url="/api/notices">📢 お知らせ</button>
-            <button class="button-primary api-fetch-btn" data-url="/api/classroom">📚 Classroom</button>
-            <button class="button-primary api-fetch-btn" data-url="/api/calendar">📅 カレンダー</button>
-            <button class="button-primary api-fetch-btn" data-url="/api/schedule">⏰ 時間割</button>
-            <button class="button-primary api-fetch-btn" data-url="/api/admin/students">🎓 生徒名簿 (students.json)</button>
-            <button class="button-primary api-fetch-btn" data-url="/api/links">🔗 リンク集</button>
-            <button class="button-primary api-fetch-btn" data-url="/api/admin/reports">⚠️ レポート</button>
+            <button class="button-primary api-fetch-btn btn-flex-icon" data-url="/api/transit">
+              <svg class="inline-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7h8m-8 4h8m-5 4h5M5 3h14a2 2 0 012 2v14a2 2 0 01-2 2H5a2 2 0 01-2-2V5a2 2 0 012-2z"/></svg>
+              運行情報
+            </button>
+            <button class="button-primary api-fetch-btn btn-flex-icon" data-url="/api/road">
+              <svg class="inline-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 20l-5.447-2.724A1 1 0 013 16.382V5.618a1 1 0 011.447-.894L9 7m0 13l6-3m-6 3V7m6 10l5.447 2.724A1 1 0 0021 18.382V7.618a1 1 0 00-.553-.894L15 4m0 13V4m0 0L9 7"/></svg>
+              道路交通情報
+            </button>
+            <button class="button-primary api-fetch-btn btn-flex-icon" data-url="/api/notices">
+              <svg class="inline-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5.882V19.24a1.76 1.76 0 01-3.417.592l-2.147-6.15M18 13a3 3 0 100-6M5.436 13.683A4.001 4.001 0 017 6h1.832c.41 0 .789.24 1.002.618L12.5 12.5"/></svg>
+              お知らせ
+            </button>
+            <button class="button-primary api-fetch-btn btn-flex-icon" data-url="/api/classroom">
+              <svg class="inline-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253"/></svg>
+              Classroom
+            </button>
+            <button class="button-primary api-fetch-btn btn-flex-icon" data-url="/api/calendar">
+              <svg class="inline-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"/></svg>
+              カレンダー
+            </button>
+            <button class="button-primary api-fetch-btn btn-flex-icon" data-url="/api/schedule">
+              <svg class="inline-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+              時間割
+            </button>
+            <button class="button-primary api-fetch-btn btn-flex-icon" data-url="/api/admin/students">
+              <svg class="inline-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 14l9-5-9-5-9 5 9 5z"/><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 14l6.16-3.422a12.083 12.083 0 01.665 6.479A11.952 11.952 0 0112 20.055a11.952 11.952 0 01-6.824-2.998 12.078 12.078 0 01.665-6.479L12 14z"/></svg>
+              生徒名簿 (students.json)
+            </button>
+            <button class="button-primary api-fetch-btn btn-flex-icon" data-url="/api/links">
+              <svg class="inline-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13.828 10.172a4 4 0 00-5.656 0l-4 4a4 4 0 105.656 5.656l1.102-1.101m-.758-4.899a4 4 0 005.656 0l4-4a4 4 0 00-5.656-5.656l-1.1 1.1"/></svg>
+              リンク集
+            </button>
+            <button class="button-primary api-fetch-btn btn-flex-icon" data-url="/api/admin/reports">
+              <svg class="inline-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"/></svg>
+              レポート
+            </button>
           </div>
 
           <div class="status-card">
@@ -553,11 +670,15 @@
         <div class="app-card content-card">
           <div class="gen-93a5df">
             <div>
-              <h2 class="content-card-title">🔍 システムアクセスログ</h2>
+              <h2 class="content-card-title title-flex-icon">
+                <svg class="inline-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"/></svg>
+                システムアクセスログ
+              </h2>
               <p class="content-card-subtitle">直近の操作・アクセス履歴を表示します（最大1000件）。</p>
             </div>
-            <button id="btn-load-logs" class="button-primary gen-e2b6ce">
-              🔄 更新
+            <button id="btn-load-logs" class="button-primary gen-e2b6ce btn-flex-icon">
+              <svg class="inline-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"/></svg>
+              更新
             </button>
           </div>
           <div class="overflow-x-auto">
@@ -1151,7 +1272,10 @@
     // --- 追加: APIデータ取得ボタンのイベントリスナー ---
       document.querySelectorAll('.api-fetch-btn').forEach(btn => {
         btn.addEventListener('click', async (e) => {
-          const url = e.target.getAttribute('data-url');
+          const targetBtn = e.target.closest('.api-fetch-btn');
+          const url = targetBtn ? targetBtn.getAttribute('data-url') : '';
+          if (!url) return;
+          
           const displayEl = document.getElementById('api-result-display');
           const titleEl = document.getElementById('api-result-title');
           
@@ -1165,8 +1289,10 @@
             const data = await res.json();
             // JSONを整形して表示
             displayEl.textContent = JSON.stringify(data, null, 2);
+            document.getElementById('copy-json-btn').style.display = 'inline-flex';
           } catch (err) {
             displayEl.textContent = 'データの取得に失敗しました:\n' + err.message;
+            document.getElementById('copy-json-btn').style.display = 'none';
           } finally {
             delete displayEl.dataset.apiLoading;
             displayEl.classList.remove('api-loading');
@@ -1198,7 +1324,7 @@
       const copyBtn = document.getElementById('copy-json-btn');
       const displayEl = document.getElementById('api-result-display');
 
-      copyBtn.addEventListener('click', async () => {
+      copyBtn?.addEventListener('click', async () => {
         const textToCopy = displayEl.textContent;
         
         try {
@@ -1264,6 +1390,19 @@
       }
     }
 
+    function toggleStatusLabel(encodedEmail) {
+      const checkbox = document.getElementById(`status-toggle-${encodedEmail}`);
+      const label = document.getElementById(`status-label-${encodedEmail}`);
+      if (!checkbox || !label) return;
+      if (checkbox.checked) {
+        label.textContent = '有効';
+        label.className = 'status-toggle-label active';
+      } else {
+        label.textContent = '停止';
+        label.className = 'status-toggle-label suspended';
+      }
+    }
+
     function renderAdminTable() {
       const tbody = document.getElementById('admin-user-table');
       if (!usersData.length) {
@@ -1275,6 +1414,7 @@
         const encodedEmail = encodeURIComponent(u.email);
         const currentClass = u.userClass || 'A組';
         const currentStatus = u.status || 'active';
+        const isActive = currentStatus === 'active';
         
         return `
           <tr class="gen-886808">
@@ -1301,10 +1441,15 @@
               </select>
             </td>
             <td class="gen-756cf3">
-              <select id="status-${encodedEmail}" class="gen-d51363">
-                <option value="active" ${currentStatus === 'active' ? 'selected' : ''}>🟢 有効</option>
-                <option value="suspended" ${currentStatus === 'suspended' ? 'selected' : ''}>🔴 停止</option>
-              </select>
+              <div class="status-toggle-wrapper">
+                <label class="status-toggle">
+                  <input type="checkbox" id="status-toggle-${encodedEmail}" ${isActive ? 'checked' : ''} onchange="toggleStatusLabel('${encodedEmail}')">
+                  <span class="status-slider"></span>
+                </label>
+                <span id="status-label-${encodedEmail}" class="status-toggle-label ${isActive ? 'active' : 'suspended'}">
+                  ${isActive ? '有効' : '停止'}
+                </span>
+              </div>
             </td>
             <td class="gen-22a4ad" style="white-space: nowrap;">
               <button data-email="${encodedEmail}" class="button-primary save-user-btn gen-795a98">更新</button>
@@ -1360,7 +1505,8 @@
     async function saveUser(encodedEmail) {
       const newClass = document.getElementById(`class-${encodedEmail}`).value;
       const newRole = document.getElementById(`role-${encodedEmail}`).value;
-      const newStatus = document.getElementById(`status-${encodedEmail}`).value;
+      const statusCheckbox = document.getElementById(`status-toggle-${encodedEmail}`);
+      const newStatus = statusCheckbox && statusCheckbox.checked ? 'active' : 'suspended';
 
       try {
         const res = await fetch(`/api/admin/user/${encodedEmail}`, {
@@ -1452,7 +1598,8 @@
           const encodedEmail = encodeURIComponent(u.email);
           const newClass = document.getElementById(`class-${encodedEmail}`).value;
           const newRole = document.getElementById(`role-${encodedEmail}`).value;
-          const newStatus = document.getElementById(`status-${encodedEmail}`).value;
+          const statusCheckbox = document.getElementById(`status-toggle-${encodedEmail}`);
+          const newStatus = statusCheckbox && statusCheckbox.checked ? 'active' : 'suspended';
 
           await fetch(`/api/admin/user/${encodedEmail}`, {
             method: 'POST',
