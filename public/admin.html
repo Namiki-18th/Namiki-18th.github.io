@@ -93,7 +93,8 @@
     /* カスタムモーダル用のデザイン */
       .custom-modal-overlay {
   background: rgba(0, 0, 0, 0.6); backdrop-filter: blur(4px);
-  display: flex; align-items: center; justify-content: center;
+        display: flex; align-items: center; justify-content: center;
+        padding: 1rem; box-sizing: border-box; overflow-y: auto;
   z-index: 9999; opacity: 0; transition: opacity 0.3s ease;
   position: fixed; top: 0; left: 0; width: 100vw; height: 100vh;
 }
@@ -105,7 +106,7 @@
   border: 1px solid var(--color-border, #e5e7eb);
   transform: translateY(20px) scale(0.95);
   transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-  font-family: sans-serif;
+  font-family: sans-serif; max-height: calc(100vh - 2rem); overflow-y: auto; box-sizing: border-box;
 }
 .custom-modal-header {
   display: flex; align-items: center; gap: 12px; margin-bottom: 16px; color: #ef4444;
@@ -242,7 +243,7 @@
 }
 .status-toggle-label.active { color: #10b981; }
 .status-toggle-label.suspended { color: #ef4444; }
-  .permission-grid { display:grid; grid-template-columns:repeat(auto-fit,minmax(12rem,1fr)); gap:0.5rem; text-align:left; }
+  .permission-grid { display:grid; grid-template-columns:repeat(auto-fit,minmax(12rem,1fr)); gap:0.5rem; text-align:left; max-height:min(50vh, 26rem); overflow-y:auto; padding-right:0.25rem; }
   .permission-option { display:flex; align-items:center; gap:0.5rem; padding:0.6rem; border:1px solid var(--color-border); border-radius:0.5rem; color:var(--color-text-secondary); background:var(--color-bg-secondary); }
   .permission-option input { accent-color:var(--color-accent-blue, #3b82f6); }
   .permission-note { color:var(--color-text-muted); font-size:0.8rem; line-height:1.5; }
