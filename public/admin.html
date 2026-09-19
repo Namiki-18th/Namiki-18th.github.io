@@ -67,6 +67,29 @@
       .sensitive-value { max-width: 24rem; padding: 0; border: 0; background: transparent; color: inherit; font: inherit; text-align: left; cursor: pointer; filter: blur(0.35em); transition: filter 0.15s ease; }
       .sensitive-value.is-revealed { filter: none; }
       .sensitive-value:focus-visible { outline: 2px solid var(--color-accent, #60a5fa); outline-offset: 2px; }
+      
+      /* --- 省略・クリック表示用のクラス --- */
+      .truncate-clickable {
+        display: inline-block;
+        max-width: 15rem; 
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        cursor: pointer;
+        color: var(--color-accent, #3b82f6);
+        text-decoration: underline;
+        text-decoration-style: dotted;
+        text-underline-offset: 3px;
+        vertical-align: middle;
+        transition: color 0.2s;
+      }
+      .truncate-clickable:hover {
+        color: var(--color-accent-hover, #2563eb);
+      }
+      @media (max-width: 768px) {
+        .truncate-clickable { max-width: 8rem; }
+      }
+
     /* カスタムモーダル用のデザイン */
       .custom-modal-overlay {
   background: rgba(0, 0, 0, 0.6); backdrop-filter: blur(4px);
@@ -270,7 +293,7 @@
         <span class="sidebar-nav-text">レポート管理</span>
       </button>
       <button id="sidebar-nav-notices" class="sidebar-nav-button admin-tab-btn" data-tab="notices" title="お知らせ投稿">
-        <svg class="icon-nav" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5.882V19.24a1.76 1.76 0 01-3.417.592l-2.147-6.15M18 13a3 3 0 100-6M5.436 13.683A4.001 4.001 0 017 6h1.832c.41 0 .789.24 1.002.618L12.5 12.5" /></svg>
+        <svg class="icon-nav" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9"/></svg>
         <span class="sidebar-nav-text">お知らせ配信</span>
       </button>
       <button id="sidebar-nav-schedule" class="sidebar-nav-button admin-tab-btn" data-tab="schedule" title="時間割管理">
@@ -281,7 +304,6 @@
         <svg class="icon-nav" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z" /></svg>
         <span class="sidebar-nav-text">システム連携</span>
       </button>
-      <!-- 追加: 各種APIデータボタン -->
       <button id="sidebar-nav-apidata" class="sidebar-nav-button admin-tab-btn" data-tab="apidata" title="各種APIデータ">
         <svg class="icon-nav" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 7v10c0 2.21 3.582 4 8 4s8-1.79 8-4V7M4 7c0 2.21 3.582 4 8 4s8-1.79 8-4M4 7c0-2.21 3.582-4 8-4s8 1.79 8 4m0 5c0 2.21-3.582 4-8 4s-8-1.79-8-4" /></svg>
         <span class="sidebar-nav-text">各種APIデータ</span>
@@ -457,8 +479,15 @@
             <button id="btn-load-sessions" class="button-primary gen-e2b6ce">更新</button>
           </div>
           <div class="overflow-x-auto">
-            <table class="gen-3eac61">
-              <thead><tr class="gen-ec0641"><th class="gen-6f9be4">ユーザー</th><th class="gen-6f9be4">端末</th><th class="gen-6f9be4">有効期限</th><th class="gen-6f9be4">操作</th></tr></thead>
+            <table class="gen-3eac61" style="table-layout: fixed;">
+              <thead>
+                <tr class="gen-ec0641">
+                  <th class="gen-6f9be4" style="width: 25%;">ユーザー</th>
+                  <th class="gen-6f9be4" style="width: 35%;">端末</th>
+                  <th class="gen-6f9be4" style="width: 20%;">有効期限</th>
+                  <th class="gen-6f9be4" style="width: 20%;">操作</th>
+                </tr>
+              </thead>
               <tbody id="admin-sessions-table"><tr><td colspan="4" class="placeholder-text gen-cfedb1">セッションを読み込んでいます...</td></tr></tbody>
             </table>
           </div>
@@ -487,7 +516,7 @@
       <div id="page-notices" class="page-section hidden fade-in space-y-6">
         <div class="app-card content-card">
           <h2 class="content-card-title title-flex-icon">
-            <svg class="inline-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5.882V19.24a1.76 1.76 0 01-3.417.592l-2.147-6.15M18 13a3 3 0 100-6M5.436 13.683A4.001 4.001 0 017 6h1.832c.41 0 .789.24 1.002.618L12.5 12.5"/></svg>
+            <svg class="inline-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9"/></svg>
             お知らせの新規配信
           </h2>
           <p class="content-card-subtitle">ダッシュボードおよびClassroom連携タブへ即座に反映されます。</p>
@@ -615,7 +644,7 @@
               道路交通情報
             </button>
             <button class="button-primary api-fetch-btn btn-flex-icon" data-url="/api/notices">
-              <svg class="inline-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5.882V19.24a1.76 1.76 0 01-3.417.592l-2.147-6.15M18 13a3 3 0 100-6M5.436 13.683A4.001 4.001 0 017 6h1.832c.41 0 .789.24 1.002.618L12.5 12.5"/></svg>
+              <svg class="inline-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9"/></svg>
               お知らせ
             </button>
             <button class="button-primary api-fetch-btn btn-flex-icon" data-url="/api/classroom">
@@ -682,14 +711,14 @@
             </button>
           </div>
           <div class="overflow-x-auto">
-            <table class="gen-3eac61">
+            <table class="gen-3eac61" style="table-layout: fixed;">
               <thead>
                 <tr class="gen-ec0641">
-                  <th class="gen-6f9be4">日時</th>
-                  <th class="gen-6f9be4">アクション</th>
-                  <th class="gen-6f9be4">ユーザー(Email)</th>
-                  <th class="gen-6f9be4">詳細</th>
-                  <th class="gen-6f9be4">HTTP</th>
+                  <th class="gen-6f9be4" style="width: 15%;">日時</th>
+                  <th class="gen-6f9be4" style="width: 15%;">アクション</th>
+                  <th class="gen-6f9be4" style="width: 25%;">ユーザー(Email)</th>
+                  <th class="gen-6f9be4" style="width: 25%;">詳細</th>
+                  <th class="gen-6f9be4" style="width: 20%;">HTTP</th>
                 </tr>
               </thead>
               <tbody id="admin-logs-table" class="gen-b30001">
@@ -710,8 +739,63 @@
     let usersData = [];
     let studentsData = [];
 
+    // --- 省略テキストのポップアップモーダル ---
+    function showDetailModal(title, content) {
+      const overlay = document.createElement('div');
+      overlay.className = 'custom-modal-overlay';
+      
+      const modal = document.createElement('div');
+      modal.className = 'custom-modal';
+      modal.style.maxWidth = '500px';
+      modal.style.wordBreak = 'break-all';
+      
+      modal.innerHTML = `
+        <div class="custom-modal-header">
+          <svg width="24" height="24" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24" style="color:var(--color-text-primary);">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+          </svg>
+          <h3 style="color:var(--color-text-primary); margin:0;">${escapeHtml(title)}</h3>
+        </div>
+        <div class="custom-modal-desc" style="white-space: pre-wrap; font-family: monospace; background: var(--color-bg-secondary, #f3f4f6); padding: 1rem; border-radius: 6px; color: var(--color-text-primary); max-height: 60vh; overflow-y: auto;">${escapeHtml(content)}</div>
+        <div class="custom-modal-actions">
+          <button class="custom-modal-btn-ok close-modal-btn">閉じる</button>
+        </div>
+      `;
+      
+      overlay.appendChild(modal);
+      document.body.appendChild(overlay);
+      
+      requestAnimationFrame(() => {
+        overlay.style.opacity = '1';
+        modal.style.transform = 'translateY(0) scale(1)';
+      });
+      
+      const closeModal = () => {
+        overlay.style.opacity = '0';
+        modal.style.transform = 'translateY(20px) scale(0.95)';
+        setTimeout(() => { if (overlay.parentNode) overlay.remove(); }, 300);
+      };
+      
+      modal.querySelector('.close-modal-btn').onclick = closeModal;
+      overlay.onclick = (e) => {
+        if (e.target === overlay) closeModal();
+      };
+    }
+
     // イベントリスナーの登録処理
     document.addEventListener('DOMContentLoaded', () => {
+      // 省略テキストクリック時の処理（デリゲーション）
+      document.addEventListener('click', (e) => {
+        const clickable = e.target.closest('.truncate-clickable');
+        if (clickable) {
+          const title = clickable.getAttribute('data-title') || '詳細情報';
+          const content = clickable.getAttribute('data-content');
+          if (content && content !== '-') {
+            showDetailModal(title, content);
+          }
+        }
+      });
+
       // ヘッダー・ロゴクリック
       document.getElementById('sidebar-header').addEventListener('click', () => location.href = '/index');
       document.getElementById('mobile-header-brand').addEventListener('click', () => location.href = '/index');
@@ -1249,7 +1333,11 @@
         tbody.innerHTML = sessions.length ? sessions.map((item) => `
           <tr class="gen-4ccb56">
             <td class="gen-c60936">${escapeHtml(item.email)}</td>
-            <td class="gen-300fcd"><button type="button" class="sensitive-value" aria-label="クリックして端末情報を表示">${escapeHtml(item.device)}</button></td>
+            <td class="gen-300fcd">
+              <div class="truncate-clickable" data-title="端末情報" data-content="${escapeHtml(item.device)}">
+                ${escapeHtml(item.device)}
+              </div>
+            </td>
             <td class="gen-916915">${new Date(item.lastAccess).toLocaleString('ja-JP')}</td>
             <td class="gen-36239d">${item.isCurrent ? '<span class="gen-891c24">現在の端末</span>' : `<button data-sid="${escapeHtml(item.sessionId)}" class="button-primary revoke-admin-session-btn text-red">切断</button>`}</td>
           </tr>
@@ -1480,6 +1568,9 @@
 
         tbody.innerHTML = logs.map(l => {
           const date = new Date(l.timestamp).toLocaleString('ja-JP');
+          // l.userAgent が存在する場合はHTTP列のポップアップに含める
+          const httpDetails = l.userAgent ? `${l.statusCode ?? '-'}\nUA: ${l.userAgent}` : `${l.statusCode ?? '-'}`;
+          
           return `
             <tr class="gen-4ccb56">
               <td class="gen-300fcd">${date}</td>
@@ -1489,8 +1580,16 @@
                 </span>
               </td>
               <td class="gen-c60936">${escapeHtml(l.email)}</td>
-              <td class="gen-916915">${escapeHtml(l.details || '-')}</td>
-              <td class="gen-916915">${l.statusCode ?? '-'}</td>
+              <td class="gen-916915">
+                <div class="truncate-clickable" data-title="ログ詳細" data-content="${escapeHtml(l.details || '-')}">
+                  ${escapeHtml(l.details || '-')}
+                </div>
+              </td>
+              <td class="gen-916915">
+                <div class="truncate-clickable" data-title="HTTP/UA情報" data-content="${escapeHtml(httpDetails)}">
+                  ${escapeHtml(l.statusCode ?? '-')}
+                </div>
+              </td>
             </tr>
           `;
         }).join('');
