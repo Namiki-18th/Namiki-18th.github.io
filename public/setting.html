@@ -264,7 +264,7 @@
               </select>
             </div>
 
-            <button type="submit" class="button-primary flex items-center justify-center">
+            <button type="submit" class="button-primary inline-flex items-center justify-center">
               <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7H5a2 2 0 00-2 2v9a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-3m-1 4l-3 3m0 0l-3-3m3 3V4" /></svg>
               プロフィールを保存
             </button>
@@ -321,7 +321,7 @@
               </select>
             </div>
 
-            <button type="submit" class="button-primary flex items-center justify-center">
+            <button type="submit" class="button-primary inline-flex items-center justify-center">
               <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7H5a2 2 0 00-2 2v9a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-3m-1 4l-3 3m0 0l-3-3m3 3V4" /></svg>
               テーマ・言語設定を保存
             </button>
@@ -374,7 +374,7 @@
 
             </div>
 
-            <button type="submit" class="button-primary flex items-center justify-center">
+            <button type="submit" class="button-primary inline-flex items-center justify-center">
               <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7H5a2 2 0 00-2 2v9a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-3m-1 4l-3 3m0 0l-3-3m3 3V4" /></svg>
               表示・通知設定を保存
             </button>
@@ -393,7 +393,7 @@
               </h2>
               <p class="content-card-subtitle">現在アカウントに接続中の端末一覧です。不要な接続は遠隔切断できます。</p>
             </div>
-            <button id="btn-revoke-all-sessions" class="button-primary text-red flex items-center justify-center mt-4">
+            <button id="btn-revoke-all-sessions" class="button-primary text-red inline-flex items-center justify-center mt-4">
               <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M18.364 18.364A9 9 0 005.636 5.636m12.728 12.728A9 9 0 015.636 5.636m12.728 12.728L5.636 5.636" /></svg>
               他のすべての端末からログアウト
             </button>
@@ -429,11 +429,11 @@
 
           <form id="form-delete-account" class="space-y-4 gen-988c5f mt-4">
             <div>
-              <label class="gen-f89a84">確認のため「削除します」と入力してください</label>
-              <input type="text" id="delete-confirm-input" placeholder="削除します" required class="gen-623cbe" />
+              <label class="gen-f89a84">確認のためご自身のメールアドレスを入力してください</label>
+              <input type="email" id="delete-confirm-input" placeholder="example@example.com" required class="gen-623cbe" />
             </div>
 
-            <button type="submit" class="button-primary text-red flex items-center justify-center">
+            <button type="submit" class="button-primary text-red inline-flex items-center justify-center">
               <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" /></svg>
               アカウントを完全に削除する
             </button>
@@ -753,8 +753,14 @@
     async function handleDeleteAccount(e) {
       e.preventDefault();
       const input = document.getElementById('delete-confirm-input').value.trim();
-      if (input !== '削除します') {
-        alert('確認メッセージが正しくありません。');
+      
+      if (!currentProfile || !currentProfile.email) {
+        alert('ユーザー情報を取得できていません。ページを再読み込みしてください。');
+        return;
+      }
+
+      if (input !== currentProfile.email) {
+        alert('入力されたメールアドレスが正しくありません。');
         return;
       }
 
