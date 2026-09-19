@@ -12,3 +12,6 @@ data/
 certs/
 sitemap.xml
 sitemap.js
+student.enc
+students.iv
+student.tag
