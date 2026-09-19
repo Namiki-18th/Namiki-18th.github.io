@@ -605,6 +605,7 @@ if (process.env.GOOGLE_CLIENT_ID && process.env.GOOGLE_CLIENT_SECRET) {
 
           const existingUser = usersDB[email];
           const isAdmin = isPrivilegedAdmin || (existingUser && existingUser.role === 'admin');
+          const role = isPrivilegedAdmin ? 'admin' : (existingUser?.role === 'teacher' ? 'teacher' : (isAdmin ? 'admin' : 'student'));
 
           let userId = 'Unknown';
           if (isAdmin) userId = 'Admin';
@@ -620,7 +621,8 @@ if (process.env.GOOGLE_CLIENT_ID && process.env.GOOGLE_CLIENT_SECRET) {
             email,
             picture: isPrivilegedAdmin ? 'admin.png' : profile.photos?.[0]?.value || '',
             userClass: isAdmin ? (isPrivilegedAdmin ? '管理者' : '教職員') : userId.length >= 2 ? userId.substring(0, 2) : '未設定',
-            role: isAdmin ? 'admin' : 'student',
+            role,
+            permissions: existingUser?.permissions || {},
             status: isPrivilegedAdmin ? 'active' : existingUser?.status || 'active'
           };
 
@@ -754,6 +756,47 @@ app.use((req, res, next) => {
   }
 });
 
+const PAGE_PERMISSIONS = {
+  index: 'page.index',
+  terms: 'page.terms',
+  privacy: 'page.privacy',
+  report: 'page.report',
+  link: 'page.link',
+  calendar: 'page.calendar',
+  schedule: 'page.schedule',
+  transit: 'page.transit',
+  notice: 'page.notice',
+  classroom: 'page.classroom',
+  setting: 'page.setting',
+  admin: 'page.admin'
+};
+const DEFAULT_USER_PERMISSIONS = [
+  'page.index', 'page.terms', 'page.privacy', 'page.report', 'page.link',
+  'page.calendar', 'page.schedule', 'page.transit', 'page.notice',
+  'page.classroom', 'page.setting', 'api.profile.read', 'api.notices.read',
+  'api.schedule.read', 'api.calendar.read', 'api.links.read', 'api.transit.read',
+  'api.road.read', 'api.classroom.read', 'api.reports.write'
+];
+const DEFAULT_TEACHER_PERMISSIONS = [
+  ...DEFAULT_USER_PERMISSIONS, 'page.admin', 'api.notices.write',
+  'api.notices.delete', 'api.schedule.write'
+];
+
+function hasPermission(user, permission) {
+  if (!user || user.status === 'suspended') return false;
+  if (user.role === 'admin') return true;
+  const permissions = user.permissions && typeof user.permissions === 'object' ? user.permissions : {};
+  if (Object.prototype.hasOwnProperty.call(permissions, permission)) return permissions[permission] === true;
+  const defaults = user.role === 'teacher' ? DEFAULT_TEACHER_PERMISSIONS : DEFAULT_USER_PERMISSIONS;
+  return defaults.includes(permission);
+}
+
+const ensurePermission = (permission) => (req, res, next) => {
+  if (req.isAuthenticated() && hasPermission(req.user, permission)) return next();
+  if (req.xhr || req.path.startsWith('/api/')) return res.status(403).json({ error: 'Forbidden' });
+  res.status(403).send('このページへのアクセス権限がありません。');
+};
+
 const ensureAuth = (req, res, next) => {
   if (req.isAuthenticated()) return next();
   if (req.xhr || req.path.startsWith('/api/')) return res.status(401).json({ error: 'Unauthorized' });
@@ -838,10 +881,10 @@ app.all(['/api/chat', '/api/chat/*'], ensureAuth, (req, res) => {
 });
 
 ['index', 'terms', 'privacy', 'report', 'link', 'calendar', 'schedule', 'transit', 'notice', 'classroom', 'setting'].forEach((p) => {
-  app.get([`/${p}`, `/${p}.html`], ensureAuth, asyncHandler(async (req, res) => await sendHtmlWithNonce(res, path.join(__dirname, 'public', `${p}.html`))));
+  app.get([`/${p}`, `/${p}.html`], ensurePermission(PAGE_PERMISSIONS[p]), asyncHandler(async (req, res) => await sendHtmlWithNonce(res, path.join(__dirname, 'public', `${p}.html`))));
 });
 ['admin'].forEach((p) => {
-  app.get([`/${p}`, `/${p}.html`], ensureAdmin, asyncHandler(async (req, res) => await sendHtmlWithNonce(res, path.join(__dirname, 'public', `${p}.html`))));
+  app.get([`/${p}`, `/${p}.html`], ensurePermission(PAGE_PERMISSIONS[p]), asyncHandler(async (req, res) => await sendHtmlWithNonce(res, path.join(__dirname, 'public', `${p}.html`))));
 });
 // --- [静的ファイル配信 (画面ルーティングの後ろに配置)] ---
 app.use(
@@ -857,7 +900,7 @@ app.use(
 );
 
 // --- [API: 一般機能 & データ取得] ---
-app.get('/api/profile', ensureAuth, (req, res) => res.json(usersDB[req.user.email] || req.user));
+app.get('/api/profile', ensurePermission('api.profile.read'), (req, res) => res.json(usersDB[req.user.email] || req.user));
 
 app.get('/api/chat/users/:id', ensureAuth, asyncHandler(async (req, res) => {
   const targetId = String(req.params.id || '').trim();
@@ -996,8 +1039,8 @@ app.delete('/api/profile/sessions-all-others', ensureAuth, (req, res, next) => {
   });
 });
 
-app.get('/api/notices', ensureAuth, asyncHandler(async (req, res) => res.json(await safeReadJSON(PATHS.NOTICES, []))));
-app.get('/api/classroom', ensureAuth, asyncHandler(async (req, res) => res.json(cachedClassroomData)));
+app.get('/api/notices', ensurePermission('api.notices.read'), asyncHandler(async (req, res) => res.json(await safeReadJSON(PATHS.NOTICES, []))));
+app.get('/api/classroom', ensurePermission('api.classroom.read'), asyncHandler(async (req, res) => res.json(cachedClassroomData)));
 
 app.post('/api/classroom', ensureApiKeyOrAdmin, asyncHandler(async (req, res) => {
   const data = req.body;
@@ -1013,9 +1056,9 @@ app.post('/api/classroom', ensureApiKeyOrAdmin, asyncHandler(async (req, res) =>
   }
 }));
 
-app.get('/api/calendar', ensureAuth, asyncHandler(async (req, res) => res.json(await safeReadJSON(PATHS.CALENDAR, []))));
-app.get('/api/schedule', ensureAuth, asyncHandler(async (req, res) => res.json(await safeReadJSON(PATHS.SCHEDULE, {}))));
-app.post('/api/admin/schedule/settings', ensureAdmin, writeLimiter, asyncHandler(async (req, res) => {
+app.get('/api/calendar', ensurePermission('api.calendar.read'), asyncHandler(async (req, res) => res.json(await safeReadJSON(PATHS.CALENDAR, []))));
+app.get('/api/schedule', ensurePermission('api.schedule.read'), asyncHandler(async (req, res) => res.json(await safeReadJSON(PATHS.SCHEDULE, {}))));
+app.post('/api/admin/schedule/settings', ensurePermission('api.schedule.write'), writeLimiter, asyncHandler(async (req, res) => {
   const schedule = await safeReadJSON(PATHS.SCHEDULE, {});
   const { weekStart, weekStartType, cDays, daySettings } = req.body || {};
   if (!/^\d{4}-\d{2}-\d{2}$/.test(weekStart || '') || !['A', 'B'].includes(weekStartType)) {
@@ -1056,7 +1099,7 @@ app.post('/api/admin/schedule/settings', ensureAdmin, writeLimiter, asyncHandler
   await safeWriteJSON(PATHS.SCHEDULE, schedule);
   res.json({ success: true, meta: schedule._meta });
 }));
-app.get('/api/links', ensureAuth, asyncHandler(async (req, res) => res.json(await safeReadJSON(PATHS.LINKS, []))));
+app.get('/api/links', ensurePermission('api.links.read'), asyncHandler(async (req, res) => res.json(await safeReadJSON(PATHS.LINKS, []))));
 
 const ALLOWED_NOTICE_PRIORITIES = ['high', 'normal', 'low'];
 
@@ -1093,7 +1136,7 @@ async function verifyRecaptchaV2(token) {
 
 app.post(
   '/api/notices',
-  ensureAdmin,
+  ensurePermission('api.notices.write'),
   writeLimiter,
   asyncHandler(async (req, res) => {
     const { title, priority, type, content, date } = req.body;
@@ -1134,7 +1177,7 @@ app.post(
 
 app.delete(
   '/api/notices/:id',
-  ensureAdmin,
+  ensurePermission('api.notices.delete'),
   asyncHandler(async (req, res) => {
     const { id } = req.params;
     const notices = await safeReadJSON(PATHS.NOTICES, []);
@@ -1360,8 +1403,8 @@ let cachedClassroomData = [];
 setInterval(updateTransitCache, 60 * 1000);
 setInterval(updateRoadCache, 60 * 1000);
 
-app.get('/api/transit', ensureAuth, asyncHandler(async (req, res) => res.json(cachedTransitData)));
-app.get('/api/road', ensureAuth, asyncHandler(async (req, res) => res.json(cachedRoadData)));
+app.get('/api/transit', ensurePermission('api.transit.read'), asyncHandler(async (req, res) => res.json(cachedTransitData)));
+app.get('/api/road', ensurePermission('api.road.read'), asyncHandler(async (req, res) => res.json(cachedRoadData)));
 
 // --- [チャット機能 Utility & API] ---
 function getSafeChannelName(channel) {
@@ -1554,7 +1597,7 @@ app.post('/api/chat/read', ensureAuth, writeLimiter, asyncHandler(async (req, re
 }));
 
 // --- [管理者向け API] ---
-app.get('/api/admin/users', ensureAdmin, (req, res) => res.json(Object.values(usersDB)));
+app.get('/api/admin/users', ensurePermission('users.manage'), (req, res) => res.json(Object.values(usersDB)));
 
 const serializeStudent = ([id, name]) => {
   const match = String(id).match(/^(\d+)([A-Z])(\d+)$/i);
@@ -1568,7 +1611,7 @@ const serializeStudent = ([id, name]) => {
 };
 
 // 名簿データ取得API
-app.get('/api/admin/students', ensureAdmin, (req, res) => {
+app.get('/api/admin/students', ensurePermission('students.read'), (req, res) => {
   if (unlockModule && typeof unlockModule.getAllStudents === 'function') {
     res.json(Object.entries(unlockModule.getAllStudents()).map(serializeStudent));
   } else {
@@ -1577,7 +1620,7 @@ app.get('/api/admin/students', ensureAdmin, (req, res) => {
 });
 
 // 名簿データ更新(再暗号化)API
-app.post('/api/admin/students', ensureAdmin, writeLimiter, asyncHandler(async (req, res) => {
+app.post('/api/admin/students', ensurePermission('students.write'), writeLimiter, asyncHandler(async (req, res) => {
   if (!unlockModule || typeof unlockModule.updateStudents !== 'function') {
     return res.status(501).json({ error: '名簿モジュールが読み込まれていません' });
   }
@@ -1593,7 +1636,7 @@ app.post('/api/admin/students', ensureAdmin, writeLimiter, asyncHandler(async (r
   res.json({ success: true, message: '名簿データを更新しました。' });
 }));
 
-app.delete('/api/admin/students/:id', ensureAdmin, writeLimiter, asyncHandler(async (req, res) => {
+app.delete('/api/admin/students/:id', ensurePermission('students.write'), writeLimiter, asyncHandler(async (req, res) => {
   if (!unlockModule || typeof unlockModule.updateStudents !== 'function') {
     return res.status(501).json({ error: '名簿モジュールが読み込まれていません' });
   }
@@ -1608,7 +1651,7 @@ app.delete('/api/admin/students/:id', ensureAdmin, writeLimiter, asyncHandler(as
   res.json({ success: true, message: '生徒データを削除しました。' });
 }));
 
-app.get('/api/admin/sessions', ensureAdmin, (req, res, next) => {
+app.get('/api/admin/sessions', ensurePermission('sessions.manage'), (req, res, next) => {
   sessionStore.all((err, sessions) => {
     if (err) return next(err);
     const result = Object.entries(sessions).map(([sessionId, data]) => ({
@@ -1622,7 +1665,7 @@ app.get('/api/admin/sessions', ensureAdmin, (req, res, next) => {
   });
 });
 
-app.delete('/api/admin/sessions/:sessionId', ensureAdmin, (req, res, next) => {
+app.delete('/api/admin/sessions/:sessionId', ensurePermission('sessions.manage'), (req, res, next) => {
   if (req.params.sessionId === req.sessionID) return res.status(400).json({ error: 'Cannot revoke current session' });
   sessionStore.destroy(req.params.sessionId, (err) => {
     if (err) return next(err);
@@ -1630,21 +1673,28 @@ app.delete('/api/admin/sessions/:sessionId', ensureAdmin, (req, res, next) => {
   });
 });
 
-app.get('/api/admin/reports', ensureAdmin, asyncHandler(async (req, res) => {
+app.get('/api/admin/reports', ensurePermission('reports.read'), asyncHandler(async (req, res) => {
   const reports = await safeReadJSON(PATHS.REPORTS, []);
   res.json(reports);
 }));
 
-app.get('/api/admin/logs', ensureAdmin, (req, res) => {
+app.get('/api/admin/logs', ensurePermission('logs.read'), (req, res) => {
   res.json(systemLogs);
 });
 
-const ALLOWED_ROLES = ['admin', 'student'];
+const ALLOWED_ROLES = ['admin', 'teacher', 'student'];
 const ALLOWED_STATUSES = ['active', 'suspended'];
+const ALLOWED_PERMISSION_KEYS = new Set([
+  ...Object.values(PAGE_PERMISSIONS), 'api.profile.read', 'api.notices.read',
+  'api.notices.write', 'api.notices.delete', 'api.schedule.read', 'api.schedule.write',
+  'api.calendar.read', 'api.links.read', 'api.transit.read', 'api.road.read',
+  'api.classroom.read', 'api.reports.write', 'users.manage', 'students.read',
+  'students.write', 'sessions.manage', 'reports.read', 'logs.read'
+]);
 const FORBIDDEN_USER_KEYS = new Set(['__proto__', 'constructor', 'prototype']);
 const hasUser = (email) => Object.prototype.hasOwnProperty.call(usersDB, email);
 
-app.post('/api/admin/user/:email', ensureAdmin, asyncHandler(async (req, res) => {
+app.post('/api/admin/user/:email', ensurePermission('users.manage'), asyncHandler(async (req, res) => {
   const email = decodeURIComponent(req.params.email);
 
   if (FORBIDDEN_USER_KEYS.has(email) || !hasUser(email)) {
@@ -1655,7 +1705,7 @@ app.post('/api/admin/user/:email', ensureAdmin, asyncHandler(async (req, res) =>
     return res.status(400).json({ error: 'Cannot modify the privileged admin account' });
   }
 
-  const { userClass, role, status } = req.body;
+  const { userClass, role, status, permissions } = req.body;
   if (userClass !== undefined) {
     if (typeof userClass !== 'string' || userClass.length > 50) {
       return res.status(400).json({ error: 'Invalid userClass' });
@@ -1665,6 +1715,17 @@ app.post('/api/admin/user/:email', ensureAdmin, asyncHandler(async (req, res) =>
   if (role !== undefined) {
     if (!ALLOWED_ROLES.includes(role)) return res.status(400).json({ error: 'Invalid role' });
     usersDB[email].role = role;
+  }
+  if (permissions !== undefined) {
+    if (!permissions || typeof permissions !== 'object' || Array.isArray(permissions)) {
+      return res.status(400).json({ error: 'Invalid permissions' });
+    }
+    const normalizedPermissions = {};
+    for (const [permission, enabled] of Object.entries(permissions)) {
+      if (!ALLOWED_PERMISSION_KEYS.has(permission) || typeof enabled !== 'boolean') continue;
+      normalizedPermissions[permission] = enabled;
+    }
+    usersDB[email].permissions = normalizedPermissions;
   }
   const wasSuspended = usersDB[email].status === 'suspended';
   if (status !== undefined) {
@@ -1678,7 +1739,7 @@ app.post('/api/admin/user/:email', ensureAdmin, asyncHandler(async (req, res) =>
 }));
 
 // --- [アカウント削除 API] ---
-app.delete('/api/admin/user/:email', ensureAdmin, asyncHandler(async (req, res) => {
+app.delete('/api/admin/user/:email', ensurePermission('users.manage'), asyncHandler(async (req, res) => {
   const email = decodeURIComponent(req.params.email);
 
   if (FORBIDDEN_USER_KEYS.has(email) || !hasUser(email)) {

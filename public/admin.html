@@ -242,6 +242,11 @@
 }
 .status-toggle-label.active { color: #10b981; }
 .status-toggle-label.suspended { color: #ef4444; }
+  .permission-grid { display:grid; grid-template-columns:repeat(auto-fit,minmax(12rem,1fr)); gap:0.5rem; text-align:left; }
+  .permission-option { display:flex; align-items:center; gap:0.5rem; padding:0.6rem; border:1px solid var(--color-border); border-radius:0.5rem; color:var(--color-text-secondary); background:var(--color-bg-secondary); }
+  .permission-option input { accent-color:var(--color-accent-blue, #3b82f6); }
+  .permission-note { color:var(--color-text-muted); font-size:0.8rem; line-height:1.5; }
+  .role-badge { display:inline-flex; align-items:center; padding:0.2rem 0.45rem; border-radius:999px; font-size:0.75rem; background:var(--color-bg-secondary); color:var(--color-text-secondary); }
   </style>
   <script src="/socket.io/socket.io.js" nonce="%%CSP_NONCE%%"></script>
   
@@ -746,6 +751,39 @@
   <script nonce="%%CSP_NONCE%%">
     let usersData = [];
     let studentsData = [];
+    let currentAdminProfile = null;
+    const permissionDefinitions = [
+      ['page.admin', '管理画面'],
+      ['page.index', 'ホームページ'],
+      ['page.terms', '利用規約ページ'],
+      ['page.privacy', 'プライバシーページ'],
+      ['page.link', 'リンクページ'],
+      ['page.schedule', '時間割ページ'],
+      ['page.notice', 'お知らせページ'],
+      ['page.classroom', 'Classroomページ'],
+      ['page.calendar', 'カレンダーページ'],
+      ['page.transit', '交通情報ページ'],
+      ['page.report', '報告ページ'],
+      ['page.setting', '設定ページ'],
+      ['api.profile.read', 'プロフィール取得API'],
+      ['api.notices.read', 'お知らせ取得API'],
+      ['api.notices.write', 'お知らせ投稿'],
+      ['api.notices.delete', 'お知らせ削除'],
+      ['api.schedule.read', '時間割取得API'],
+      ['api.schedule.write', '時間割変更'],
+      ['api.calendar.read', 'カレンダー取得API'],
+      ['api.classroom.read', 'Classroom取得API'],
+      ['api.transit.read', '鉄道情報取得API'],
+      ['api.road.read', '道路情報取得API'],
+      ['api.reports.write', '報告送信API'],
+      ['students.read', '生徒名簿閲覧'],
+      ['students.write', '生徒名簿変更'],
+      ['users.manage', 'ユーザー設定'],
+      ['reports.read', 'レポート閲覧'],
+      ['logs.read', 'アクセスログ閲覧'],
+      ['sessions.manage', 'セッション管理']
+    ];
+    const defaultUserPermissions = ['page.index', 'page.terms', 'page.privacy', 'page.report', 'page.link', 'page.calendar', 'page.schedule', 'page.transit', 'page.notice', 'page.classroom', 'page.setting', 'api.profile.read', 'api.notices.read', 'api.schedule.read', 'api.calendar.read', 'api.links.read', 'api.transit.read', 'api.road.read', 'api.classroom.read', 'api.reports.write'];
 
     // --- 省略テキストのポップアップモーダル ---
     function showDetailModal(title, content) {
@@ -870,6 +908,9 @@
             const btn = e.target.closest('.save-user-btn');
             const email = btn.getAttribute('data-email');
             saveUser(email);
+          }
+          else if (e.target.closest('.permission-user-btn')) {
+            openUserPermissionModal(e.target.closest('.permission-user-btn').getAttribute('data-email'));
           }
           // 削除ボタンがクリックされた時の処理
           else if (e.target.closest('.delete-user-btn')) {
@@ -1454,11 +1495,14 @@
         if (!res.ok) throw new Error('未認証');
         const profile = await res.json();
         
-        if (!profile || profile.role !== 'admin') {
+        if (!profile || (profile.role !== 'admin' && profile.role !== 'teacher')) {
           alert('管理者権限がありません。');
           window.location.href = '/index';
           return;
         }
+
+        currentAdminProfile = profile;
+        applyAdminPermissions(profile);
 
         document.getElementById('sidebar-user-name').textContent = profile.name;
         document.getElementById('popup-user-name').textContent = profile.name;
@@ -1486,6 +1530,34 @@
       }
     }
 
+    function hasAdminPermission(permission) {
+      if (currentAdminProfile?.role === 'admin') return true;
+      return currentAdminProfile?.permissions?.[permission] === true ||
+        (currentAdminProfile?.role === 'teacher' && ['page.admin', 'api.notices.write', 'api.notices.delete', 'api.schedule.write'].includes(permission));
+    }
+
+    function getDefaultUserPermission(role, permission) {
+      if (role === 'admin') return true;
+      if (defaultUserPermissions.includes(permission)) return true;
+      const teacherDefaults = ['page.admin', 'api.notices.write', 'api.notices.delete', 'api.schedule.write'];
+      return role === 'teacher' && teacherDefaults.includes(permission);
+    }
+
+    function applyAdminPermissions(profile) {
+      const tabPermissions = {
+        users: 'users.manage', students: 'students.read', sessions: 'sessions.manage',
+        reports: 'reports.read', notices: 'api.notices.write', schedule: 'api.schedule.write',
+        logs: 'logs.read', system: 'users.manage', apidata: 'users.manage'
+      };
+      Object.entries(tabPermissions).forEach(([tab, permission]) => {
+        const visible = hasAdminPermission(permission);
+        document.querySelectorAll(`[data-tab="${tab}"]`).forEach((element) => { element.hidden = !visible; });
+        if (!visible) document.getElementById(`page-${tab}`)?.classList.add('hidden');
+      });
+      const firstVisible = Object.keys(tabPermissions).find((tab) => hasAdminPermission(tabPermissions[tab]));
+      if (firstVisible) switchAdminTab(firstVisible);
+    }
+
     function toggleStatusLabel(encodedEmail) {
       const checkbox = document.getElementById(`status-toggle-${encodedEmail}`);
       const label = document.getElementById(`status-label-${encodedEmail}`);
@@ -1499,6 +1571,54 @@
       }
     }
 
+    function openUserPermissionModal(encodedEmail) {
+      const user = usersData.find((item) => encodeURIComponent(item.email) === encodedEmail);
+      if (!user) return;
+      const overlay = document.createElement('div');
+      overlay.className = 'custom-modal-overlay';
+      const modal = document.createElement('div');
+      modal.className = 'custom-modal';
+      modal.style.maxWidth = '640px';
+      const permissions = user.permissions || {};
+      const selectedPermission = (key) => Object.prototype.hasOwnProperty.call(permissions, key) ? permissions[key] === true : getDefaultUserPermission(user.role, key);
+      modal.innerHTML = `
+        <div class="custom-modal-header"><h3 style="color:var(--color-text-primary);margin:0;">ユーザー権限設定</h3></div>
+        <p class="custom-modal-desc">${escapeHtml(user.name || user.email)}<br><span class="permission-note">ロールの既定権限に加えて、チェックした権限を個別に許可します。チェックを外すと明示的に拒否できます。</span></p>
+        <div class="space-y-3" style="text-align:left;">
+          <label class="gen-114f3e">ロール</label>
+          <select id="modal-user-role" class="gen-623cbe">
+            <option value="student" ${user.role === 'student' ? 'selected' : ''}>生徒</option>
+            <option value="teacher" ${user.role === 'teacher' ? 'selected' : ''}>教師</option>
+            <option value="admin" ${user.role === 'admin' ? 'selected' : ''}>管理者</option>
+          </select>
+          <label class="gen-114f3e">個別権限</label>
+          <div class="permission-grid">
+            ${permissionDefinitions.map(([key, label]) => `<label class="permission-option"><input type="checkbox" data-permission="${key}" ${selectedPermission(key) ? 'checked' : ''}>${label}</label>`).join('')}
+          </div>
+        </div>
+        <div class="custom-modal-actions" style="margin-top:1.25rem;">
+          <button class="custom-modal-btn-cancel modal-close">キャンセル</button>
+          <button class="button-primary modal-save">保存</button>
+        </div>`;
+      overlay.appendChild(modal);
+      document.body.appendChild(overlay);
+      requestAnimationFrame(() => { overlay.style.opacity = '1'; modal.style.transform = 'translateY(0) scale(1)'; });
+      const close = () => { overlay.style.opacity = '0'; modal.style.transform = 'translateY(20px) scale(0.95)'; setTimeout(() => overlay.remove(), 300); };
+      modal.querySelector('.modal-close').onclick = close;
+      modal.querySelector('.modal-save').onclick = async () => {
+        const nextPermissions = {};
+        modal.querySelectorAll('[data-permission]').forEach((input) => { nextPermissions[input.dataset.permission] = input.checked; });
+        const role = modal.querySelector('#modal-user-role').value;
+        try {
+          const res = await fetch(`/api/admin/user/${encodedEmail}`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ role, permissions: nextPermissions }) });
+          const data = await res.json();
+          if (!res.ok || !data.success) throw new Error(data.error || '保存に失敗しました');
+          close();
+          await loadAdminData();
+        } catch (error) { alert(error.message); }
+      };
+    }
+
     function renderAdminTable() {
       const tbody = document.getElementById('admin-user-table');
       if (!usersData.length) {
@@ -1508,9 +1628,10 @@
 
       tbody.innerHTML = usersData.map(u => {
         const encodedEmail = encodeURIComponent(u.email);
-        const currentClass = u.userClass || 'A組';
+        const currentClass = u.userClass || '2A';
         const currentStatus = u.status || 'active';
         const isActive = currentStatus === 'active';
+        const roleLabel = u.role === 'admin' ? '管理者' : u.role === 'teacher' ? '教師' : '生徒';
         
         return `
           <tr class="gen-886808">
@@ -1524,15 +1645,17 @@
             <td class="gen-756cf3">
               <select id="class-${encodedEmail}" class="gen-d51363">
                 <option value="管理者" ${currentClass === '管理者' ? 'selected' : ''}>管理者</option>
-                <option value="A組" ${currentClass === 'A組' ? 'selected' : ''}>A組</option>
-                <option value="B組" ${currentClass === 'B組' ? 'selected' : ''}>B組</option>
-                <option value="C組" ${currentClass === 'C組' ? 'selected' : ''}>C組</option>
-                <option value="D組" ${currentClass === 'D組' ? 'selected' : ''}>D組</option>
+                <option value="2A" ${currentClass === '2A' ? 'selected' : ''}>2-A組</option>
+                <option value="2B" ${currentClass === '2B' ? 'selected' : ''}>2-B組</option>
+                <option value="2C" ${currentClass === '2C' ? 'selected' : ''}>2-C組</option>
+                <option value="2D" ${currentClass === '2D' ? 'selected' : ''}>2-D組</option>
               </select>
             </td>
             <td class="gen-756cf3">
-              <select id="role-${encodedEmail}" class="gen-d51363">
+              <span class="role-badge">${roleLabel}</span>
+              <select id="role-${encodedEmail}" class="gen-d51363" hidden>
                 <option value="student" ${u.role === 'student' ? 'selected' : ''}>生徒</option>
+                <option value="teacher" ${u.role === 'teacher' ? 'selected' : ''}>教師</option>
                 <option value="admin" ${u.role === 'admin' ? 'selected' : ''}>管理者</option>
               </select>
             </td>
@@ -1548,6 +1671,7 @@
               </div>
             </td>
             <td class="gen-22a4ad" style="white-space: nowrap;">
+              <button data-email="${encodedEmail}" class="button-secondary permission-user-btn gen-795a98">権限設定</button>
               <button data-email="${encodedEmail}" class="button-primary save-user-btn gen-795a98">更新</button>
               <button data-email="${encodedEmail}" class="delete-user-btn gen-ef0939" style="margin-left: 0.25rem; padding: 0.35rem 0.5rem; border: 1px solid #dc2626; border-radius: 4px; display: inline-flex; align-items: center; justify-content: center; background: transparent; cursor: pointer; color: #dc2626;" title="削除">
                 <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#dc2626" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="display: block; min-width: 18px; min-height: 18px;">
