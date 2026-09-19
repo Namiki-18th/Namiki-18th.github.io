@@ -305,9 +305,13 @@ async function sendHtmlWithNonce(res, filePath) {
 
       function initCommonNavigation() {
         document.querySelectorAll('[data-href="/transit"] svg.icon-nav').forEach((icon) => {
-          icon.innerHTML = '<path d="M5 16h14l-1-6H6l-1 6Z"></path><path d="M7 10 8.5 6h7L17 10M7 19h.01M17 19h.01M5 16v3m14-3v3"></path>';
+          icon.innerHTML = '<path stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" d="M6 3h12a2 2 0 0 1 2 2v10a3 3 0 0 1-3 3H7a3 3 0 0 1-3-3V5a2 2 0 0 1 2-2Z"></path><path stroke="currentColor" stroke-width="1.8" stroke-linecap="round" d="M4 9h16M8 6h.01M16 6h.01M7 21v-3M17 21v-3M8 13h.01M16 13h.01"></path>';
           icon.setAttribute('aria-hidden', 'true');
         });
+      }
+
+      if ('serviceWorker' in navigator) {
+        navigator.serviceWorker.register('/sw.js', { scope: '/' }).catch(() => {});
       }
 
       document.addEventListener('click', (event) => closeAccountMenus(event.target));
@@ -321,6 +325,7 @@ async function sendHtmlWithNonce(res, filePath) {
       .replace(/%%CSP_NONCE%%/g, nonce)
       .replace(/%%RECAPTCHA_SITE_KEY%%/g, RECAPTCHA_SITE_KEY)
       .replace(/%%RECAPTCHA_V2_SITE_KEY%%/g, RECAPTCHA_V2_SITE_KEY)
+      .replace(/<\/head>/i, '<link rel="manifest" href="/manifest.json"><meta name="theme-color" content="#0f172a"></head>')
       .replace(/function handlePersonalSettings\(\) \{ alert\('個人用設定は開発中です。'\); \}/g, "function handlePersonalSettings() { window.location.href = '/setting'; }")
       .replace(/<\/body>/i, `${preferenceScript}</body>`);
     res.set('Content-Type', 'text/html; charset=utf-8');

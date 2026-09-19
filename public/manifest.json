@@ -1,0 +1,19 @@
+{
+  "name": "並木中等教育学校18回生ダッシュボード",
+  "short_name": "並木18回生",
+  "description": "並木中等教育学校18回生向けダッシュボード",
+  "lang": "ja",
+  "start_url": "/index",
+  "scope": "/",
+  "display": "standalone",
+  "background_color": "#0f172a",
+  "theme_color": "#0f172a",
+  "icons": [
+    {
+      "src": "/favicon.png",
+      "sizes": "256x256",
+      "type": "image/png",
+      "purpose": "any maskable"
+    }
+  ]
+}
