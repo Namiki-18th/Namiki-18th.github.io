@@ -64,19 +64,31 @@
     </nav>
     <div class="sidebar-footer">
       <div id="account-popup-menu" class="account-popup-menu">
-        <div class="user-info-header popup-header-spacing"><span id="popup-user-name" class="popup-name-text">読み込み中...</span><span id="popup-user-email" class="popup-email-text">読み込み中...</span></div>
-        <a href="/setting" class="account-popup-item">設定</a>
+        <div class="user-info-header">
+          <img id="popup-user-avatar" src="https://via.placeholder.com/40?text=U" alt="User Avatar" class="popup-user-avatar" />
+          <div class="user-info-text">
+            <span id="popup-user-name" class="truncate">読み込み中...</span>
+            <span id="popup-user-email" class="truncate">読み込み中...</span>
+          </div>
+        </div>
+        <button id="btn-admin-settings" class="account-popup-item">管理者設定</button>
+        <button id="btn-personal-settings" class="account-popup-item">個人用設定</button>
+        <button class="account-popup-item toggle-row" id="btn-toggle-theme-popup">
+          <span>表示切替</span>
+          <span class="toggle-switch" id="theme-toggle-switch"><span class="toggle-circle"></span></span>
+        </button>
+        <div class="gen-08cddd"></div>
         <a href="/logout" class="account-popup-item text-red">ログアウト</a>
       </div>
       <div id="sidebar-user-toggle" class="sidebar-user-row" title="ユーザーメニュー">
-        <div class="sidebar-avatar-image" aria-hidden="true"></div>
-        <div class="sidebar-user-info"><span class="sidebar-user-name-text">アカウント</span><span class="sidebar-user-id-text">メニュー</span></div>
+        <img id="sidebar-user-avatar" src="https://via.placeholder.com/40?text=U" alt="Avatar" class="sidebar-avatar-image" />
+        <div class="sidebar-user-info"><span id="sidebar-user-name" class="sidebar-user-name-text truncate">読み込み中...</span><span id="sidebar-user-id" class="sidebar-user-id-text truncate">読み込み中...</span></div>
       </div>
     </div>
   </aside>
   <header class="mobile-topbar">
     <a href="/index" class="mobile-brand-name">並木中等教育学校18回生</a>
-    <button id="mobile-user-avatar-btn" type="button" aria-label="ユーザーメニュー">●</button>
+    <button id="mobile-user-avatar-btn" type="button" aria-label="ユーザーメニュー"><img id="mobile-user-avatar" src="https://via.placeholder.com/32?text=U" alt="Avatar" class="mobile-avatar-image" /></button>
     <div id="mobile-account-popup-menu" class="account-popup-menu">
       <a href="/setting" class="account-popup-item">設定</a>
       <a href="/logout" class="account-popup-item text-red">ログアウト</a>
@@ -142,6 +154,59 @@
         document.getElementById('transit-error').hidden = false;
       }
     });
+
+    function initThemeToggle() {
+      const toggleSwitch = document.getElementById('theme-toggle-switch');
+      toggleSwitch?.classList.toggle('on', document.documentElement.classList.contains('dark'));
+    }
+
+    function toggleTheme() {
+      const html = document.documentElement;
+      const isDark = html.classList.contains('dark');
+      html.classList.toggle('dark', !isDark);
+      html.classList.toggle('light', isDark);
+      localStorage.setItem('namiki-theme', isDark ? 'light' : 'dark');
+      initThemeToggle();
+    }
+
+    async function loadProfile() {
+      const response = await fetch('/api/profile');
+      if (response.status === 401) {
+        window.location.href = '/login';
+        return;
+      }
+      if (!response.ok) return;
+      const profile = await response.json();
+      const studentId = profile.id && profile.id !== 'Unknown' ? profile.id : '学籍番号未設定';
+      document.getElementById('sidebar-user-id').textContent = studentId;
+      document.getElementById('sidebar-user-name').textContent = profile.name || 'ユーザー';
+      document.getElementById('popup-user-name').textContent = profile.name || 'ユーザー';
+      document.getElementById('popup-user-email').textContent = profile.email || 'メールアドレス未設定';
+      const avatar = profile.picture && profile.picture !== 'admin.png'
+        ? profile.picture
+        : `https://via.placeholder.com/40/3b82f6/ffffff?text=${encodeURIComponent((profile.name || 'U').charAt(0))}`;
+      document.getElementById('sidebar-user-avatar').src = avatar;
+      document.getElementById('popup-user-avatar').src = avatar;
+      document.getElementById('mobile-user-avatar').src = avatar;
+    }
+
+    document.getElementById('sidebar-user-toggle')?.addEventListener('click', (event) => {
+      event.stopPropagation();
+      document.getElementById('account-popup-menu')?.classList.toggle('show');
+    });
+    document.getElementById('mobile-user-avatar-btn')?.addEventListener('click', (event) => {
+      event.stopPropagation();
+      document.getElementById('mobile-account-popup-menu')?.classList.toggle('show');
+    });
+    document.getElementById('btn-admin-settings')?.addEventListener('click', () => { window.location.href = '/admin'; });
+    document.getElementById('btn-personal-settings')?.addEventListener('click', () => { window.location.href = '/setting'; });
+    document.getElementById('btn-toggle-theme-popup')?.addEventListener('click', toggleTheme);
+    document.addEventListener('click', () => {
+      document.getElementById('account-popup-menu')?.classList.remove('show');
+      document.getElementById('mobile-account-popup-menu')?.classList.remove('show');
+    });
+    initThemeToggle();
+    loadProfile().catch(() => {});
 
     document.addEventListener('click', (event) => {
       if (event.target.closest('#sidebar-user-toggle')) {
