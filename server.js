@@ -1556,10 +1556,21 @@ app.post('/api/chat/read', ensureAuth, writeLimiter, asyncHandler(async (req, re
 // --- [管理者向け API] ---
 app.get('/api/admin/users', ensureAdmin, (req, res) => res.json(Object.values(usersDB)));
 
+const serializeStudent = ([id, name]) => {
+  const match = String(id).match(/^(\d+)([A-Z])(\d+)$/i);
+  return {
+    id: String(id),
+    class: match ? `${match[1]}-${match[2].toUpperCase()}` : '',
+    number: match ? Number.parseInt(match[3], 10) : null,
+    name: String(name),
+    kana: ''
+  };
+};
+
 // 名簿データ取得API
 app.get('/api/admin/students', ensureAdmin, (req, res) => {
   if (unlockModule && typeof unlockModule.getAllStudents === 'function') {
-    res.json(unlockModule.getAllStudents());
+    res.json(Object.entries(unlockModule.getAllStudents()).map(serializeStudent));
   } else {
     res.status(501).json({ error: '名簿モジュールが読み込まれていません' });
   }
@@ -1570,14 +1581,31 @@ app.post('/api/admin/students', ensureAdmin, writeLimiter, asyncHandler(async (r
   if (!unlockModule || typeof unlockModule.updateStudents !== 'function') {
     return res.status(501).json({ error: '名簿モジュールが読み込まれていません' });
   }
-  const newStudents = req.body;
-  if (!newStudents || typeof newStudents !== 'object' || Array.isArray(newStudents)) {
-    return res.status(400).json({ error: '無効なデータ形式です。' });
+  const { id, name } = req.body || {};
+  if (typeof id !== 'string' || !id.trim() || typeof name !== 'string' || !name.trim()) {
+    return res.status(400).json({ error: '学籍番号と氏名は必須です。' });
   }
-  
-  unlockModule.updateStudents(newStudents);
+
+  const students = { ...unlockModule.getAllStudents() };
+  students[id.trim()] = name.trim();
+  unlockModule.updateStudents(students);
   await addLog(req, 'students_update', req.user.email, '名簿データを更新しました');
   res.json({ success: true, message: '名簿データを更新しました。' });
+}));
+
+app.delete('/api/admin/students/:id', ensureAdmin, writeLimiter, asyncHandler(async (req, res) => {
+  if (!unlockModule || typeof unlockModule.updateStudents !== 'function') {
+    return res.status(501).json({ error: '名簿モジュールが読み込まれていません' });
+  }
+  const id = decodeURIComponent(req.params.id);
+  const students = { ...unlockModule.getAllStudents() };
+  if (!Object.prototype.hasOwnProperty.call(students, id)) {
+    return res.status(404).json({ error: '生徒が見つかりません。' });
+  }
+  delete students[id];
+  unlockModule.updateStudents(students);
+  await addLog(req, 'students_update', req.user.email, '名簿データを削除しました');
+  res.json({ success: true, message: '生徒データを削除しました。' });
 }));
 
 app.get('/api/admin/sessions', ensureAdmin, (req, res, next) => {

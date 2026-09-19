@@ -522,7 +522,7 @@
             <button class="button-primary api-fetch-btn" data-url="/api/classroom">📚 Classroom</button>
             <button class="button-primary api-fetch-btn" data-url="/api/calendar">📅 カレンダー</button>
             <button class="button-primary api-fetch-btn" data-url="/api/schedule">⏰ 時間割</button>
-            <button class="button-primary api-fetch-btn" data-url="/api/students">🎓 生徒名簿 (students.json)</button>
+            <button class="button-primary api-fetch-btn" data-url="/api/admin/students">🎓 生徒名簿 (students.json)</button>
             <button class="button-primary api-fetch-btn" data-url="/api/links">🔗 リンク集</button>
             <button class="button-primary api-fetch-btn" data-url="/api/admin/reports">⚠️ レポート</button>
           </div>
@@ -930,7 +930,7 @@
       if (!tbody) return;
       tbody.innerHTML = '<tr><td colspan="6" class="placeholder-text gen-cfedb1">生徒データを読み込んでいます...</td></tr>';
       try {
-        const res = await fetch('/api/students');
+        const res = await fetch('/api/admin/students');
         if (!res.ok) throw new Error('生徒データの取得に失敗しました');
         studentsData = await res.json();
         renderStudentsTable();
