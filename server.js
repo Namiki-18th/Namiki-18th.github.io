@@ -1366,48 +1366,6 @@ setInterval(updateRoadCache, 60 * 1000);
 app.get('/api/transit', ensureAuth, asyncHandler(async (req, res) => res.json(cachedTransitData)));
 app.get('/api/road', ensureAuth, asyncHandler(async (req, res) => res.json(cachedRoadData)));
 
-// --- [TX 時刻表取得 API] ---
-app.get('/api/transit/timetable', ensureAuth, asyncHandler(async (req, res) => {
-  const station = req.query.station;
-  if (!station) return res.status(400).json({ error: 'Station parameter is required' });
-
-  // タイムテーブルのJSONを読み込み
-  const timetablePath = path.join(DATA_DIR, 'tx-timetable.json');
-  const timetables = await safeReadJSON(timetablePath, []);
-
-  // 現在の日本時間（JST）を取得
-  const now = new Date();
-  const jstNow = new Date(now.toLocaleString('en-US', { timeZone: 'Asia/Tokyo' }));
-  const hours = String(jstNow.getHours()).padStart(2, '0');
-  const minutes = String(jstNow.getMinutes()).padStart(2, '0');
-  const currentTime = `${hours}:${minutes}`;
-
-  // 曜日判定（簡易的に土日を休日ダイヤとする。祝日判定が必要な場合は拡張してください）
-  const isWeekend = jstNow.getDay() === 0 || jstNow.getDay() === 6;
-  const calendarType = isWeekend ? 'odpt.Calendar:SaturdayHoliday' : 'odpt.Calendar:Weekday';
-
-  // 該当駅・該当カレンダーのデータを抽出
-  const stationTimetables = timetables.filter(t => 
-    t['odpt:station'] === station && 
-    t['odpt:calendar'] === calendarType
-  );
-
-  const results = {};
-  stationTimetables.forEach(tt => {
-    // 上り(Inbound)・下り(Outbound)の方向
-    const direction = tt['odpt:railDirection'];
-    const objects = tt['odpt:stationTimetableObject'] || [];
-    
-    // 現在時刻以降の電車をフィルタリングし、直近2件を取得
-    const upcoming = objects.filter(obj => obj['odpt:departureTime'] >= currentTime).slice(0, 2);
-    
-    // 日付をまたぐ場合（23:50等）の考慮は必要に応じて追加
-    if (!results[direction]) results[direction] = [];
-    results[direction].push(...upcoming);
-  });
-
-  res.json(results);
-}));
 
 // --- [交通マップ (ODPT): 列車・バス位置 / 駅・バス停 / 運行情報 / 地図タイル中継] ---
 // ブラウザは以下のAPIだけと通信し、ODPT・地図タイルへの通信は全て transit-map.js を経由する
