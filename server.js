@@ -340,7 +340,6 @@ const globalLimiter = rateLimit({
   max: 600,
   standardHeaders: true,
   legacyHeaders: false,
-  // 交通マップはポーリング・タイル取得で件数が多いため、専用リミッター(transit-map.js)で制御する
   skip: (req) => req.path.startsWith('/api/transit/map/') || req.path.startsWith('/api/transit/tiles/')
 });
 app.use(globalLimiter);
@@ -394,7 +393,7 @@ const SESSIONS_DIR = path.join(DATA_DIR, 'sessions');
 const PATHS = {
   USERS: path.join(DATA_DIR, 'users.json'),
   NOTICES: path.join(DATA_DIR, 'notices.json'),
-  CLASSROOM: path.join(DATA_DIR, 'classroom.json'), // ※ 今後使われなくなりますが、他の影響を避けるため残しています
+  CLASSROOM: path.join(DATA_DIR, 'classroom.json'),
   SCHEDULE: path.join(DATA_DIR, 'schedule.json'),
   CALENDAR: path.join(DATA_DIR, 'calendar.json'),
   SETTINGS: path.join(DATA_DIR, 'settings.json'),
@@ -489,9 +488,8 @@ if (PRIVILEGED_ADMINS.length > 0) {
 let usersDB = {};
 let systemSettings = {};
 let systemLogs = [];
-const MAX_LOGS_LIMIT = 1000; // メモリおよびディスク肥大化防止のログ件数上限
+const MAX_LOGS_LIMIT = 1000;
 
-// --- [最適化されたログ追加関数 (デバウンス・上限付き)] ---
 let logSaveTimeout = null;
 function scheduleLogSave() {
   if (logSaveTimeout) return;
@@ -500,7 +498,7 @@ function scheduleLogSave() {
     safeWriteJSON(PATHS.LOGS, systemLogs).catch((err) => {
       console.error('[Log Disk Save Error]:', err.message);
     });
-  }, 2000); // ログ書き込みを2秒間統合してディスクI/Oを激減させる
+  }, 2000);
 }
 
 async function addLog(req, action, email, details = '', statusCode = null) {
@@ -522,7 +520,6 @@ async function addLog(req, action, email, details = '', statusCode = null) {
     systemLogs = systemLogs.slice(0, MAX_LOGS_LIMIT);
   }
 
-  // ディスク保存は一括書き込み（デバウンス）処理でI/Oパンクを防ぐ
   scheduleLogSave();
 }
 
@@ -646,7 +643,6 @@ passport.deserializeUser((email, done) => {
   done(null, user);
 });
 
-// セッションストアはサーバー再起動後も維持できるローカル JSON ファイルを使用する。
 const sessionStore = new LocalFileStore(PATHS.SESSIONS_DIR);
 console.log(`[Session] Local file store: ${PATHS.SESSIONS_DIR}`);
 
@@ -1366,9 +1362,13 @@ setInterval(updateRoadCache, 60 * 1000);
 app.get('/api/transit', ensureAuth, asyncHandler(async (req, res) => res.json(cachedTransitData)));
 app.get('/api/road', ensureAuth, asyncHandler(async (req, res) => res.json(cachedRoadData)));
 
+// ====== [GeoJSON提供用エンドポイント追加] ======
+app.get('/api/transit/railroadsection', ensureAuth, asyncHandler(async (req, res) => {
+  res.json(await safeReadJSON(path.join(DATA_DIR, 'railroadsection.geojson'), { type: 'FeatureCollection', features: [] }));
+}));
+// ===============================================
 
 // --- [交通マップ (ODPT): 列車・バス位置 / 駅・バス停 / 運行情報 / 地図タイル中継] ---
-// ブラウザは以下のAPIだけと通信し、ODPT・地図タイルへの通信は全て transit-map.js を経由する
 const transitMap = require('./transit-map');
 transitMap.register(app, { express, ensureAuth, ensureAdmin, asyncHandler, rateLimit });
 
@@ -1797,7 +1797,6 @@ async function initServer() {
     updateTransitCache();
     updateRoadCache();
     transitMap.init({ dataDir: DATA_DIR });
-    // ▼ 起動時にファイルからキャッシュを復元する処理に変更
     cachedClassroomData = await safeReadJSON(PATHS.CLASSROOM, []);
 
     server.listen(PORT, () => {
