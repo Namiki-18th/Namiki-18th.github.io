@@ -649,31 +649,43 @@
         } catch (_) {}
       }
 
-      // ===== 路線図の常時表示用関数 =====
+      // ===== 路線図の常時表示用関数（超軽量化版） =====
       async function loadGeoJsonRoutes() {
         if (!S.map) return;
         try {
-          const res = await rf('/api/transit/railroadsection', { headers: { 'Accept': 'application/json' } });
+          const url = '/api/transit/railroadsection';
+          let res;
+          
+          // 1. Cache API を使って通信をキャッシュ（2回目以降は爆速・通信ゼロ）
+          if ('caches' in window) {
+            const cache = await caches.open('namiki-transit-routes-v1');
+            res = await cache.match(url);
+            if (!res) {
+              res = await rf(url, { headers: { 'Accept': 'application/json' } });
+              if (res.ok) await cache.put(url, res.clone());
+            }
+          } else {
+            res = await rf(url, { headers: { 'Accept': 'application/json' } });
+          }
+
           if (!res.ok) throw new Error('HTTP Error: ' + res.status);
           const geojson = await res.json();
 
-          // Canvasレンダラーで数万件のパスを軽量に描画
-          const canvasRenderer = L.canvas({ padding: 0.5 });
+          // 2. Canvasレンダラーのチューニング（画面外のバッファを減らす）
+          const canvasRenderer = L.canvas({ padding: 0.1 });
+          
           L.geoJSON(geojson, {
             renderer: canvasRenderer,
+            interactive: false, // 3. クリック/ホバー判定を無効化（超重要：これで劇的に軽くなる）
             style: (feature) => {
               const props = feature.properties || {};
               return {
-                color: props.color || props.line_color || '#3b82f6',
-                weight: 2,
-                opacity: 0.6
+                color: props.color || props.line_color || '#64748b', // 背景に馴染む色に
+                weight: 1.5, // 少し細くする
+                opacity: 0.4 // 透明度を下げて車両を目立たせる
               };
-            },
-            onEachFeature: (feature, layer) => {
-              const props = feature.properties || {};
-              const name = props.N02_004 || props.name || props.route_name;
-              if (name) layer.bindTooltip(name, { sticky: true });
             }
+            // ※ 重いため onEachFeature (Tooltip) は意図的に削除
           }).addTo(S.map);
         } catch (err) {
           console.error('路線図データの取得に失敗:', err);
