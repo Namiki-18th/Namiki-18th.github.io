@@ -48,27 +48,52 @@ const app = express();
 const server = http.createServer(app);
 app.use(compression());
 
+// --- [CORS 柔軟化設定] ---
 const rawCorsOrigin = process.env.CORS_ORIGIN || process.env.RENDER_EXTERNAL_URL || '';
-const corsOrigin = rawCorsOrigin
-  ? rawCorsOrigin.includes(',')
-    ? rawCorsOrigin.split(',').map((s) => s.trim())
-    : rawCorsOrigin
-  : false;
+const allowedOriginsList = rawCorsOrigin
+  ? rawCorsOrigin.split(',').map((s) => s.trim()).filter(Boolean)
+  : [];
+
 const configuredOrigins = new Set(
-  (Array.isArray(corsOrigin) ? corsOrigin : corsOrigin ? [corsOrigin] : [])
+  allowedOriginsList
     .map((origin) => {
       try {
         return new URL(origin).origin;
       } catch (_) {
-        return null;
+        return origin === '*' ? '*' : null;
       }
     })
     .filter(Boolean)
 );
 
+// 動的なOrigin検証関数
+function isOriginAllowed(origin) {
+  if (!origin) return true; // Direct/Same-origin/Mobile app
+  if (configuredOrigins.has('*')) return true;
+  try {
+    const normalized = new URL(origin).origin;
+    if (configuredOrigins.has(normalized)) return true;
+    
+    // 開発環境の場合は localhost / 127.0.0.1 を自動許可
+    if (!isProduction) {
+      const url = new URL(origin);
+      if (url.hostname === 'localhost' || url.hostname === '127.0.0.1') return true;
+    }
+  } catch (_) {
+    return false;
+  }
+  return false;
+}
+
 const io = new Server(server, {
   cors: {
-    origin: corsOrigin,
+    origin: (origin, callback) => {
+      if (isOriginAllowed(origin)) {
+        callback(null, true);
+      } else {
+        callback(new Error('Not allowed by CORS'));
+      }
+    },
     methods: ['GET', 'POST'],
     credentials: true
   }
@@ -365,10 +390,16 @@ app.use(express.urlencoded({ limit: '1mb', extended: true }));
 
 app.use(
   cors({
-    origin: corsOrigin,
+    origin: (origin, callback) => {
+      if (isOriginAllowed(origin)) {
+        callback(null, true);
+      } else {
+        callback(null, false);
+      }
+    },
     credentials: true,
     methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
-    allowedHeaders: ['Content-Type', 'x-api-key']
+    allowedHeaders: ['Content-Type', 'x-api-key', 'Authorization']
   })
 );
 
@@ -684,7 +715,7 @@ app.use((req, res, next) => {
   const forwardedHost = isProduction ? req.get('x-forwarded-host')?.split(',')[0].trim() : '';
   const requestHost = forwardedHost || req.get('host');
   const sameOrigin = `${req.protocol}://${requestHost}`;
-  if (normalizedRequestOrigin !== sameOrigin && !configuredOrigins.has(normalizedRequestOrigin)) {
+  if (normalizedRequestOrigin !== sameOrigin && !isOriginAllowed(normalizedRequestOrigin)) {
     return res.status(403).json({ error: 'Cross-site request blocked' });
   }
   next();
