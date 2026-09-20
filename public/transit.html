@@ -601,6 +601,7 @@
       }
 
       // ===== 路線図の設定 =====
+      // ===== 路線図の設定 =====
       let routeLayer = null;
 
       function getRouteColor(props) {
@@ -641,10 +642,15 @@
           if (!res.ok) throw new Error('HTTP Error: ' + res.status);
           const geojson = await res.json();
 
-          const canvasRenderer = L.canvas({ padding: 0.1 });
+          // 路線用のPane(重なり順)を作成・設定
+          if (!S.map.getPane('transit-routes')) {
+            S.map.createPane('transit-routes');
+            S.map.getPane('transit-routes').style.zIndex = 400; // 標準のオーバーレイ層
+          }
+          const routeRenderer = L.canvas({ padding: 0.1, pane: 'transit-routes' });
           
           routeLayer = L.geoJSON(geojson, {
-            renderer: canvasRenderer,
+            renderer: routeRenderer,
             interactive: false,
             style: (feature) => {
               const props = feature.properties || {};
@@ -659,7 +665,7 @@
           S.map.on('zoomend', () => {
             if (routeLayer) {
               const currentZoom = S.map.getZoom();
-              routeLayer.setStyle((feature) => ({
+              routeLayer.setStyle(() => ({
                 weight: getRouteWeight(currentZoom)
               }));
             }
@@ -671,14 +677,11 @@
       }
       
       // ===== 駅 (Station) のGeoJSONレンダリング処理 =====
-      // ズームレベルに応じて駅の線の太さを路線の太さから計算する
-      // 広域表示(ズーム10以下)では非表示にして軽量化
       function getStationWeights(zoom) {
-        if (zoom <= 10) return { bg: 0, fg: 0 };
         const routeW = getRouteWeight(zoom);
         return {
-          bg: routeW + 4, // 黒い枠線（路線より少し太くする）
-          fg: Math.max(1, routeW + 1)  // 白い中塗り（黒枠の内側に収める）
+          bg: routeW + 4,
+          fg: Math.max(1, routeW + 1)
         };
       }
 
@@ -702,52 +705,74 @@
           if (!res.ok) throw new Error('HTTP Error: ' + res.status);
           const geojson = await res.json();
 
-          const canvasRenderer = L.canvas({ padding: 0.1 });
+          // 駅用のPane(重なり順)を作成・設定。路線(400)より上の値(410)にする
+          if (!S.map.getPane('transit-stations')) {
+            S.map.createPane('transit-stations');
+            S.map.getPane('transit-stations').style.zIndex = 410; 
+          }
+          const stationRenderer = L.canvas({ padding: 0.1, pane: 'transit-stations' });
           
-          // 1. 黒色の外枠レイヤー
+          // 1. ズームイン時の長方形：黒色の外枠レイヤー
           const stationBgLayer = L.geoJSON(geojson, {
-            renderer: canvasRenderer,
+            renderer: stationRenderer,
             interactive: false,
-            style: () => {
-              const w = getStationWeights(S.map.getZoom());
-              return {
-                color: '#000000',
-                weight: w.bg,
-                opacity: w.bg > 0 ? 1 : 0,
-                lineCap: 'square'
-              };
-            }
-          }).addTo(S.map);
+            style: () => ({ color: '#000000', lineCap: 'square' })
+          });
 
-          // 2. 白色の内塗りレイヤー
+          // 2. ズームイン時の長方形：白色の内塗りレイヤー
           const stationFgLayer = L.geoJSON(geojson, {
-            renderer: canvasRenderer,
+            renderer: stationRenderer,
             interactive: false,
-            style: () => {
-              const w = getStationWeights(S.map.getZoom());
-              return {
-                color: '#ffffff',
-                weight: w.fg,
-                opacity: w.fg > 0 ? 1 : 0,
-                lineCap: 'square'
-              };
-            }
-          }).addTo(S.map);
+            style: () => ({ color: '#ffffff', lineCap: 'square' })
+          });
 
-          // ズームレベル変更時に駅の太さと表示状態を再計算
-          S.map.on('zoomend', () => {
-            if (stationBgLayer && stationFgLayer) {
-              const w = getStationWeights(S.map.getZoom());
-              stationBgLayer.setStyle({ weight: w.bg, opacity: w.bg > 0 ? 1 : 0 });
-              stationFgLayer.setStyle({ weight: w.fg, opacity: w.fg > 0 ? 1 : 0 });
+          // 3. ズームアウト時用の大きな丸レイヤー
+          const stationDotsLayer = L.layerGroup();
+          L.geoJSON(geojson, {
+            onEachFeature: (feature, layer) => {
+              // 線の中心（または点の座標）を取得して丸いマーカーを生成
+              const center = layer.getBounds ? layer.getBounds().getCenter() : (layer.getLatLng ? layer.getLatLng() : null);
+              if (center) {
+                L.circleMarker(center, {
+                  renderer: stationRenderer,
+                  interactive: false,
+                  radius: 4.5, // 縮小時に見えやすい大きな丸
+                  color: '#000000',
+                  weight: 1.5,
+                  fillColor: '#ffffff',
+                  fillOpacity: 1
+                }).addTo(stationDotsLayer);
+              }
             }
           });
+
+          // ズームレベルに応じて表示レイヤーを切り替える
+          function updateStationDisplay() {
+            const z = S.map.getZoom();
+            if (z <= 10) {
+              // ズームアウト時: 大きな丸を表示し、長方形は非表示
+              if (!S.map.hasLayer(stationDotsLayer)) S.map.addLayer(stationDotsLayer);
+              if (S.map.hasLayer(stationBgLayer)) S.map.removeLayer(stationBgLayer);
+              if (S.map.hasLayer(stationFgLayer)) S.map.removeLayer(stationFgLayer);
+            } else {
+              // ズームイン時: 長方形を表示し、丸を非表示
+              if (S.map.hasLayer(stationDotsLayer)) S.map.removeLayer(stationDotsLayer);
+              if (!S.map.hasLayer(stationBgLayer)) S.map.addLayer(stationBgLayer);
+              if (!S.map.hasLayer(stationFgLayer)) S.map.addLayer(stationFgLayer);
+
+              const w = getStationWeights(z);
+              stationBgLayer.setStyle({ weight: w.bg, opacity: 1 });
+              stationFgLayer.setStyle({ weight: w.fg, opacity: 1 });
+            }
+          }
+
+          S.map.on('zoomend', updateStationDisplay);
+          updateStationDisplay(); // 初回表示の実行
 
         } catch (err) {
           console.error('駅データの取得に失敗:', err);
         }
       }
-      // ===============================================
 
       function bindControls() {
         document.querySelectorAll('[data-tm-layer]').forEach((btn) => {
