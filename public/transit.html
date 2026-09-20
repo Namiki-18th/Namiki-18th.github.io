@@ -9,7 +9,9 @@
   <link rel="icon" href="/favicon.ico" type="image/x-icon">
   <link rel="stylesheet" href="/vendor/leaflet/leaflet.css">
   <style>
-    /* ===== 交通マップ (.tm-*) ===== */
+    /* ===== 交通マップ (.tm-*) =====
+       既存の app.css / style.css のトークン名に依存しないよう、色は「継承 + 半透明」で構成している。
+       アクセント色だけは設定画面の選択(--color-accent-blue)に追従する。 */
     .tm-section { margin-top: 1.25rem; }
     .tm-below { margin-top: 1.25rem; }
     .tm-toolbar { display: flex; flex-wrap: wrap; gap: .5rem .9rem; align-items: center; justify-content: space-between; margin-bottom: .65rem; }
@@ -32,93 +34,258 @@
     .tm-dot.stop { background: #334155; width: .6rem; height: .6rem; }
     .tm-dot.late { background: #fff; border-color: #dc2626; box-shadow: none; }
     .tm-count { font-variant-numeric: tabular-nums; opacity: .8; }
-    .tm-select { display: inline-block; }
-    #map { width: 100%; height: 75vh; min-height: 500px; border-radius: 8px; z-index: 1; margin-top: 1rem; }
+    .tm-select { display: inline-flex; align-items: center; gap: .4rem; font-size: .85rem; }
+    .tm-select select {
+      min-height: 36px; padding: .3rem .6rem; border: 1px solid rgba(127, 127, 127, .38); border-radius: 8px;
+      background: transparent; color: inherit; font: inherit; font-size: .85rem;
+    }
+    .tm-select select option { color: #111; background: #fff; }
+    .tm-updated { font-size: .8rem; opacity: .75; font-variant-numeric: tabular-nums; }
+
+    .tm-map-wrap { position: relative; }
+    .tm-map {
+      position: relative; isolation: isolate; /* Leaflet内部の高いz-indexがサイドバー等に被らないようにする */
+      height: clamp(420px, 66vh, 780px); height: clamp(420px, 66dvh, 780px);
+      border: 1px solid rgba(127, 127, 127, .32); border-radius: 14px; overflow: hidden; background: #d6dee8;
+    }
+    html.dark .tm-map { background: #18212c; }
+    /* ダークテーマでは淡色地図を反転して背景に馴染ませる(車両・駅の描画はタイル層の外なので影響なし) */
+    html.dark .tm-map .leaflet-tile-pane { filter: invert(1) hue-rotate(180deg) brightness(.9) contrast(.92) saturate(.8); }
+    .tm-map .leaflet-control-attribution { font-size: 11px; }
+    .tm-canvas { position: absolute; left: 0; top: 0; z-index: 450; pointer-events: none; }
+    .tm-msg {
+      position: absolute; left: 50%; top: .75rem; transform: translateX(-50%); z-index: 900; max-width: min(92%, 34rem);
+      padding: .45rem .9rem; border-radius: 999px; font-size: .82rem; text-align: center;
+      color: #fff; background: rgba(15, 23, 42, .86); pointer-events: none;
+    }
+    .tm-msg[hidden] { display: none; }
+    .tm-msg.fatal { border-radius: 12px; pointer-events: auto; background: rgba(153, 27, 27, .92); }
+
+    .tm-pop {
+      position: absolute; z-index: 460; width: 15.5rem; max-width: calc(100% - 16px); padding: .7rem .8rem .6rem;
+      border-radius: 12px; color: #1e293b; background: #fff; box-shadow: 0 6px 22px rgba(0, 0, 0, .3);
+      font-size: .82rem; line-height: 1.45;
+    }
+    .tm-pop[hidden] { display: none; }
+    .tm-pop-title { display: flex; align-items: center; gap: .45rem; margin: 0 1.6rem .4rem 0; font-weight: 700; font-size: .92rem; }
+    .tm-pop-close {
+      position: absolute; right: .35rem; top: .3rem; width: 28px; height: 28px; border: 0; border-radius: 50%;
+      background: transparent; color: #475569; font-size: 1.15rem; line-height: 1; cursor: pointer;
+    }
+    .tm-pop-list { display: grid; grid-template-columns: max-content 1fr; gap: .15rem .7rem; margin: 0; }
+    .tm-pop-list dt { color: #64748b; }
+    .tm-pop-list dd { margin: 0; word-break: break-word; }
+    .tm-pop-late { color: #b91c1c; font-weight: 700; }
+    .tm-pop-early { color: #047857; }
+
+    .tm-info { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 22rem), 1fr)); gap: 1rem; margin-top: 1rem; }
+    .tm-panel { padding: .9rem 1rem 1rem; border: 1px solid rgba(127, 127, 127, .28); border-radius: 14px; background: rgba(127, 127, 127, .07); }
+    .tm-panel h2 { margin: 0 0 .55rem; font-size: 1rem; }
+    .tm-hint { margin: 0; font-size: .85rem; opacity: .75; }
+    .tm-list { list-style: none; margin: 0; padding: 0; display: grid; gap: .45rem; }
+    .tm-list li { padding: .5rem .65rem; border-radius: 10px; background: rgba(127, 127, 127, .09); font-size: .85rem; }
+    .tm-tag {
+      display: inline-block; margin-right: .4rem; padding: .05rem .5rem; border-radius: 999px; font-size: .72rem; font-weight: 600;
+      background: rgba(59, 130, 246, .18); border: 1px solid rgba(59, 130, 246, .5);
+    }
+    .tm-alert summary { cursor: pointer; }
+    .tm-alert p { margin: .35rem 0 0; white-space: pre-line; opacity: .9; }
+    .tm-feed { display: flex; align-items: center; justify-content: space-between; gap: .75rem; }
+    .tm-feed-name { display: flex; align-items: center; gap: .5rem; min-width: 0; }
+    .tm-feed-name span:last-child { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+    .tm-feed-meta { flex: none; font-size: .78rem; opacity: .8; font-variant-numeric: tabular-nums; text-align: right; }
+    .tm-status { width: .55rem; height: .55rem; border-radius: 50%; flex: none; background: #94a3b8; }
+    .tm-status.ok { background: #16a34a; }
+    .tm-status.ng { background: #dc2626; }
+    .tm-fold { margin-top: .6rem; font-size: .85rem; }
+    .tm-fold summary { cursor: pointer; opacity: .85; }
+    .tm-fold .tm-list { margin-top: .45rem; }
+    .tm-credit { margin: .75rem 0 0; font-size: .75rem; line-height: 1.6; opacity: .72; }
+    .tm-credit a { color: inherit; text-decoration: underline; }
+    @media (max-width: 640px) {
+      .tm-map { height: clamp(360px, 58vh, 640px); height: clamp(360px, 58dvh, 640px); }
+      .tm-pop { width: 14rem; }
+    }
+    @media (prefers-reduced-motion: reduce) { .tm-chip, .tm-btn { transition: none; } }
+
+    /* ===== ここから追加: 地図全画面化＆ツールバーのオーバーレイ表示 ===== */
+    
+    /* 1. タイトルや下の運行状況・詳細情報などをすべて非表示にする */
+    .page-header, 
+    .tm-below, 
+    #transit-error, 
+    .tm-info {
+      display: none !important;
+    }
+    
+    /* 2. メインエリアの余白をなくし、画面の高さいっぱいに広げる */
+    .app-main, 
+    .content-area {
+      padding: 0 !important;
+      margin: 0 !important;
+      max-width: 100% !important;
+      height: 100vh;
+      height: 100dvh; /* スマホブラウザのバーを考慮 */
+      display: flex;
+      flex-direction: column;
+    }
+    
+    /* 3. マップセクションを画面の残りの領域すべてに広げる */
+    .tm-section {
+      margin: 0 !important;
+      flex: 1;
+      display: flex;
+      position: relative;
+    }
+    .tm-map-wrap {
+      flex: 1;
+      width: 100%;
+      position: relative;
+    }
+    
+    /* 地図自体の枠線や角丸を消し、領域を100%にする */
+    .tm-map {
+      height: 100% !important;
+      width: 100%;
+      border: none;
+      border-radius: 0;
+    }
+    
+    /* 4. ツールバー（ボタンや設定）を地図の上に浮かせて配置する */
+    .tm-toolbar {
+      position: absolute;
+      top: 15px;
+      left: 15px;
+      right: 15px;
+      z-index: 1000;
+      background: rgba(255, 255, 255, 0.9); /* 半透明の白背景 */
+      padding: 10px 15px;
+      border-radius: 12px;
+      box-shadow: 0 4px 16px rgba(0, 0, 0, 0.15);
+      margin: 0;
+      backdrop-filter: blur(4px);
+    }
+    
+    /* ダークモード用のツールバー背景色 */
+    html.dark .tm-toolbar {
+      background: rgba(24, 33, 44, 0.9);
+      box-shadow: 0 4px 16px rgba(0, 0, 0, 0.5);
+    }
+    /* ===== ここまで ===== */
   </style>
 </head>
 <body>
-  <div class="app-container">
-    <main class="app-main">
-      <header class="app-header">
-        <h1>交通情報</h1>
-      </header>
+  <aside class="sidebar">
+    <div class="sidebar-header" data-href="/index">
+      <div class="flex items-center gap-3">
+        <div class="logo-badge"><img src="/logo.webp" alt="Logo" class="logo-badge-img"></div>
+        <h1 class="font-bold text-sm sidebar-brand-text">並木中等教育学校18回生<br><span class="text-xs font-normal sidebar-brand-tagline">ダッシュボード</span></h1>
+      </div>
+    </div>
+    <nav class="sidebar-nav">
+      <a href="/index" class="sidebar-nav-button" title="ホーム">
+        <svg class="icon-nav" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6"></path>
+        </svg>
+      </a>
+      <a href="/transit" class="sidebar-nav-button active" title="交通情報">
+        <svg class="icon-nav" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 16h14l-1-6H6l-1 6Z"></path>
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 10 8.5 6h7L17 10M7 19h.01M17 19h.01M5 16v3m14-3v3"></path>
+        </svg>
+      </a>
+    </nav>
+  </aside>
+
+  <main class="app-main">
+    <div class="content-area">
       <section class="tm-section">
+        <!-- マップ上に重なるツールバー -->
         <div class="tm-toolbar">
-          <div class="tm-chipset">
-            <button class="tm-chip" aria-pressed="true" id="toggle-rail">
-              <span class="tm-dot rail"></span>鉄道路線
+          <div class="tm-tools">
+            <button class="tm-chip" aria-pressed="true" id="toggle-railroad">
+              <span class="tm-dot rail"></span>路線図を表示
             </button>
+            <span class="tm-updated" id="status-text">データを取得中...</span>
           </div>
         </div>
         
-        <!-- マップ表示領域 -->
-        <div id="map"></div>
-        
+        <!-- マップのコンテナ -->
+        <div class="tm-map-wrap">
+          <div id="transit-map" class="tm-map"></div>
+        </div>
       </section>
-    </main>
-  </div>
+    </div>
+  </main>
 
-  <!-- Leaflet JS -->
   <script src="/vendor/leaflet/leaflet.js"></script>
   <script>
-    document.addEventListener("DOMContentLoaded", () => {
-      // マップの初期化（日本の中心付近をセット）
-      const map = L.map('map').setView([36.2048, 138.2529], 5);
+    document.addEventListener('DOMContentLoaded', () => {
+      // 1. 地図の初期化（つくば駅付近を中心に設定）
+      const map = L.map('transit-map').setView([36.0825, 140.1107], 11);
 
-      // 地図タイルの設定（OpenStreetMap）
+      // 2. OpenStreetMapのタイルレイヤーを追加
       L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+        maxZoom: 18,
         attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
       }).addTo(map);
 
-      let railLayer;
+      let railroadLayer = null;
+      const statusText = document.getElementById('status-text');
 
-      // サーバーからGeoJSONデータを取得して描画
-      fetch('/api/transit/railroadsection')
-        .then(response => {
+      // 3. APIからGeoJSONデータを取得して地図に描画する非同期関数
+      async function fetchAndDrawRailroadMap() {
+        try {
+          const response = await fetch('/api/transit/railroadsection');
           if (!response.ok) {
-            throw new Error('路線の取得に失敗しました');
+            throw new Error(`データの取得に失敗しました (ステータス: ${response.status})`);
           }
-          return response.json();
-        })
-        .then(data => {
-          railLayer = L.geoJSON(data, {
+          
+          const geojsonData = await response.json();
+          
+          railroadLayer = L.geoJSON(geojsonData, {
             style: function (feature) {
               return {
-                color: '#2563eb', // 路線の色
-                weight: 2,
+                // GeoJSONのプロパティに色が指定されていれば適用し、なければデフォルトの青色を使用します
+                color: feature.properties.color || '#2563eb',
+                weight: 4,
                 opacity: 0.8
               };
             },
             onEachFeature: function (feature, layer) {
-              // プロパティが存在する場合はポップアップに事業者名と路線名を表示
-              if (feature.properties) {
-                const company = feature.properties.N02_004 || '事業者不明';
-                const line = feature.properties.N02_003 || '路線名不明';
-                layer.bindPopup(`<b>${company}</b><br>${line}`);
+              // 路線名が存在する場合はポップアップとしてバインドします
+              if (feature.properties && feature.properties.name) {
+                layer.bindPopup(`<b>${feature.properties.name}</b>`);
               }
             }
-          }).addTo(map);
+          });
           
-          // データが描画されたら、マップの表示領域をデータ全体の範囲に合わせる
-          map.fitBounds(railLayer.getBounds());
-        })
-        .catch(error => {
-          console.error('GeoJSONの読み込みに失敗しました:', error);
-        });
-
-      // 路線の表示切り替えボタンの処理
-      const toggleRailBtn = document.getElementById('toggle-rail');
-      toggleRailBtn.addEventListener('click', () => {
-        const isPressed = toggleRailBtn.getAttribute('aria-pressed') === 'true';
-        toggleRailBtn.setAttribute('aria-pressed', String(!isPressed));
-        if (railLayer) {
-          if (isPressed) {
-            map.removeLayer(railLayer);
-          } else {
-            railLayer.addTo(map);
-          }
+          railroadLayer.addTo(map);
+          statusText.textContent = '路線図の読み込み完了';
+          
+        } catch (error) {
+          console.error('[Transit Map Error]:', error);
+          statusText.textContent = '路線図の読み込みに失敗しました';
         }
-      });
+      }
+
+      // 4. 初回データの取得を実行
+      fetchAndDrawRailroadMap();
+
+      // 5. 路線図の表示/非表示を切り替えるトグルボタンの制御
+      const toggleBtn = document.getElementById('toggle-railroad');
+      if (toggleBtn) {
+        toggleBtn.addEventListener('click', () => {
+          const isPressed = toggleBtn.getAttribute('aria-pressed') === 'true';
+          if (isPressed) {
+            if (railroadLayer) map.removeLayer(railroadLayer);
+            toggleBtn.setAttribute('aria-pressed', 'false');
+          } else {
+            if (railroadLayer) map.addLayer(railroadLayer);
+            toggleBtn.setAttribute('aria-pressed', 'true');
+          }
+        });
+      }
     });
   </script>
 </body>
