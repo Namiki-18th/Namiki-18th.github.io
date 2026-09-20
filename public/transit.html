@@ -9,18 +9,34 @@
   <link rel="icon" href="/favicon.ico" type="image/x-icon">
   <link rel="stylesheet" href="/vendor/leaflet/leaflet.css">
   <style>
-    /* ===== 追加: 全画面マップ化とUIのフローティング化 ===== */
-    /* 不要な要素を非表示にする */
-    .sidebar, .mobile-topbar, .page-header, .tm-below, #transit-error, .tm-info {
+    /* ===== 追加: メイン領域の全画面マップ化とUIのフローティング化 ===== */
+    /* 不要な要素を非表示にする（サイドバーとモバイル用トップバーは残す） */
+    .page-header, .tm-below, #transit-error, .tm-info {
       display: none !important;
     }
 
-    /* 画面全体を地図にする */
+    /* 画面の高さをブラウザの高さに固定し、スクロールをなくす */
     body, html { margin: 0; padding: 0; height: 100vh; overflow: hidden; }
-    .app-main, .content-area, .tm-section { 
-      padding: 0 !important; margin: 0 !important; height: 100%; max-width: none !important; 
+    
+    /* メイン領域の高さを100%にし、地図が余白なく広がるようにする */
+    .app-main { 
+      height: 100vh; 
+      padding: 0 !important; 
     }
-    .tm-section { position: relative; margin-top: 0; }
+    .content-area { 
+      height: 100%; 
+      padding: 0 !important; 
+      margin: 0 !important; 
+      max-width: none !important;
+      display: flex; 
+      flex-direction: column; 
+    }
+    .tm-section { 
+      flex-grow: 1; 
+      position: relative; 
+      margin: 0 !important; 
+      padding: 0 !important; 
+    }
     .tm-map-wrap { height: 100%; }
     .tm-map { height: 100% !important; border: none; border-radius: 0; }
 
@@ -139,10 +155,10 @@
 </head>
 <body>
   <aside class="sidebar">
-    <!-- サイドバーの内容（CSSで非表示になります） -->
+    <!-- サイドバーの内容（今回はそのまま表示されます） -->
   </aside>
   <header class="mobile-topbar">
-    <!-- モバイルトップバーの内容（CSSで非表示になります） -->
+    <!-- モバイル用トップバーの内容（今回はそのまま表示されます） -->
   </header>
   
   <main class="app-main">
@@ -261,7 +277,7 @@
         try { localStorage.setItem(PREF_KEY, JSON.stringify({ on: S.on, basemap: S.basemap })); } catch (_) { }
       }
 
-      // ---------- 詳細ポップアップ(自前のHTML要素。Canvasより手前に出す) ----------
+      // ---------- 詳細ポップアップ ----------
       function buildPopup(container) {
         const box = el('div', 'tm-pop');
         box.hidden = true;
