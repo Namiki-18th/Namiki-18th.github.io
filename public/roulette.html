@@ -4,348 +4,450 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>ルーレット</title>
+    <style>
+        * {
+            box-sizing: border-box;
+        }
+
+        body {
+            margin: 0;
+            width: 100vw;
+            height: 100vh;
+            background-color: #f8fafc;
+            display: flex;
+            font-family: sans-serif;
+            overflow: hidden;
+            position: relative;
+            transition: background 0.5s ease;
+        }
+
+        /* 先生確定演出時：超ド派手回転波打ちレインボー */
+        body.rainbow-mode {
+            background: conic-gradient(
+                from 0deg,
+                #ff0000, #ff7f00, #ffff00, #00ff00, #00ffff, #0000ff, #8b00ff, #ff0000
+            );
+            background-size: 150% 150%;
+            animation: superRainbow 0.6s linear infinite;
+        }
+
+        @keyframes superRainbow {
+            0% {
+                filter: hue-rotate(0deg) contrast(1.5);
+                transform: scale(1);
+            }
+            50% {
+                filter: hue-rotate(180deg) contrast(2);
+                transform: scale(1.02);
+            }
+            100% {
+                filter: hue-rotate(360deg) contrast(1.5);
+                transform: scale(1);
+            }
+        }
+
+        /* 紙吹雪（エフェクト）用Canvas */
+        #confettiCanvas {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100vw;
+            height: 100vh;
+            pointer-events: none;
+            z-index: 90;
+        }
+
+        /* サイドバー開閉切り替えボタン */
+        .sidebar-toggle-btn {
+            position: absolute;
+            top: 16px;
+            left: 16px;
+            z-index: 30;
+            width: 40px;
+            height: 40px;
+            background-color: #ffffff;
+            border: 2px solid #e2e8f0;
+            border-radius: 8px;
+            cursor: pointer;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            font-size: 20px;
+            color: #2d3748;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+            transition: background-color 0.2s;
+        }
+
+        .sidebar-toggle-btn:hover {
+            background-color: #edf2f7;
+        }
+
+        /* 左側：固定サイドバー */
+        .sidebar {
+            width: 300px;
+            height: 100vh;
+            background-color: #ffffff;
+            border-right: 2px solid #e2e8f0;
+            padding: 68px 16px 20px 16px;
+            display: flex;
+            flex-direction: column;
+            box-shadow: 4px 0 12px rgba(0, 0, 0, 0.03);
+            z-index: 20;
+            flex-shrink: 0;
+            transition: margin-left 0.3s ease;
+            overflow-y: auto;
+        }
+
+        .sidebar.collapsed {
+            margin-left: -300px;
+        }
+
+        /* セクション共通スタイル */
+        .sidebar-section-title {
+            font-size: 13px;
+            font-weight: bold;
+            color: #718096;
+            margin-bottom: 8px;
+            margin-top: 16px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .sidebar-section-title:first-of-type {
+            margin-top: 0;
+        }
+
+        /* クラス切替タブ */
+        .class-tabs {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 6px;
+            margin-bottom: 12px;
+        }
+
+        .tab-btn {
+            padding: 8px 0;
+            font-size: 14px;
+            font-weight: bold;
+            border: 2px solid #cbd5e0;
+            background-color: #f7fafc;
+            color: #4a5568;
+            border-radius: 6px;
+            cursor: pointer;
+            transition: all 0.2s ease;
+        }
+
+        .tab-btn:hover {
+            background-color: #edf2f7;
+        }
+
+        .tab-btn.active {
+            background-color: #3182ce;
+            color: #ffffff;
+            border-color: #3182ce;
+        }
+
+        /* 履歴エリア */
+        .history-container {
+            max-height: 180px;
+            min-height: 100px;
+            display: flex;
+            flex-direction: column;
+            background-color: #f8fafc;
+            border: 1px solid #e2e8f0;
+            border-radius: 6px;
+            padding: 8px;
+            margin-bottom: 12px;
+        }
+
+        .history-list {
+            list-style: none;
+            padding: 0;
+            margin: 0;
+            overflow-y: auto;
+            flex-grow: 1;
+        }
+
+        .history-item {
+            background-color: #ffffff;
+            border: 1px solid #e2e8f0;
+            border-radius: 4px;
+            padding: 6px 10px;
+            margin-bottom: 6px;
+            font-size: 13px;
+            font-weight: bold;
+            color: #4a5568;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .history-item .count {
+            font-size: 11px;
+            color: #a0aec0;
+        }
+
+        .history-empty {
+            color: #a0aec0;
+            font-size: 12px;
+            text-align: center;
+            margin-top: 24px;
+        }
+
+        /* 設定エリア */
+        .settings-box {
+            background-color: #f7fafc;
+            border: 1px solid #e2e8f0;
+            border-radius: 6px;
+            padding: 12px;
+            margin-bottom: 12px;
+            font-size: 13px;
+        }
+
+        .setting-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 8px;
+        }
+
+        .setting-item:last-child {
+            margin-bottom: 0;
+        }
+
+        .setting-item label {
+            color: #4a5568;
+            font-weight: bold;
+        }
+
+        .setting-item input[type="number"] {
+            width: 60px;
+            padding: 4px;
+            border: 1px solid #cbd5e0;
+            border-radius: 4px;
+            text-align: center;
+        }
+
+        .btn-sub {
+            width: 100%;
+            padding: 6px 0;
+            margin-top: 6px;
+            font-size: 12px;
+            font-weight: bold;
+            border: 1px solid #cbd5e0;
+            background-color: #ffffff;
+            color: #4a5568;
+            border-radius: 4px;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        .btn-sub:hover {
+            background-color: #edf2f7;
+        }
+
+        .btn-danger {
+            color: #e53e3e;
+            border-color: #feb2b2;
+        }
+
+        .btn-danger:hover {
+            background-color: #fff5f5;
+        }
+
+        /* 使い方エリア (アコーディオン) */
+        .help-box {
+            background-color: #f7fafc;
+            border: 1px solid #e2e8f0;
+            border-radius: 6px;
+            font-size: 12px;
+            color: #4a5568;
+            overflow: hidden;
+        }
+
+        .help-header {
+            padding: 10px 12px;
+            font-weight: bold;
+            cursor: pointer;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            background-color: #edf2f7;
+        }
+
+        .help-content {
+            padding: 10px 12px;
+            display: none;
+            line-height: 1.5;
+        }
+
+        .help-content.open {
+            display: block;
+        }
+
+        .help-content ul {
+            padding-left: 16px;
+            margin: 4px 0 0 0;
+        }
+
+        /* 中央メインエリア（ルーレット） */
+        .main-container {
+            flex-grow: 1;
+            height: 100vh;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            gap: 24px;
+            position: relative;
+        }
+
+        #roulette {
+            display: block;
+            border-radius: 50%;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.2);
+        }
+
+        #spinBtn {
+            padding: 14px 48px;
+            font-size: 22px;
+            font-weight: bold;
+            color: #ffffff;
+            background-color: #e53e3e;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            box-shadow: 0 4px 14px rgba(229, 62, 62, 0.4);
+            transition: transform 0.1s, background-color 0.2s;
+            z-index: 10;
+        }
+
+        #spinBtn:hover {
+            background-color: #c53030;
+        }
+
+        #spinBtn:active {
+            transform: scale(0.95);
+        }
+
+        #spinBtn:disabled {
+            background-color: #a0aec0;
+            cursor: not-allowed;
+            box-shadow: none;
+        }
+
+        /* モーダル */
+        .modal-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100vw;
+            height: 100vh;
+            background-color: rgba(0, 0, 0, 0.6);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            z-index: 100;
+            opacity: 0;
+            visibility: hidden;
+            transition: opacity 0.3s ease, visibility 0.3s ease;
+        }
+
+        .modal-overlay.active {
+            opacity: 1;
+            visibility: visible;
+        }
+
+        .modal-card {
+            background-color: #2d3748;
+            color: #ffffff;
+            padding: 28px 40px;
+            border-radius: 12px;
+            box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.3);
+            text-align: center;
+            min-width: 300px;
+            transform: translateY(-20px);
+            transition: transform 0.3s ease;
+        }
+
+        .modal-card.teacher-special {
+            background-color: #1a202c;
+            border: 3px solid #ff4757;
+            box-shadow: 0 0 40px rgba(255, 71, 87, 1);
+            animation: pulseModal 0.6s infinite alternate;
+        }
+
+        @keyframes pulseModal {
+            0% { transform: scale(1); }
+            100% { transform: scale(1.08); }
+        }
+
+        .modal-overlay.active .modal-card {
+            transform: translateY(0);
+        }
+
+        .modal-title {
+            font-size: 14px;
+            color: #a0aec0;
+            margin-bottom: 8px;
+        }
+
+        .modal-result {
+            font-size: 32px;
+            font-weight: bold;
+            margin-bottom: 24px;
+            color: #48bb78;
+        }
+
+        .modal-result.rainbow-text {
+            font-size: 46px;
+            background: linear-gradient(to right, #ff0000, #ff7f00, #ffff00, #00ff00, #00ffff, #0000ff, #8b00ff);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            animation: rainbowText 0.4s linear infinite;
+        }
+
+        @keyframes rainbowText {
+            0% { filter: hue-rotate(0deg); }
+            100% { filter: hue-rotate(360deg); }
+        }
+
+        .modal-buttons {
+            display: flex;
+            justify-content: center;
+            gap: 16px;
+        }
+
+        .btn-action {
+            padding: 10px 24px;
+            font-size: 16px;
+            font-weight: bold;
+            border: none;
+            border-radius: 6px;
+            cursor: pointer;
+            transition: background-color 0.2s;
+        }
+
+        .btn-absent {
+            background-color: #718096;
+            color: #ffffff;
+        }
+
+        .btn-absent:hover {
+            background-color: #4a5568;
+        }
+
+        .btn-ok {
+            background-color: #3182ce;
+            color: #ffffff;
+        }
+
+        .btn-ok:hover {
+            background-color: #2b6cb0;
+        }
+    </style>
 </head>
-<style>
-    * {
-        box-sizing: border-box;
-    }
-
-    body {
-        margin: 0;
-        width: 100vw;
-        height: 100vh;
-        background-color: #f8fafc;
-        display: flex;
-        font-family: sans-serif;
-        overflow: hidden;
-        position: relative;
-        transition: background 0.5s ease;
-    }
-
-    /* 先生確定演出時：中心から波打つレインボー背景 */
-    body.rainbow-mode {
-        background: radial-gradient(
-            circle at center,
-            #ff0000 0%,
-            #ff7f00 14%,
-            #ffff00 28%,
-            #00ff00 42%,
-            #00ffff 56%,
-            #0000ff 70%,
-            #8b00ff 84%,
-            #ff0000 100%
-        );
-        background-size: 200% 200%;
-        animation: rippleRainbow 1.2s linear infinite;
-    }
-
-    @keyframes rippleRainbow {
-        0% {
-            background-size: 100% 100%;
-            background-position: center;
-        }
-        50% {
-            background-size: 250% 250%;
-            background-position: center;
-        }
-        100% {
-            background-size: 400% 400%;
-            background-position: center;
-        }
-    }
-
-    /* 紙吹雪（エフェクト）用Canvas */
-    #confettiCanvas {
-        position: fixed;
-        top: 0;
-        left: 0;
-        width: 100vw;
-        height: 100vh;
-        pointer-events: none;
-        z-index: 90;
-    }
-
-    /* サイドバー開閉切り替えボタン */
-    .sidebar-toggle-btn {
-        position: absolute;
-        top: 16px;
-        left: 16px;
-        z-index: 30;
-        width: 40px;
-        height: 40px;
-        background-color: #ffffff;
-        border: 2px solid #e2e8f0;
-        border-radius: 8px;
-        cursor: pointer;
-        display: flex;
-        justify-content: center;
-        align-items: center;
-        font-size: 20px;
-        color: #2d3748;
-        box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
-        transition: background-color 0.2s;
-    }
-
-    .sidebar-toggle-btn:hover {
-        background-color: #edf2f7;
-    }
-
-    /* 左側：固定サイドバー */
-    .sidebar {
-        width: 280px;
-        height: 100vh;
-        background-color: #ffffff;
-        border-right: 2px solid #e2e8f0;
-        padding: 68px 20px 20px 20px;
-        display: flex;
-        flex-direction: column;
-        box-shadow: 4px 0 12px rgba(0, 0, 0, 0.03);
-        z-index: 20;
-        flex-shrink: 0;
-        transition: margin-left 0.3s ease;
-    }
-
-    .sidebar.collapsed {
-        margin-left: -280px;
-    }
-
-    /* クラス切替タブ */
-    .class-selector-title {
-        font-size: 13px;
-        font-weight: bold;
-        color: #718096;
-        margin-bottom: 8px;
-    }
-
-    .class-tabs {
-        display: grid;
-        grid-template-columns: repeat(4, 1fr);
-        gap: 6px;
-        margin-bottom: 20px;
-    }
-
-    .tab-btn {
-        padding: 8px 0;
-        font-size: 14px;
-        font-weight: bold;
-        border: 2px solid #cbd5e0;
-        background-color: #f7fafc;
-        color: #4a5568;
-        border-radius: 6px;
-        cursor: pointer;
-        transition: all 0.2s ease;
-    }
-
-    .tab-btn:hover {
-        background-color: #edf2f7;
-    }
-
-    .tab-btn.active {
-        background-color: #3182ce;
-        color: #ffffff;
-        border-color: #3182ce;
-    }
-
-    /* 履歴エリア */
-    .history-title {
-        font-size: 16px;
-        font-weight: bold;
-        color: #2d3748;
-        border-bottom: 2px solid #e2e8f0;
-        padding-bottom: 8px;
-        margin-bottom: 12px;
-        text-align: center;
-    }
-
-    .history-list {
-        list-style: none;
-        padding: 0;
-        margin: 0;
-        overflow-y: auto;
-        flex-grow: 1;
-    }
-
-    .history-item {
-        background-color: #f7fafc;
-        border: 1px solid #e2e8f0;
-        border-radius: 6px;
-        padding: 8px 12px;
-        margin-bottom: 8px;
-        font-size: 14px;
-        font-weight: bold;
-        color: #4a5568;
-        display: flex;
-        justify-content: space-between;
-        align-items: center;
-    }
-
-    .history-item .count {
-        font-size: 11px;
-        color: #a0aec0;
-    }
-
-    .history-empty {
-        color: #a0aec0;
-        font-size: 13px;
-        text-align: center;
-        margin-top: 20px;
-    }
-
-    /* 中央メインエリア（ルーレット） */
-    .main-container {
-        flex-grow: 1;
-        height: 100vh;
-        display: flex;
-        flex-direction: column;
-        align-items: center;
-        justify-content: center;
-        gap: 24px;
-        position: relative;
-    }
-
-    #roulette {
-        display: block;
-    }
-
-    #spinBtn {
-        padding: 14px 48px;
-        font-size: 22px;
-        font-weight: bold;
-        color: #ffffff;
-        background-color: #e53e3e;
-        border: none;
-        border-radius: 8px;
-        cursor: pointer;
-        box-shadow: 0 4px 14px rgba(229, 62, 62, 0.4);
-        transition: transform 0.1s, background-color 0.2s;
-        z-index: 10;
-    }
-
-    #spinBtn:hover {
-        background-color: #c53030;
-    }
-
-    #spinBtn:active {
-        transform: scale(0.95);
-    }
-
-    #spinBtn:disabled {
-        background-color: #a0aec0;
-        cursor: not-allowed;
-        box-shadow: none;
-    }
-
-    /* モーダル */
-    .modal-overlay {
-        position: fixed;
-        top: 0;
-        left: 0;
-        width: 100vw;
-        height: 100vh;
-        background-color: rgba(0, 0, 0, 0.6);
-        display: flex;
-        justify-content: center;
-        align-items: center;
-        z-index: 100;
-        opacity: 0;
-        visibility: hidden;
-        transition: opacity 0.3s ease, visibility 0.3s ease;
-    }
-
-    .modal-overlay.active {
-        opacity: 1;
-        visibility: visible;
-    }
-
-    .modal-card {
-        background-color: #2d3748;
-        color: #ffffff;
-        padding: 28px 40px;
-        border-radius: 12px;
-        box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.3);
-        text-align: center;
-        min-width: 300px;
-        transform: translateY(-20px);
-        transition: transform 0.3s ease;
-    }
-
-    .modal-card.teacher-special {
-        background-color: #1a202c;
-        border: 3px solid #ff4757;
-        box-shadow: 0 0 30px rgba(255, 71, 87, 0.8);
-        animation: pulseModal 1s infinite alternate;
-    }
-
-    @keyframes pulseModal {
-        0% { transform: scale(1); }
-        100% { transform: scale(1.05); }
-    }
-
-    .modal-overlay.active .modal-card {
-        transform: translateY(0);
-    }
-
-    .modal-title {
-        font-size: 14px;
-        color: #a0aec0;
-        margin-bottom: 8px;
-    }
-
-    .modal-result {
-        font-size: 32px;
-        font-weight: bold;
-        margin-bottom: 24px;
-        color: #48bb78;
-    }
-
-    .modal-result.rainbow-text {
-        font-size: 42px;
-        background: linear-gradient(to right, #ff0000, #ff7f00, #ffff00, #00ff00, #00ffff, #0000ff, #8b00ff);
-        -webkit-background-clip: text;
-        -webkit-text-fill-color: transparent;
-        animation: rainbowText 0.8s linear infinite;
-    }
-
-    @keyframes rainbowText {
-        0% { filter: hue-rotate(0deg); }
-        100% { filter: hue-rotate(360deg); }
-    }
-
-    .modal-buttons {
-        display: flex;
-        justify-content: center;
-        gap: 16px;
-    }
-
-    .btn-action {
-        padding: 10px 24px;
-        font-size: 16px;
-        font-weight: bold;
-        border: none;
-        border-radius: 6px;
-        cursor: pointer;
-        transition: background-color 0.2s;
-    }
-
-    .btn-absent {
-        background-color: #718096;
-        color: #ffffff;
-    }
-
-    .btn-absent:hover {
-        background-color: #4a5568;
-    }
-
-    .btn-ok {
-        background-color: #3182ce;
-        color: #ffffff;
-    }
-
-    .btn-ok:hover {
-        background-color: #2b6cb0;
-    }
-</style>
-
 <body>
     <!-- エフェクト描画用Canvas -->
     <canvas id="confettiCanvas"></canvas>
@@ -356,7 +458,7 @@
     <!-- 左側：固定サイドバー -->
     <div class="sidebar" id="sidebar">
         <!-- クラス選択 -->
-        <div class="class-selector-title">クラス選択</div>
+        <div class="sidebar-section-title">クラス選択</div>
         <div class="class-tabs">
             <button class="tab-btn active" onclick="switchClass('A')">A</button>
             <button class="tab-btn" onclick="switchClass('B')">B</button>
@@ -365,10 +467,42 @@
         </div>
 
         <!-- 履歴エリア -->
-        <div class="history-title"><span id="currentClassTitle">A組</span> 当選履歴</div>
-        <ul id="historyList" class="history-list">
-            <div id="emptyMsg" class="history-empty">まだ履歴はありません</div>
-        </ul>
+        <div class="sidebar-section-title">
+            <span id="currentClassTitle">A組</span> 当選履歴
+        </div>
+        <div class="history-container">
+            <ul id="historyList" class="history-list">
+                <div id="emptyMsg" class="history-empty">まだ履歴はありません</div>
+            </ul>
+        </div>
+
+        <!-- 設定エリア -->
+        <div class="sidebar-section-title">設定</div>
+        <div class="settings-box">
+            <div class="setting-item">
+                <label for="studentCountInput">生徒人数 (1〜)</label>
+                <input type="number" id="studentCountInput" value="40" min="1" max="100">
+            </div>
+            <button class="btn-sub" onclick="resetCurrentClass()">このクラスをリセット</button>
+            <button class="btn-sub btn-danger" onclick="clearCurrentHistory()">履歴のみクリア</button>
+        </div>
+
+        <!-- 使い方エリア -->
+        <div class="sidebar-section-title">使い方ガイド</div>
+        <div class="help-box">
+            <div class="help-header" onclick="toggleHelp()">
+                <span>操作方法と機能</span>
+                <span id="helpArrow">▼</span>
+            </div>
+            <div class="help-content" id="helpContent">
+                <ul>
+                    <li><b>SPINボタン / Space / Enter:</b> ルーレットを回転・決定します。</li>
+                    <li><b>OKボタン:</b> 当選者を確定し、履歴に追加してルーレットから除外します。</li>
+                    <li><b>欠席ボタン:</b> 当選者をルーレットに戻したまま画面を閉じます。</li>
+                    <li><b>設定:</b> 生徒の人数を変更してリセットできます（0番は常に「先生」になります）。</li>
+                </ul>
+            </div>
+        </div>
     </div>
 
     <!-- 中央：ルーレットメインエリア -->
@@ -377,13 +511,14 @@
             <!-- 針（矢印） -->
             <div style="
                 position: absolute;
-                top: -10px;
+                top: -12px;
                 width: 0;
                 height: 0;
-                border-left: 15px solid transparent;
-                border-right: 15px solid transparent;
-                border-top: 25px solid #ff4757;
+                border-left: 18px solid transparent;
+                border-right: 18px solid transparent;
+                border-top: 30px solid #ff4757;
                 z-index: 10;
+                filter: drop-shadow(0 2px 4px rgba(0,0,0,0.3));
             "></div>
             <canvas id="roulette" width="500" height="500"></canvas>
         </div>
@@ -404,24 +539,42 @@
     </div>
 
 <script>
-    const INITIAL_PEOPLE = 41;
+    let defaultStudentCount = 40;
     let currentClass = 'A';
     let currentAngle = 0;
     let isSpinning = false;
     let isModalOpen = false;
     let lastWinnerSliceIndex = -1;
-    let lastPlayedSliceIndex = -1;
 
-    // --- キーボード操作（Enter / Space）のイベントリスナー ---
+    // --- 音声管理 ---
+    // spin.wav を繰り返し再生する設定
+    const spinAudio = new Audio('spin.wav');
+    spinAudio.loop = true;
+
+    function playSpinSound() {
+        spinAudio.currentTime = 0;
+        spinAudio.play().catch(e => console.log('オーディオ再生エラー (ユーザー操作が必要な場合があります):', e));
+    }
+
+    function stopSpinSound() {
+        spinAudio.pause();
+        spinAudio.currentTime = 0;
+    }
+
+    function playFanfareSound() {
+        // 必要に応じてファンファーレ用の音声を鳴らす実装
+        // const fanfare = new Audio('fanfare.wav');
+        // fanfare.play();
+    }
+
+    // キーボード操作（Enter / Space）のイベントリスナー
     document.addEventListener('keydown', (event) => {
         if (event.code === 'Enter' || event.code === 'Space') {
-            event.preventDefault(); // スペースキーでのページスクロール等を防止
+            event.preventDefault();
 
             if (isModalOpen) {
-                // モーダル表示中は「OK」を実行
                 handleOk();
             } else {
-                // 通常時は「SPIN」を実行
                 spin();
             }
         }
@@ -436,12 +589,20 @@
         toggleBtn.textContent = sidebar.classList.contains('collapsed') ? '☰' : '✕';
     }
 
+    // 使い方ガイドの折りたたみ開閉
+    function toggleHelp() {
+        const content = document.getElementById('helpContent');
+        const arrow = document.getElementById('helpArrow');
+        const isOpen = content.classList.toggle('open');
+        arrow.textContent = isOpen ? '▲' : '▼';
+    }
+
     // クラスごとの状態管理
     const classData = {
-        'A': { participants: [], history: [] },
-        'B': { participants: [], history: [] },
-        'C': { participants: [], history: [] },
-        'D': { participants: [], history: [] }
+        'A': { studentCount: defaultStudentCount, participants: [], history: [] },
+        'B': { studentCount: defaultStudentCount, participants: [], history: [] },
+        'C': { studentCount: defaultStudentCount, participants: [], history: [] },
+        'D': { studentCount: defaultStudentCount, participants: [], history: [] }
     };
 
     function shuffleArray(array) {
@@ -453,7 +614,8 @@
 
     function initClassData() {
         ['A', 'B', 'C', 'D'].forEach(c => {
-            const list = Array.from({ length: INITIAL_PEOPLE }, (_, i) => i);
+            const count = classData[c].studentCount;
+            const list = Array.from({ length: count + 1 }, (_, i) => i);
             shuffleArray(list);
             classData[c].participants = list;
             classData[c].history = [];
@@ -467,62 +629,13 @@
 
     const centerX = canvas.width / 2;
     const centerY = canvas.height / 2;
-    const radius = 250;
+    const radius = 240;
 
     function toRad(deg) {
         return deg * (Math.PI / 180);
     }
 
-    // --- Web Audio API を使った音効 ---
-    let audioCtx = null;
-
-    function playTickSound() {
-        if (!audioCtx) {
-            audioCtx = new (window.AudioContext || window.webkitAudioContext)();
-        }
-        if (audioCtx.state === 'suspended') {
-            audioCtx.resume();
-        }
-
-        const osc = audioCtx.createOscillator();
-        const gain = audioCtx.createGain();
-
-        osc.type = 'triangle';
-        osc.frequency.setValueAtTime(600, audioCtx.currentTime);
-        osc.frequency.exponentialRampToValueAtTime(100, audioCtx.currentTime + 0.015);
-
-        gain.gain.setValueAtTime(0.15, audioCtx.currentTime);
-        gain.gain.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + 0.015);
-
-        osc.connect(gain);
-        gain.connect(audioCtx.destination);
-
-        osc.start();
-        osc.stop(audioCtx.currentTime + 0.015);
-    }
-
-    function playFanfareSound() {
-        if (!audioCtx) return;
-        const notes = [261.63, 329.63, 392.00, 523.25, 659.25, 783.99, 1046.50];
-        notes.forEach((freq, idx) => {
-            const osc = audioCtx.createOscillator();
-            const gain = audioCtx.createGain();
-            osc.type = 'triangle';
-            osc.frequency.value = freq;
-
-            const startTime = audioCtx.currentTime + idx * 0.07;
-            gain.gain.setValueAtTime(0.25, startTime);
-            gain.gain.exponentialRampToValueAtTime(0.001, startTime + 0.35);
-
-            osc.connect(gain);
-            gain.connect(audioCtx.destination);
-
-            osc.start(startTime);
-            osc.stop(startTime + 0.35);
-        });
-    }
-
-    // --- 紙吹雪（Confetti）エフェクト ---
+    // 紙吹雪（Confetti）エフェクト
     const confettiCanvas = document.getElementById('confettiCanvas');
     const cCtx = confettiCanvas.getContext('2d');
     let confettiParticles = [];
@@ -538,16 +651,16 @@
     function createConfetti() {
         confettiParticles = [];
         const colors = ['#ff0000', '#ff7f00', '#ffff00', '#00ff00', '#00ffff', '#0000ff', '#8b00ff', '#ffffff'];
-        for (let i = 0; i < 200; i++) {
+        for (let i = 0; i < 300; i++) {
             confettiParticles.push({
                 x: Math.random() * confettiCanvas.width,
                 y: Math.random() * confettiCanvas.height - confettiCanvas.height,
-                size: Math.random() * 10 + 4,
+                size: Math.random() * 12 + 4,
                 color: colors[Math.floor(Math.random() * colors.length)],
-                speedY: Math.random() * 4 + 2,
-                speedX: Math.random() * 3 - 1.5,
+                speedY: Math.random() * 5 + 3,
+                speedX: Math.random() * 4 - 2,
                 rotation: Math.random() * 360,
-                rotSpeed: Math.random() * 12 - 6
+                rotSpeed: Math.random() * 14 - 7
             });
         }
     }
@@ -588,7 +701,7 @@
         cCtx.clearRect(0, 0, confettiCanvas.width, confettiCanvas.height);
     }
 
-    // --- クラス切り替え ---
+    // クラス切り替え
     function switchClass(className) {
         if (isSpinning) return;
 
@@ -600,12 +713,43 @@
 
         document.getElementById('currentClassTitle').textContent = `${className}組`;
         document.getElementById('modalClassLabel').textContent = `${className}組`;
+        document.getElementById('studentCountInput').value = classData[currentClass].studentCount;
 
         renderHistory();
 
         currentAngle = 0;
         drawRoulette();
         updateSpinButtonState();
+    }
+
+    // 設定：現在のクラスをリセット
+    function resetCurrentClass() {
+        if (isSpinning) return;
+
+        const countInput = document.getElementById('studentCountInput');
+        let newCount = parseInt(countInput.value, 10);
+        if (isNaN(newCount) || newCount < 1) {
+            newCount = 40;
+            countInput.value = 40;
+        }
+
+        classData[currentClass].studentCount = newCount;
+        const list = Array.from({ length: newCount + 1 }, (_, i) => i);
+        shuffleArray(list);
+        classData[currentClass].participants = list;
+        classData[currentClass].history = [];
+
+        renderHistory();
+        currentAngle = 0;
+        drawRoulette();
+        updateSpinButtonState();
+    }
+
+    // 設定：現在のクラスの履歴クリア
+    function clearCurrentHistory() {
+        if (isSpinning) return;
+        classData[currentClass].history = [];
+        renderHistory();
     }
 
     function renderHistory() {
@@ -632,7 +776,7 @@
         document.getElementById('spinBtn').disabled = participants.length === 0;
     }
 
-    // --- Canvas 描画処理 ---
+    // Canvas 描画処理 (中心を本格的なルーレット風デザインに更新)
     function drawRoulette() {
         ctx.clearRect(0, 0, canvas.width, canvas.height);
 
@@ -658,11 +802,6 @@
         const normalizedAngle = (270 - (currentAngle % 360) + 360) % 360;
         const currentSliceIndex = Math.floor(normalizedAngle / sliceAngle) % total;
 
-        if (isSpinning && currentSliceIndex !== lastPlayedSliceIndex) {
-            playTickSound();
-            lastPlayedSliceIndex = currentSliceIndex;
-        }
-
         ctx.save();
         ctx.translate(centerX, centerY);
         ctx.rotate(toRad(currentAngle));
@@ -677,10 +816,10 @@
             ctx.arc(centerX, centerY, radius, toRad(startDeg), toRad(endDeg));
             ctx.closePath();
 
-            ctx.fillStyle = (i % 2 === 0) ? '#4a5568' : '#2d3748';
+            ctx.fillStyle = (i % 2 === 0) ? '#2d3748' : '#1a202c';
             ctx.fill();
 
-            ctx.strokeStyle = '#ffffff';
+            ctx.strokeStyle = '#cbd5e0';
             ctx.lineWidth = 1;
             ctx.stroke();
 
@@ -711,32 +850,48 @@
 
         ctx.restore();
 
+        // --- 中心部分（ルーレット特有のデザイン） ---
         const currentParticipantId = participants[currentSliceIndex];
         const currentLabel = (currentParticipantId === 0) ? '先生' : `${currentParticipantId}`;
-        const centerRadius = 45;
 
+        // 外側ゴールドリング
         ctx.beginPath();
-        ctx.arc(centerX, centerY, centerRadius, 0, Math.PI * 2);
+        ctx.arc(centerX, centerY, 60, 0, Math.PI * 2);
+        ctx.fillStyle = '#d69e2e';
+        ctx.fill();
+
+        // 内側ダーク背景
+        ctx.beginPath();
+        ctx.arc(centerX, centerY, 52, 0, Math.PI * 2);
         ctx.fillStyle = '#1a202c';
         ctx.fill();
-        ctx.strokeStyle = '#ff4757';
-        ctx.lineWidth = 3;
+        ctx.strokeStyle = '#ecc94b';
+        ctx.lineWidth = 2;
         ctx.stroke();
 
-        ctx.fillStyle = '#ffffff';
-        ctx.font = (currentParticipantId === 0) ? 'bold 20px sans-serif' : 'bold 26px sans-serif';
+        // ROULETTE ヘッダーテキスト
+        ctx.fillStyle = '#a0aec0';
+        ctx.font = 'bold 9px sans-serif';
         ctx.textAlign = 'center';
         ctx.textBaseline = 'middle';
-        ctx.fillText(currentLabel, centerX, centerY);
+        ctx.fillText('ROULETTE', centerX, centerY - 24);
+
+        // 現在指している当選結果の番号表示
+        ctx.fillStyle = '#ffffff';
+        ctx.font = (currentParticipantId === 0) ? 'bold 22px sans-serif' : 'bold 28px sans-serif';
+        ctx.fillText(currentLabel, centerX, centerY + 2);
     }
 
-    // --- 回転処理 ---
+    // 回転処理
     function spin() {
         const participants = classData[currentClass].participants;
         if (isSpinning || isModalOpen || participants.length === 0) return;
 
         isSpinning = true;
         document.getElementById('spinBtn').disabled = true;
+
+        // 回転音の再生（ループ指定）
+        playSpinSound();
 
         const total = participants.length;
         const sliceAngle = 360 / total;
@@ -764,6 +919,9 @@
                 requestAnimationFrame(animate);
             } else {
                 isSpinning = false;
+
+                // 回転停止に合わせて音を止める
+                stopSpinSound();
 
                 const winnerParticipantId = participants[lastWinnerSliceIndex];
                 const isTeacher = (winnerParticipantId === 0);
