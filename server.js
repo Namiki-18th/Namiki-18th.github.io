@@ -1368,6 +1368,10 @@ app.get('/api/transit/railroadsection', ensureAuth, asyncHandler(async (req, res
 }));
 // ===============================================
 
+app.get('/api/transit/station', ensureAuth, asyncHandler(async (req, res) => {
+  res.json(await safeReadJSON(path.join(DATA_DIR, 'station.geojson'), { type: 'FeatureCollection', features: [] }));
+}));
+
 // --- [交通マップ (ODPT): 列車・バス位置 / 駅・バス停 / 運行情報 / 地図タイル中継] ---
 const transitMap = require('./transit-map');
 transitMap.register(app, { express, ensureAuth, ensureAdmin, asyncHandler, rateLimit });

@@ -650,45 +650,32 @@
       }
 
       // ===== 路線図の色分けとズーム連動の設定 =====
-      let routeLayer = null; // 路線レイヤーを保持する変数
+      let routeLayer = null;
 
-      // 文字列から一意の色を生成する関数
       function getRouteColor(props) {
-        // すでに色指定がある場合はそれを優先
         if (props.color) return props.color;
         if (props.line_color) return props.line_color;
-
-        // 国土数値情報などの一般的なプロパティ名（運営会社や路線名）を取得
         const name = props.N02_004 || props.N02_003 || props.company || props.route_name || props.name || '';
-        
-        // プロパティがない場合はデフォルト色
         if (!name) return '#64748b';
-
-        // 文字列からハッシュを生成し、色（HSL）に変換
         let hash = 0;
-        for (let i = 0; i < name.length; i++) {
-          hash = name.charCodeAt(i) + ((hash << 5) - hash);
-        }
+        for (let i = 0; i < name.length; i++) hash = name.charCodeAt(i) + ((hash << 5) - hash);
         const hue = Math.abs(hash % 360);
-        return `hsl(${hue}, 70%, 45%)`; // 彩度70%, 明度45%で見やすく
+        return `hsl(${hue}, 70%, 45%)`;
       }
 
-      // ズームレベルに応じて線の太さを変える関数
       function getRouteWeight(zoom) {
-        if (zoom >= 16) return 8;   // 最大拡大時
+        if (zoom >= 16) return 8;
         if (zoom >= 14) return 5;
         if (zoom >= 12) return 3;
-        return 1.5;                 // 縮小時
+        return 1.5;
       }
 
-      // ===== 路線図の常時表示用関数（色分け・ズーム対応版） =====
       async function loadGeoJsonRoutes() {
         if (!S.map) return;
         try {
           const url = '/api/transit/railroadsection';
           let res;
           
-          // Cache API による通信のキャッシュ化（維持）
           if ('caches' in window) {
             const cache = await caches.open('namiki-transit-routes-v1');
             res = await cache.match(url);
@@ -705,21 +692,19 @@
 
           const canvasRenderer = L.canvas({ padding: 0.1 });
           
-          // GeoJSONレイヤーの作成
           routeLayer = L.geoJSON(geojson, {
             renderer: canvasRenderer,
-            interactive: false, // 軽量化のため引き続きクリック判定はオフ
+            interactive: false,
             style: (feature) => {
               const props = feature.properties || {};
               return {
                 color: getRouteColor(props),
-                weight: getRouteWeight(S.map.getZoom()), // 初期ズームに合わせた太さ
-                opacity: 0.6 // 色分けを少しはっきりさせる
+                weight: getRouteWeight(S.map.getZoom()),
+                opacity: 0.6
               };
             }
           }).addTo(S.map);
 
-          // ズームレベルが変更されたら、線の太さを再計算して適用
           S.map.on('zoomend', () => {
             if (routeLayer) {
               const currentZoom = S.map.getZoom();
@@ -733,7 +718,87 @@
           console.error('路線図データの取得に失敗:', err);
         }
       }
-      // ===================================
+      
+      // ===== 駅 (Station) のGeoJSONレンダリング処理 =====
+      let stationLayer = null;
+
+      // ズームレベルに応じて駅の線の太さを変え、広域表示では非表示にして軽量化する
+      function getStationWeight(zoom) {
+        if (zoom >= 15) return 6;
+        if (zoom >= 13) return 4;
+        if (zoom >= 11) return 2;
+        return 0; // ズームが10以下の場合は描画しない
+      }
+
+      async function loadGeoJsonStations() {
+        if (!S.map) return;
+        try {
+          const url = '/api/transit/station';
+          let res;
+          
+          // Cache API による通信のキャッシュ化（再読込時の軽量化）
+          if ('caches' in window) {
+            const cache = await caches.open('namiki-transit-stations-v1');
+            res = await cache.match(url);
+            if (!res) {
+              res = await rf(url, { headers: { 'Accept': 'application/json' } });
+              if (res.ok) await cache.put(url, res.clone());
+            }
+          } else {
+            res = await rf(url, { headers: { 'Accept': 'application/json' } });
+          }
+
+          if (!res.ok) throw new Error('HTTP Error: ' + res.status);
+          const geojson = await res.json();
+
+          // 軽量化のためCanvasレンダラーを使用
+          const canvasRenderer = L.canvas({ padding: 0.1 });
+          
+          stationLayer = L.geoJSON(geojson, {
+            renderer: canvasRenderer,
+            interactive: false, // マウスイベント無効化による劇的な軽量化
+            style: (feature) => {
+              const weight = getStationWeight(S.map.getZoom());
+              return {
+                color: '#ef4444', // 目立つ赤色（路線図と区別するため）
+                weight: weight,
+                opacity: weight > 0 ? 0.8 : 0 // weightが0の場合は完全に透明にする
+              };
+            },
+            // 万が一Pointデータが含まれている場合のためのフォールバック
+            pointToLayer: (feature, latlng) => {
+               const weight = getStationWeight(S.map.getZoom());
+               if(weight === 0) return L.circleMarker(latlng, {radius: 0, opacity: 0, fillOpacity: 0});
+               return L.circleMarker(latlng, {
+                  radius: weight,
+                  fillColor: '#ef4444',
+                  color: '#fff',
+                  weight: 1,
+                  opacity: 1,
+                  fillOpacity: 0.8,
+                  interactive: false
+               });
+            }
+          }).addTo(S.map);
+
+          // ズームレベル変更時に駅の太さと表示状態を再計算
+          S.map.on('zoomend', () => {
+            if (stationLayer) {
+              const currentZoom = S.map.getZoom();
+              const weight = getStationWeight(currentZoom);
+              stationLayer.setStyle((feature) => ({
+                weight: weight,
+                opacity: weight > 0 ? 0.8 : 0,
+                radius: weight
+              }));
+            }
+          });
+
+        } catch (err) {
+          console.error('駅データの取得に失敗:', err);
+        }
+      }
+      // ===============================================
 
       function bindControls() {
         document.querySelectorAll('[data-tm-layer]').forEach((btn) => {
@@ -832,8 +897,9 @@
         loadVehicles();
         loadStops();
         
-        // ▼ マップ初期化完了後、路線図を常にレンダリング ▼
+        // ▼ マップ初期化完了後、路線図と駅をレンダリング ▼
         loadGeoJsonRoutes();
+        loadGeoJsonStations(); // ここで駅の描画を追加
       }
 
       init();
