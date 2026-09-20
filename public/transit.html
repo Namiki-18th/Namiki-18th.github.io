@@ -601,7 +601,6 @@
       }
 
       // ===== 路線図の設定 =====
-      // ===== 路線図の設定 =====
       let routeLayer = null;
 
       function getRouteColor(props) {
@@ -613,6 +612,66 @@
         for (let i = 0; i < name.length; i++) hash = name.charCodeAt(i) + ((hash << 5) - hash);
         const hue = Math.abs(hash % 360);
         return `hsl(${hue}, 70%, 45%)`;
+      }
+
+      function getRouteWeight(zoom) {
+        if (zoom >= 16) return 8;
+        if (zoom >= 14) return 5;
+        if (zoom >= 12) return 3;
+        return 1.5;
+      }
+
+      async function loadGeoJsonRoutes() {
+        if (!S.map) return;
+        try {
+          const url = '/api/transit/railroadsection';
+          let res;
+          
+          if ('caches' in window) {
+            const cache = await caches.open('namiki-transit-routes-v1');
+            res = await cache.match(url);
+            if (!res) {
+              res = await rf(url, { headers: { 'Accept': 'application/json' } });
+              if (res.ok) await cache.put(url, res.clone());
+            }
+          } else {
+            res = await rf(url, { headers: { 'Accept': 'application/json' } });
+          }
+
+          if (!res.ok) throw new Error('HTTP Error: ' + res.status);
+          const geojson = await res.json();
+
+          if (!S.map.getPane('transit-routes')) {
+            S.map.createPane('transit-routes');
+            S.map.getPane('transit-routes').style.zIndex = 400; // 標準のオーバーレイ層
+          }
+          const routeRenderer = L.canvas({ padding: 0.1, pane: 'transit-routes' });
+          
+          routeLayer = L.geoJSON(geojson, {
+            renderer: routeRenderer,
+            interactive: false,
+            style: (feature) => {
+              const props = feature.properties || {};
+              return {
+                color: getRouteColor(props),
+                weight: getRouteWeight(S.map.getZoom()),
+                opacity: 0.6
+              };
+            }
+          }).addTo(S.map);
+
+          S.map.on('zoomend', () => {
+            if (routeLayer) {
+              const currentZoom = S.map.getZoom();
+              routeLayer.setStyle(() => ({
+                weight: getRouteWeight(currentZoom)
+              }));
+            }
+          });
+
+        } catch (err) {
+          console.error('路線図データの取得に失敗:', err);
+        }
       }
 
       // ===== 駅 (Station) のGeoJSONレンダリング処理 =====
@@ -737,104 +796,6 @@
 
           S.map.on('zoomend', updateStationDisplay);
           updateStationDisplay();
-
-        } catch (err) {
-          console.error('駅データの取得に失敗:', err);
-        }
-      }
-      
-      // ===== 駅 (Station) のGeoJSONレンダリング処理 =====
-      function getStationWeights(zoom) {
-        const routeW = getRouteWeight(zoom);
-        return {
-          bg: routeW + 4,
-          fg: Math.max(1, routeW + 1)
-        };
-      }
-
-      async function loadGeoJsonStations() {
-        if (!S.map) return;
-        try {
-          const url = '/api/transit/station';
-          let res;
-          
-          if ('caches' in window) {
-            const cache = await caches.open('namiki-transit-stations-v1');
-            res = await cache.match(url);
-            if (!res) {
-              res = await rf(url, { headers: { 'Accept': 'application/json' } });
-              if (res.ok) await cache.put(url, res.clone());
-            }
-          } else {
-            res = await rf(url, { headers: { 'Accept': 'application/json' } });
-          }
-
-          if (!res.ok) throw new Error('HTTP Error: ' + res.status);
-          const geojson = await res.json();
-
-          // 駅用のPane(重なり順)を作成・設定。路線(400)より上の値(410)にする
-          if (!S.map.getPane('transit-stations')) {
-            S.map.createPane('transit-stations');
-            S.map.getPane('transit-stations').style.zIndex = 410; 
-          }
-          const stationRenderer = L.canvas({ padding: 0.1, pane: 'transit-stations' });
-          
-          // 1. ズームイン時の長方形：黒色の外枠レイヤー
-          const stationBgLayer = L.geoJSON(geojson, {
-            renderer: stationRenderer,
-            interactive: false,
-            style: () => ({ color: '#000000', lineCap: 'square' })
-          });
-
-          // 2. ズームイン時の長方形：白色の内塗りレイヤー
-          const stationFgLayer = L.geoJSON(geojson, {
-            renderer: stationRenderer,
-            interactive: false,
-            style: () => ({ color: '#ffffff', lineCap: 'square' })
-          });
-
-          // 3. ズームアウト時用の大きな丸レイヤー
-          const stationDotsLayer = L.layerGroup();
-          L.geoJSON(geojson, {
-            onEachFeature: (feature, layer) => {
-              // 線の中心（または点の座標）を取得して丸いマーカーを生成
-              const center = layer.getBounds ? layer.getBounds().getCenter() : (layer.getLatLng ? layer.getLatLng() : null);
-              if (center) {
-                L.circleMarker(center, {
-                  renderer: stationRenderer,
-                  interactive: false,
-                  radius: 4.5, // 縮小時に見えやすい大きな丸
-                  color: '#000000',
-                  weight: 1.5,
-                  fillColor: '#ffffff',
-                  fillOpacity: 1
-                }).addTo(stationDotsLayer);
-              }
-            }
-          });
-
-          // ズームレベルに応じて表示レイヤーを切り替える
-          function updateStationDisplay() {
-            const z = S.map.getZoom();
-            if (z <= 10) {
-              // ズームアウト時: 大きな丸を表示し、長方形は非表示
-              if (!S.map.hasLayer(stationDotsLayer)) S.map.addLayer(stationDotsLayer);
-              if (S.map.hasLayer(stationBgLayer)) S.map.removeLayer(stationBgLayer);
-              if (S.map.hasLayer(stationFgLayer)) S.map.removeLayer(stationFgLayer);
-            } else {
-              // ズームイン時: 長方形を表示し、丸を非表示
-              if (S.map.hasLayer(stationDotsLayer)) S.map.removeLayer(stationDotsLayer);
-              if (!S.map.hasLayer(stationBgLayer)) S.map.addLayer(stationBgLayer);
-              if (!S.map.hasLayer(stationFgLayer)) S.map.addLayer(stationFgLayer);
-
-              const w = getStationWeights(z);
-              stationBgLayer.setStyle({ weight: w.bg, opacity: 1 });
-              stationFgLayer.setStyle({ weight: w.fg, opacity: 1 });
-            }
-          }
-
-          S.map.on('zoomend', updateStationDisplay);
-          updateStationDisplay(); // 初回表示の実行
 
         } catch (err) {
           console.error('駅データの取得に失敗:', err);
