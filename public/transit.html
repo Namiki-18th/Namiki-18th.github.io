@@ -649,14 +649,46 @@
         } catch (_) {}
       }
 
-      // ===== 路線図の常時表示用関数（超軽量化版） =====
+      // ===== 路線図の色分けとズーム連動の設定 =====
+      let routeLayer = null; // 路線レイヤーを保持する変数
+
+      // 文字列から一意の色を生成する関数
+      function getRouteColor(props) {
+        // すでに色指定がある場合はそれを優先
+        if (props.color) return props.color;
+        if (props.line_color) return props.line_color;
+
+        // 国土数値情報などの一般的なプロパティ名（運営会社や路線名）を取得
+        const name = props.N02_004 || props.N02_003 || props.company || props.route_name || props.name || '';
+        
+        // プロパティがない場合はデフォルト色
+        if (!name) return '#64748b';
+
+        // 文字列からハッシュを生成し、色（HSL）に変換
+        let hash = 0;
+        for (let i = 0; i < name.length; i++) {
+          hash = name.charCodeAt(i) + ((hash << 5) - hash);
+        }
+        const hue = Math.abs(hash % 360);
+        return `hsl(${hue}, 70%, 45%)`; // 彩度70%, 明度45%で見やすく
+      }
+
+      // ズームレベルに応じて線の太さを変える関数
+      function getRouteWeight(zoom) {
+        if (zoom >= 16) return 8;   // 最大拡大時
+        if (zoom >= 14) return 5;
+        if (zoom >= 12) return 3;
+        return 1.5;                 // 縮小時
+      }
+
+      // ===== 路線図の常時表示用関数（色分け・ズーム対応版） =====
       async function loadGeoJsonRoutes() {
         if (!S.map) return;
         try {
           const url = '/api/transit/railroadsection';
           let res;
           
-          // 1. Cache API を使って通信をキャッシュ（2回目以降は爆速・通信ゼロ）
+          // Cache API による通信のキャッシュ化（維持）
           if ('caches' in window) {
             const cache = await caches.open('namiki-transit-routes-v1');
             res = await cache.match(url);
@@ -671,22 +703,32 @@
           if (!res.ok) throw new Error('HTTP Error: ' + res.status);
           const geojson = await res.json();
 
-          // 2. Canvasレンダラーのチューニング（画面外のバッファを減らす）
           const canvasRenderer = L.canvas({ padding: 0.1 });
           
-          L.geoJSON(geojson, {
+          // GeoJSONレイヤーの作成
+          routeLayer = L.geoJSON(geojson, {
             renderer: canvasRenderer,
-            interactive: false, // 3. クリック/ホバー判定を無効化（超重要：これで劇的に軽くなる）
+            interactive: false, // 軽量化のため引き続きクリック判定はオフ
             style: (feature) => {
               const props = feature.properties || {};
               return {
-                color: props.color || props.line_color || '#64748b', // 背景に馴染む色に
-                weight: 1.5, // 少し細くする
-                opacity: 0.4 // 透明度を下げて車両を目立たせる
+                color: getRouteColor(props),
+                weight: getRouteWeight(S.map.getZoom()), // 初期ズームに合わせた太さ
+                opacity: 0.6 // 色分けを少しはっきりさせる
               };
             }
-            // ※ 重いため onEachFeature (Tooltip) は意図的に削除
           }).addTo(S.map);
+
+          // ズームレベルが変更されたら、線の太さを再計算して適用
+          S.map.on('zoomend', () => {
+            if (routeLayer) {
+              const currentZoom = S.map.getZoom();
+              routeLayer.setStyle((feature) => ({
+                weight: getRouteWeight(currentZoom)
+              }));
+            }
+          });
+
         } catch (err) {
           console.error('路線図データの取得に失敗:', err);
         }
