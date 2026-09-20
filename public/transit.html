@@ -649,6 +649,38 @@
         } catch (_) {}
       }
 
+      // ===== 路線図の常時表示用関数 =====
+      async function loadGeoJsonRoutes() {
+        if (!S.map) return;
+        try {
+          const res = await rf('/api/transit/railroadsection', { headers: { 'Accept': 'application/json' } });
+          if (!res.ok) throw new Error('HTTP Error: ' + res.status);
+          const geojson = await res.json();
+
+          // Canvasレンダラーで数万件のパスを軽量に描画
+          const canvasRenderer = L.canvas({ padding: 0.5 });
+          L.geoJSON(geojson, {
+            renderer: canvasRenderer,
+            style: (feature) => {
+              const props = feature.properties || {};
+              return {
+                color: props.color || props.line_color || '#3b82f6',
+                weight: 2,
+                opacity: 0.6
+              };
+            },
+            onEachFeature: (feature, layer) => {
+              const props = feature.properties || {};
+              const name = props.N02_004 || props.name || props.route_name;
+              if (name) layer.bindTooltip(name, { sticky: true });
+            }
+          }).addTo(S.map);
+        } catch (err) {
+          console.error('路線図データの取得に失敗:', err);
+        }
+      }
+      // ===================================
+
       function bindControls() {
         document.querySelectorAll('[data-tm-layer]').forEach((btn) => {
           const key = btn.dataset.tmLayer;
@@ -745,6 +777,9 @@
         S.overlay.schedule();
         loadVehicles();
         loadStops();
+        
+        // ▼ マップ初期化完了後、路線図を常にレンダリング ▼
+        loadGeoJsonRoutes();
       }
 
       init();
