@@ -44,10 +44,11 @@
     }
     .tm-chip[aria-pressed="true"] { background: rgba(59, 130, 246, .16); border-color: var(--color-accent-blue, #3b82f6); }
     .tm-chip[aria-pressed="false"] { opacity: .62; }
-    .tm-chip:focus-visible, .tm-btn:focus-visible, .tm-select select:focus-visible, .tm-pop-close:focus-visible {
+    .tm-chip:focus-visible, .tm-btn:focus-visible, .tm-pop-close:focus-visible {
       outline: 2px solid var(--color-accent-blue-light, #60a5fa); outline-offset: 2px;
     }
     .tm-chip[hidden] { display: none; }
+    .tm-btn:disabled { opacity: 0.5; cursor: not-allowed; }
     .tm-dot { width: .8rem; height: .8rem; border-radius: 50%; border: 2px solid #fff; box-shadow: 0 0 0 1px rgba(0, 0, 0, .4); flex: none; }
     .tm-dot.rail { background: #2563eb; }
     .tm-dot.bus { background: #f59e0b; }
@@ -55,12 +56,6 @@
     .tm-dot.stop { background: #334155; width: .6rem; height: .6rem; }
     .tm-dot.late { background: #fff; border-color: #dc2626; box-shadow: none; }
     .tm-count { font-variant-numeric: tabular-nums; opacity: .8; }
-    .tm-select { display: inline-flex; align-items: center; gap: .4rem; font-size: .85rem; }
-    .tm-select select {
-      min-height: 36px; padding: .3rem .6rem; border: 1px solid rgba(127, 127, 127, .38); border-radius: 8px;
-      background: transparent; color: inherit; font: inherit; font-size: .85rem;
-    }
-    .tm-select select option { color: #111; background: #fff; }
     .tm-updated { font-size: .8rem; opacity: .75; font-variant-numeric: tabular-nums; }
 
     .tm-map-wrap {
@@ -109,36 +104,6 @@
       .app-main { padding: .5rem; }
     }
     @media (prefers-reduced-motion: reduce) { .tm-chip, .tm-btn { transition: none; } }
-
-    /* 全画面モード時 */
-    body.is-fullscreen .sidebar,
-    body.is-fullscreen .mobile-topbar {
-      display: none !important;
-    }
-    body.is-fullscreen .app-main {
-      padding: 0 !important;
-    }
-    body.is-fullscreen .tm-map {
-      border: none;
-      border-radius: 0;
-    }
-    body.is-fullscreen .tm-toolbar {
-      position: absolute;
-      top: 15px;
-      left: 15px;
-      right: 15px;
-      z-index: 1000;
-      background: rgba(255, 255, 255, 0.9);
-      padding: 10px 15px;
-      border-radius: 12px;
-      box-shadow: 0 4px 16px rgba(0, 0, 0, 0.15);
-      margin: 0;
-      backdrop-filter: blur(4px);
-    }
-    html.dark body.is-fullscreen .tm-toolbar {
-      background: rgba(24, 33, 44, 0.9);
-      box-shadow: 0 4px 16px rgba(0, 0, 0, 0.5);
-    }
   </style>
 </head>
 <body>
@@ -239,13 +204,7 @@
             <button type="button" class="tm-chip" data-tm-layer="delayed" aria-pressed="false"><span class="tm-dot late" aria-hidden="true"></span>3分以上の遅れだけ</button>
           </div>
           <div class="tm-tools">
-            <button type="button" class="tm-btn" id="tm-fullscreen-toggle">全画面</button>
-            <label class="tm-select">地図
-              <select id="tm-basemap" aria-label="地図の種類">
-                <option value="pale">淡色</option>
-                <option value="std">標準</option>
-              </select>
-            </label>
+            <button type="button" class="tm-btn" id="tm-geolocation">現在地へ</button>
             <button type="button" class="tm-btn" id="tm-home">学校の周辺へ</button>
             <span class="tm-updated" id="tm-updated" role="status" aria-live="polite">読み込み中…</span>
           </div>
@@ -351,7 +310,7 @@
         on: { rail: true, bus: true, other: true, stops: true, delayed: false },
         vehicles: [], vIndex: new Map(), stops: [], sIndex: new Map(),
         feeds: new Map(), statics: new Map(),
-        selected: null, seq: { v: 0, s: 0 }, updatedAt: 0, stale: false, truncated: false, error: false, basemap: 'pale'
+        selected: null, seq: { v: 0, s: 0 }, updatedAt: 0, stale: false, truncated: false, error: false
       };
 
       async function api(url) {
@@ -380,11 +339,10 @@
         try {
           const p = JSON.parse(localStorage.getItem(PREF_KEY) || '{}');
           Object.keys(S.on).forEach((k) => { if (typeof p.on?.[k] === 'boolean') S.on[k] = p.on[k]; });
-          if (p.basemap === 'pale' || p.basemap === 'std') S.basemap = p.basemap;
         } catch (_) {}
       }
       function savePrefs() {
-        try { localStorage.setItem(PREF_KEY, JSON.stringify({ on: S.on, basemap: S.basemap })); } catch (_) {}
+        try { localStorage.setItem(PREF_KEY, JSON.stringify({ on: S.on })); } catch (_) {}
       }
 
       function buildPopup(container) {
@@ -724,8 +682,9 @@
           return;
         }
         S.cfg = cfg;
-        if (!cfg.tiles.layers.some((l) => l.id === S.basemap)) S.basemap = cfg.tiles.layers[0].id;
-        const tileUrl = (layer) => cfg.tiles.template.replace('{layer}', layer);
+        
+        // 淡色レイヤーに固定
+        const tileUrl = cfg.tiles.template.replace('{layer}', 'pale');
 
         const map = L.map('tm-map', {
           center: [cfg.school.lat, cfg.school.lon], zoom: cfg.view.zoom, minZoom: cfg.view.minZoom, maxZoom: cfg.view.maxZoom,
@@ -735,33 +694,42 @@
         S.map = map;
         map.attributionControl.setPrefix(false);
         map.attributionControl.addAttribution('データ: <a href="https://www.odpt.org/" target="_blank" rel="noopener noreferrer">公共交通オープンデータセンター</a>・各交通事業者');
-        S.tiles = L.tileLayer(tileUrl(S.basemap), {
+        S.tiles = L.tileLayer(tileUrl, {
           minZoom: cfg.view.minZoom, maxZoom: cfg.view.maxZoom, errorTileUrl: BLANK_TILE, keepBuffer: 2,
           attribution: '地図: <a href="https://maps.gsi.go.jp/development/ichiran.html" target="_blank" rel="noopener noreferrer">国土地理院(地理院タイル)</a>'
         }).addTo(map);
         L.control.scale({ imperial: false, position: 'bottomleft' }).addTo(map);
         S.overlay = createOverlay(map);
 
-        const basemap = $('tm-basemap');
-        if (basemap) {
-          basemap.value = S.basemap;
-          basemap.addEventListener('change', () => {
-            if (!cfg.tiles.layers.some((l) => l.id === basemap.value)) return;
-            S.basemap = basemap.value;
-            S.tiles.setUrl(tileUrl(S.basemap));
-            savePrefs();
-          });
-        }
         $('tm-home')?.addEventListener('click', () => map.setView([cfg.school.lat, cfg.school.lon], cfg.view.zoom));
 
-        const fsBtn = $('tm-fullscreen-toggle');
-        if (fsBtn) {
-          fsBtn.addEventListener('click', () => {
-            const isFS = document.body.classList.toggle('is-fullscreen');
-            fsBtn.textContent = isFS ? '通常表示' : '全画面';
-            setTimeout(() => { map.invalidateSize(); }, 100);
-          });
-        }
+        // 現在地機能の追加
+        $('tm-geolocation')?.addEventListener('click', () => {
+          if (!navigator.geolocation) {
+            showMsg('お使いのブラウザは現在地機能に対応していません。');
+            setTimeout(() => showMsg(''), 4000);
+            return;
+          }
+          
+          const geoBtn = $('tm-geolocation');
+          geoBtn.textContent = '取得中...';
+          geoBtn.disabled = true;
+
+          navigator.geolocation.getCurrentPosition(
+            (position) => {
+              geoBtn.textContent = '現在地へ';
+              geoBtn.disabled = false;
+              map.setView([position.coords.latitude, position.coords.longitude], 15);
+            },
+            (error) => {
+              geoBtn.textContent = '現在地へ';
+              geoBtn.disabled = false;
+              showMsg('現在地を取得できませんでした。端末の位置情報設定を確認してください。');
+              setTimeout(() => showMsg(''), 5000);
+            },
+            { enableHighAccuracy: true, timeout: 10000, maximumAge: 0 }
+          );
+        });
 
         map.on('click', (e) => { const hit = S.overlay.hitAt(e.containerPoint); select(hit ? { kind: hit.kind, id: hit.id } : null); });
         map.on('mousemove', (e) => { map.getContainer().style.cursor = S.overlay.hitAt(e.containerPoint) ? 'pointer' : ''; });
