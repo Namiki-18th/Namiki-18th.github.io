@@ -9,12 +9,33 @@
   <link rel="icon" href="/favicon.ico" type="image/x-icon">
   <link rel="stylesheet" href="/vendor/leaflet/leaflet.css">
   <style nonce="%%CSP_NONCE%%">
-    /* ===== 交通マップ (.tm-*) =====
-       既存の app.css / style.css のトークン名に依存しないよう、色は「継承 + 半透明」で構成している。
-       アクセント色だけは設定画面の選択(--color-accent-blue)に追従する。 */
-    .tm-section { margin-top: 1.25rem; }
-    .tm-below { margin-top: 1.25rem; }
-    .tm-toolbar { display: flex; flex-wrap: wrap; gap: .5rem .9rem; align-items: center; justify-content: space-between; margin-bottom: .65rem; }
+    /* ===== 画面レイアウトの全画面化調整 ===== */
+    .app-main {
+      height: 100vh;
+      height: 100dvh;
+      display: flex;
+      flex-direction: column;
+      box-sizing: border-box;
+      padding: 1rem;
+    }
+    .content-area {
+      height: 100%;
+      display: flex;
+      flex-direction: column;
+      max-width: 100%;
+      margin: 0;
+      padding: 0;
+    }
+
+    /* ===== 交通マップ (.tm-*) ===== */
+    .tm-section {
+      margin-top: 0;
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      min-height: 0;
+    }
+    .tm-toolbar { display: flex; flex-wrap: wrap; gap: .5rem .9rem; align-items: center; justify-content: space-between; margin-bottom: .65rem; flex: none; }
     .tm-chipset, .tm-tools { display: flex; flex-wrap: wrap; align-items: center; gap: .4rem; }
     .tm-chip, .tm-btn {
       display: inline-flex; align-items: center; gap: .4rem; min-height: 36px; padding: .35rem .8rem;
@@ -42,14 +63,19 @@
     .tm-select select option { color: #111; background: #fff; }
     .tm-updated { font-size: .8rem; opacity: .75; font-variant-numeric: tabular-nums; }
 
-    .tm-map-wrap { position: relative; }
+    .tm-map-wrap {
+      position: relative;
+      flex: 1;
+      height: 100%;
+      min-height: 0;
+    }
     .tm-map {
-      position: relative; isolation: isolate; /* Leaflet内部の高いz-indexがサイドバー等に被らないようにする */
-      height: clamp(420px, 66vh, 780px); height: clamp(420px, 66dvh, 780px);
+      position: relative; isolation: isolate;
+      height: 100% !important;
+      width: 100%;
       border: 1px solid rgba(127, 127, 127, .32); border-radius: 14px; overflow: hidden; background: #d6dee8;
     }
     html.dark .tm-map { background: #18212c; }
-    /* ダークテーマでは淡色地図を反転して背景に馴染ませる(車両・駅の描画はタイル層の外なので影響なし) */
     html.dark .tm-map .leaflet-tile-pane { filter: invert(1) hue-rotate(180deg) brightness(.9) contrast(.92) saturate(.8); }
     .tm-map .leaflet-control-attribution { font-size: 11px; }
     .tm-canvas { position: absolute; left: 0; top: 0; z-index: 450; pointer-events: none; }
@@ -78,102 +104,41 @@
     .tm-pop-late { color: #b91c1c; font-weight: 700; }
     .tm-pop-early { color: #047857; }
 
-    .tm-info { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 22rem), 1fr)); gap: 1rem; margin-top: 1rem; }
-    .tm-panel { padding: .9rem 1rem 1rem; border: 1px solid rgba(127, 127, 127, .28); border-radius: 14px; background: rgba(127, 127, 127, .07); }
-    .tm-panel h2 { margin: 0 0 .55rem; font-size: 1rem; }
-    .tm-hint { margin: 0; font-size: .85rem; opacity: .75; }
-    .tm-list { list-style: none; margin: 0; padding: 0; display: grid; gap: .45rem; }
-    .tm-list li { padding: .5rem .65rem; border-radius: 10px; background: rgba(127, 127, 127, .09); font-size: .85rem; }
-    .tm-tag {
-      display: inline-block; margin-right: .4rem; padding: .05rem .5rem; border-radius: 999px; font-size: .72rem; font-weight: 600;
-      background: rgba(59, 130, 246, .18); border: 1px solid rgba(59, 130, 246, .5);
-    }
-    .tm-alert summary { cursor: pointer; }
-    .tm-alert p { margin: .35rem 0 0; white-space: pre-line; opacity: .9; }
-    .tm-feed { display: flex; align-items: center; justify-content: space-between; gap: .75rem; }
-    .tm-feed-name { display: flex; align-items: center; gap: .5rem; min-width: 0; }
-    .tm-feed-name span:last-child { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-    .tm-feed-meta { flex: none; font-size: .78rem; opacity: .8; font-variant-numeric: tabular-nums; text-align: right; }
-    .tm-status { width: .55rem; height: .55rem; border-radius: 50%; flex: none; background: #94a3b8; }
-    .tm-status.ok { background: #16a34a; }
-    .tm-status.ng { background: #dc2626; }
-    .tm-fold { margin-top: .6rem; font-size: .85rem; }
-    .tm-fold summary { cursor: pointer; opacity: .85; }
-    .tm-fold .tm-list { margin-top: .45rem; }
-    .tm-credit { margin: .75rem 0 0; font-size: .75rem; line-height: 1.6; opacity: .72; }
-    .tm-credit a { color: inherit; text-decoration: underline; }
     @media (max-width: 640px) {
-      .tm-map { height: clamp(360px, 58vh, 640px); height: clamp(360px, 58dvh, 640px); }
       .tm-pop { width: 14rem; }
+      .app-main { padding: .5rem; }
     }
     @media (prefers-reduced-motion: reduce) { .tm-chip, .tm-btn { transition: none; } }
 
-    /* ===== ここから追加: 地図全画面化（切り替え式） ===== */
-    
-    /* 1. 全画面モード時：タイトルや下の運行状況・詳細情報、サイドバーを非表示にする */
-    body.is-fullscreen .page-header, 
-    body.is-fullscreen .tm-below, 
-    body.is-fullscreen #transit-error, 
-    body.is-fullscreen .tm-info,
+    /* 全画面モード時 */
     body.is-fullscreen .sidebar,
     body.is-fullscreen .mobile-topbar {
       display: none !important;
     }
-    
-    /* 2. メインエリアの余白をなくし、画面の高さいっぱいに広げる */
-    body.is-fullscreen .app-main, 
-    body.is-fullscreen .content-area {
+    body.is-fullscreen .app-main {
       padding: 0 !important;
-      margin: 0 !important;
-      max-width: 100% !important;
-      height: 100vh;
-      height: 100dvh; /* スマホブラウザのバーを考慮 */
-      display: flex;
-      flex-direction: column;
     }
-    
-    /* 3. マップセクションを画面の残りの領域すべてに広げる */
-    body.is-fullscreen .tm-section {
-      margin: 0 !important;
-      flex: 1;
-      display: flex;
-      position: relative;
-    }
-    body.is-fullscreen .tm-map-wrap {
-      flex: 1;
-      width: 100%;
-      position: relative;
-    }
-    
-    /* 地図自体の枠線や角丸を消し、領域を100%にする */
     body.is-fullscreen .tm-map {
-      height: 100% !important;
-      width: 100%;
       border: none;
       border-radius: 0;
     }
-    
-    /* 4. ツールバー（ボタンや設定）を地図の上に浮かせて配置する */
     body.is-fullscreen .tm-toolbar {
       position: absolute;
       top: 15px;
       left: 15px;
       right: 15px;
       z-index: 1000;
-      background: rgba(255, 255, 255, 0.9); /* 半透明の白背景 */
+      background: rgba(255, 255, 255, 0.9);
       padding: 10px 15px;
       border-radius: 12px;
       box-shadow: 0 4px 16px rgba(0, 0, 0, 0.15);
       margin: 0;
       backdrop-filter: blur(4px);
     }
-    
-    /* ダークモード用のツールバー背景色 */
     html.dark body.is-fullscreen .tm-toolbar {
       background: rgba(24, 33, 44, 0.9);
       box-shadow: 0 4px 16px rgba(0, 0, 0, 0.5);
     }
-    /* ===== ここまで ===== */
   </style>
 </head>
 <body>
@@ -264,12 +229,6 @@
   </header>
   <main class="app-main">
     <div class="content-area">
-      <header class="page-header">
-        <p class="text-sm-muted">通学に役立つ最新情報</p>
-        <h1>交通情報</h1>
-        <p class="content-card-subtitle">鉄道・バスの現在位置と運行状況を、地図でまとめて確認できます。</p>
-      </header>
-
       <section class="tm-section" aria-label="交通マップ">
         <div class="tm-toolbar">
           <div class="tm-chipset" role="group" aria-label="地図に表示するもの">
@@ -297,54 +256,6 @@
           <div id="tm-msg" class="tm-msg" role="status" hidden></div>
         </div>
       </section>
-
-      <section class="transit-grid tm-below" aria-label="運行状況">
-        <article class="transit-card" data-transit-card="jr">
-          <div class="transit-header">
-            <h2 class="transit-name">JR常磐線</h2>
-            <span class="transit-status" data-transit-status>取得中</span>
-          </div>
-          <p class="transit-body" data-transit-detail>最新の情報を取得しています...</p>
-        </article>
-        <article class="transit-card" data-transit-card="tx">
-          <div class="transit-header">
-            <h2 class="transit-name">つくばエクスプレス</h2>
-            <span class="transit-status" data-transit-status>取得中</span>
-          </div>
-          <p class="transit-body" data-transit-detail>最新の情報を取得しています...</p>
-        </article>
-        <article class="transit-card" data-transit-card="road">
-          <div class="transit-header">
-            <h2 class="transit-name">道路交通情報</h2>
-            <span class="transit-status" data-transit-status>取得中</span>
-          </div>
-          <p class="transit-body" data-transit-detail>最新の情報を取得しています...</p>
-        </article>
-      </section>
-
-      <p id="transit-error" class="placeholder-text" hidden>交通情報を取得できませんでした。時間をおいて再度お試しください。</p>
-
-      <section class="tm-info" aria-label="運行情報とデータ提供元">
-        <article class="tm-panel" aria-labelledby="tm-alerts-title">
-          <h2 id="tm-alerts-title">運行情報</h2>
-          <p class="tm-hint" id="tm-alerts-empty">読み込み中…</p>
-          <ul class="tm-list" id="tm-alerts"></ul>
-        </article>
-        <article class="tm-panel" aria-labelledby="tm-feeds-title">
-          <h2 id="tm-feeds-title">データの提供元</h2>
-          <p class="tm-hint" id="tm-feeds-empty">読み込み中…</p>
-          <ul class="tm-list" id="tm-feeds"></ul>
-          <details class="tm-fold" id="tm-feeds-ng-wrap" hidden>
-            <summary>いま取得できていないデータ (<span id="tm-feeds-ng-count">0</span>)</summary>
-            <ul class="tm-list" id="tm-feeds-ng"></ul>
-          </details>
-          <p class="tm-credit">
-            列車・バスの位置と運行情報は<a href="https://www.odpt.org/" target="_blank" rel="noopener noreferrer">公共交通オープンデータセンター</a>および各交通事業者のデータを利用しています。
-            位置は数十秒〜数分遅れることがあり、実際の運行と異なる場合があります。
-            地図は<a href="https://maps.gsi.go.jp/development/ichiran.html" target="_blank" rel="noopener noreferrer">国土地理院(地理院タイル)</a>です。
-          </p>
-        </article>
-      </section>
     </div>
   </main>
 
@@ -353,47 +264,7 @@
     // 定期更新で「データを取得中...」の全体表示が点滅しないよう、ラッパー導入前の fetch を保持しておく
     const rawFetch = window.fetch.bind(window);
 
-    // ---- 運行状況カード(JR常磐線 / つくばエクスプレス / 道路交通情報) ----
-    const transitSources = [
-      { key: 'jr', url: '/api/transit', dataKey: 'jr' },
-      { key: 'tx', url: '/api/transit', dataKey: 'tx' },
-      { key: 'road', url: '/api/road', dataKey: null }
-    ];
-    const ROAD_TROUBLE_STATUSES = ['渋滞・規制あり', '周辺注意'];
-
-    // サーバーは道路情報の改行を <br> で返す。HTMLとしては挿入せず、テキストと改行要素だけで組み立てる
-    function setDetail(element, text) {
-      element.textContent = '';
-      String(text || '').split(/<br\s*\/?>/i).forEach((line, index) => {
-        if (index > 0) element.appendChild(document.createElement('br'));
-        element.appendChild(document.createTextNode(line));
-      });
-    }
-
-    async function refreshStatusCards() {
-      const payloads = new Map();
-      const urls = [...new Set(transitSources.map((source) => source.url))];
-      const results = await Promise.allSettled(urls.map(async (url) => {
-        const response = await rawFetch(url, { credentials: 'same-origin' });
-        if (!response.ok) throw new Error(`HTTP ${response.status}`);
-        payloads.set(url, await response.json());
-      }));
-      transitSources.forEach((source) => {
-        const payload = payloads.get(source.url);
-        const data = payload && (source.dataKey ? payload[source.dataKey] : payload);
-        const card = document.querySelector(`[data-transit-card="${source.key}"]`);
-        if (!card || !data) return;
-        const isTrouble = typeof data.isTrouble === 'boolean' ? data.isTrouble : ROAD_TROUBLE_STATUSES.includes(data.status);
-        card.querySelector('[data-transit-status]').textContent = data.status || '情報なし';
-        setDetail(card.querySelector('[data-transit-detail]'), data.detail || '詳細情報はありません。');
-        card.dataset.transitTrouble = isTrouble ? 'true' : 'false';
-      });
-      document.getElementById('transit-error').hidden = !results.every((result) => result.status === 'rejected');
-    }
-    refreshStatusCards();
-    setInterval(() => { if (!document.hidden) refreshStatusCards(); }, 60 * 1000);
-
-    // ---- テーマ・プロフィール・アカウントメニュー(従来どおり) ----
+    // ---- テーマ・プロフィール・アカウントメニュー ----
     function initThemeToggle() {
       const toggleSwitch = document.getElementById('theme-toggle-switch');
       toggleSwitch?.classList.toggle('on', document.documentElement.classList.contains('dark'));
@@ -462,23 +333,18 @@
   </script>
   <script nonce="%%CSP_NONCE%%">
     // ===== 交通マップ =====
-    // 通信は全て自サーバー(/api/transit/...)宛て。ODPT・地図タイルの取得はサーバー側が中継する。
     (() => {
       'use strict';
-      const rf = typeof rawFetch === 'function' ? rawFetch : window.fetch.bind(window); // 全体ローディング表示を出さない fetch
+      const rf = typeof rawFetch === 'function' ? rawFetch : window.fetch.bind(window);
       const $ = (id) => document.getElementById(id);
       const MODES = ['rail', 'bus', 'other'];
       const MODE_LABEL = { rail: '列車', bus: 'バス', other: 'その他' };
       const MODE_COLOR = { rail: '#2563eb', bus: '#f59e0b', other: '#7c3aed' };
-      const LATE_SEC = 180;      // 3分以上を「遅れ」とする
-      const STOP_MIN_ZOOM = 11;  // これ未満では駅・バス停を出さない
+      const LATE_SEC = 180;
+      const STOP_MIN_ZOOM = 11;
       const BLANK_TILE = 'data:image/gif;base64,R0lGODlhAQABAAAAACH5BAEKAAEALAAAAAABAAEAAAICTAEAOw==';
       const PREF_KEY = 'namiki-transit-map';
-      const HIT_PAD = (window.L && L.Browser && L.Browser.mobile) ? 8 : 2; // 指で押しやすいよう、タッチ端末では判定を広げる
-      const REASON = {
-        'key-missing': 'アクセストークン未設定', 'http-401': '認証エラー', 'http-403': '利用権限なし', 'http-404': 'データが見つかりません',
-        timeout: 'タイムアウト', network: '通信エラー', 'not-protobuf': '形式エラー', decode: '形式エラー', 'too-large': 'サイズ超過'
-      };
+      const HIT_PAD = (window.L && L.Browser && L.Browser.mobile) ? 8 : 2;
 
       const S = {
         map: null, overlay: null, tiles: null, cfg: null,
@@ -488,7 +354,6 @@
         selected: null, seq: { v: 0, s: 0 }, updatedAt: 0, stale: false, truncated: false, error: false, basemap: 'pale'
       };
 
-      // ---------- 小さなユーティリティ ----------
       async function api(url) {
         const res = await rf(url, { credentials: 'same-origin', headers: { Accept: 'application/json' } });
         if (res.status === 401) { window.location.href = '/login'; throw new Error('unauthorized'); }
@@ -505,6 +370,7 @@
       }
       function showMsg(text, fatal) {
         const box = $('tm-msg');
+        if (!box) return;
         if (!text) { box.hidden = true; return; }
         box.textContent = text;
         box.classList.toggle('fatal', Boolean(fatal));
@@ -515,13 +381,12 @@
           const p = JSON.parse(localStorage.getItem(PREF_KEY) || '{}');
           Object.keys(S.on).forEach((k) => { if (typeof p.on?.[k] === 'boolean') S.on[k] = p.on[k]; });
           if (p.basemap === 'pale' || p.basemap === 'std') S.basemap = p.basemap;
-        } catch (_) { /* 保存値が壊れていても既定値で動く */ }
+        } catch (_) {}
       }
       function savePrefs() {
-        try { localStorage.setItem(PREF_KEY, JSON.stringify({ on: S.on, basemap: S.basemap })); } catch (_) { /* 保存できなくても動作に影響なし */ }
+        try { localStorage.setItem(PREF_KEY, JSON.stringify({ on: S.on, basemap: S.basemap })); } catch (_) {}
       }
 
-      // ---------- 詳細ポップアップ(自前のHTML要素。Canvasより手前に出す) ----------
       function buildPopup(container) {
         const box = el('div', 'tm-pop');
         box.hidden = true;
@@ -577,7 +442,6 @@
         }
       }
 
-      // ---------- Canvas 重ね描き(車両・駅・学校) ----------
       function createOverlay(map) {
         const container = map.getContainer();
         const canvas = el('canvas', 'tm-canvas');
@@ -607,7 +471,7 @@
           ctx.lineTo(0, size * 0.4);
           ctx.lineTo(-size * 0.78, size * 0.85);
           ctx.closePath();
-          ctx.stroke(); // 白い縁 → 塗りの順(塗りを縁が隠さない)
+          ctx.stroke();
           ctx.fill();
           ctx.restore();
         }
@@ -619,7 +483,6 @@
           const z = map.getZoom();
           const sel = S.selected;
 
-          // 駅・バス停
           if (S.on.stops && z >= STOP_MIN_ZOOM) {
             const r = z >= 15 ? 5 : z >= 13 ? 4 : 3;
             const labeled = [];
@@ -647,7 +510,6 @@
             }
           }
 
-          // 車両(遅れている車両を上に重ねる)
           const list = S.on.delayed ? S.vehicles.filter(isLate) : S.vehicles;
           const size = z >= 15 ? 11 : z >= 13 ? 9 : 7;
           ctx.lineWidth = 3;
@@ -659,7 +521,7 @@
               const p = map.latLngToContainerPoint([v.la, v.lo]);
               if (p.x < -20 || p.y < -20 || p.x > w + 20 || p.y > h + 20) continue;
               ctx.fillStyle = (v.m === 'rail' && v.k) || MODE_COLOR[v.m] || MODE_COLOR.other;
-              if (pass) { // 遅れの赤いリング
+              if (pass) {
                 ctx.save();
                 ctx.strokeStyle = '#dc2626';
                 ctx.lineWidth = 3;
@@ -683,7 +545,6 @@
             }
           }
 
-          // 学校
           if (S.cfg) {
             const p = map.latLngToContainerPoint([S.cfg.school.lat, S.cfg.school.lon]);
             if (p.x > -20 && p.y > -20 && p.x < w + 20 && p.y < h + 20) {
@@ -755,7 +616,6 @@
         if (S.overlay) { S.overlay.refreshPopup(); S.overlay.schedule(); }
       }
 
-      // ---------- データ取得 ----------
       function updateCounts() {
         const counts = { rail: 0, bus: 0, other: 0 };
         S.vehicles.forEach((v) => { if (counts[v.m] !== undefined) counts[v.m]++; });
@@ -767,13 +627,15 @@
       }
 
       function afterVehicles() {
-        if (!S.map) return; // 地図が初期化できていない時は、致命メッセージを消さない
+        if (!S.map) return;
         S.vIndex = new Map(S.vehicles.map((v) => [v.id, v]));
         updateCounts();
         const status = $('tm-updated');
-        if (S.error) status.textContent = '更新できませんでした。自動で再試行します';
-        else if (S.stale) status.textContent = `位置データが古くなっています(最終 ${clock(S.updatedAt)})`;
-        else status.textContent = `最終更新 ${clock(S.updatedAt)}` + (S.truncated ? ' ・ 表示数を制限中(拡大すると全て表示)' : '');
+        if (status) {
+          if (S.error) status.textContent = '更新できませんでした。自動で再試行します';
+          else if (S.stale) status.textContent = `位置データが古くなっています(最終 ${clock(S.updatedAt)})`;
+          else status.textContent = `最終更新 ${clock(S.updatedAt)}` + (S.truncated ? ' ・ 表示数を制限中(拡大すると全て表示)' : '');
+        }
 
         const shown = S.on.delayed ? S.vehicles.filter(isLate).length : S.vehicles.length;
         const anyMode = MODES.some((m) => S.on[m]);
@@ -800,7 +662,7 @@
           S.error = false;
         } catch (_) {
           if (seq !== S.seq.v) return;
-          S.error = true; // 直前の表示は残す
+          S.error = true;
         }
         afterVehicles();
       }
@@ -815,69 +677,8 @@
           if (seq !== S.seq.s) return;
           S.stops = Array.isArray(data.stops) ? data.stops : [];
           S.sIndex = new Map(S.stops.map((s) => [`${s.g}:${s.id}`, s]));
-        } catch (_) { /* 駅の取得失敗は車両表示に影響させない */ }
+        } catch (_) {}
         if (S.overlay) S.overlay.schedule();
-      }
-
-      // ---------- 運行情報・データ提供元パネル ----------
-      function renderAlerts(alerts) {
-        const list = $('tm-alerts');
-        list.textContent = '';
-        $('tm-alerts-empty').hidden = alerts.length > 0;
-        $('tm-alerts-empty').textContent = '現在、事業者から発表されている運行情報はありません。';
-        alerts.forEach((a) => {
-          const li = el('li', 'tm-alert');
-          const tag = el('span', 'tm-tag', a.label);
-          const head = a.header || a.desc;
-          if (a.desc && a.header) {
-            const details = el('details');
-            const summary = el('summary');
-            summary.append(tag, document.createTextNode(head));
-            details.append(summary, el('p', '', a.desc));
-            li.appendChild(details);
-          } else li.append(tag, document.createTextNode(head));
-          list.appendChild(li);
-        });
-      }
-
-      function renderFeeds(info) {
-        const groups = new Map();
-        for (const f of info.feeds) {
-          if (f.kind === 'trip') continue;
-          let g = groups.get(f.label);
-          if (!g) { g = { label: f.label, modes: new Set(), vehicles: 0, hasVehicleFeed: false, ok: 0, ng: 0, reasons: new Set(), updatedAt: 0 }; groups.set(f.label, g); }
-          g.modes.add(f.mode);
-          if (f.kind === 'vehicle') g.hasVehicleFeed = true;
-          if (f.ok === true) { g.ok++; g.updatedAt = Math.max(g.updatedAt, f.updatedAt); if (f.kind === 'vehicle') g.vehicles += f.count; }
-          else if (f.ok === false) { g.ng++; if (f.error) g.reasons.add(f.error); }
-        }
-        const okList = $('tm-feeds');
-        const ngList = $('tm-feeds-ng');
-        okList.textContent = '';
-        ngList.textContent = '';
-        const all = [...groups.values()];
-        const good = all.filter((g) => g.ok > 0 || g.ng === 0).sort((a, b) => b.vehicles - a.vehicles || a.label.localeCompare(b.label, 'ja'));
-        const bad = all.filter((g) => g.ok === 0 && g.ng > 0).sort((a, b) => a.label.localeCompare(b.label, 'ja'));
-        const modeText = (g) => [...g.modes].map((m) => MODE_LABEL[m] || m).join('・');
-        good.forEach((g) => {
-          const li = el('li', 'tm-feed');
-          const name = el('div', 'tm-feed-name');
-          name.append(el('span', 'tm-status ' + (g.ok > 0 ? 'ok' : '')), el('span', '', g.label));
-          const meta = g.ok === 0 ? '確認中' : g.hasVehicleFeed ? `${modeText(g)} ${g.vehicles}台 ・ ${clock(g.updatedAt)}` : `運行情報のみ ・ ${clock(g.updatedAt)}`;
-          li.append(name, el('div', 'tm-feed-meta', meta));
-          okList.appendChild(li);
-        });
-        bad.forEach((g) => {
-          const li = el('li', 'tm-feed');
-          const name = el('div', 'tm-feed-name');
-          name.append(el('span', 'tm-status ng'), el('span', '', g.label));
-          li.append(name, el('div', 'tm-feed-meta', [...g.reasons].map((r) => REASON[r] || '取得エラー').join(' / ')));
-          ngList.appendChild(li);
-        });
-        $('tm-feeds-empty').hidden = all.length > 0;
-        $('tm-feeds-empty').textContent = 'データの提供元を確認中です。';
-        $('tm-feeds-ng-wrap').hidden = bad.length === 0;
-        $('tm-feeds-ng-count').textContent = String(bad.length);
       }
 
       async function loadInfo() {
@@ -887,17 +688,9 @@
           S.statics = new Map((info.statics || []).map((s) => [s.id, s]));
           const chip = document.querySelector('[data-tm-layer="other"]');
           if (chip) chip.hidden = !info.feeds.some((f) => f.kind === 'vehicle' && f.mode === 'other');
-          renderAlerts(info.alerts || []);
-          renderFeeds(info);
-        } catch (_) {
-          $('tm-alerts-empty').hidden = false;
-          $('tm-alerts-empty').textContent = '運行情報を取得できませんでした。';
-          $('tm-feeds-empty').hidden = false;
-          $('tm-feeds-empty').textContent = 'データの提供元を取得できませんでした。';
-        }
+        } catch (_) {}
       }
 
-      // ---------- 初期化 ----------
       function bindControls() {
         document.querySelectorAll('[data-tm-layer]').forEach((btn) => {
           const key = btn.dataset.tmLayer;
@@ -920,14 +713,14 @@
         setInterval(() => { if (!document.hidden) loadInfo(); }, 60 * 1000);
 
         if (typeof L === 'undefined') {
-          showMsg('地図ライブラリ(Leaflet)を読み込めませんでした。サーバーで npm install leaflet を実行してください。', true);
-          $('tm-updated').textContent = '地図を表示できません';
+          showMsg('地図ライブラリ(Leaflet)を読み込めませんでした。', true);
+          if ($('tm-updated'))$('tm-updated').textContent = '地図を表示できません';
           return;
         }
         let cfg;
         try { cfg = await api('/api/transit/map/config'); } catch (_) {
           showMsg('地図の設定を取得できませんでした。ページを再読み込みしてください。', true);
-          $('tm-updated').textContent = '地図を表示できません';
+          if ($('tm-updated'))$('tm-updated').textContent = '地図を表示できません';
           return;
         }
         S.cfg = cfg;
@@ -936,7 +729,7 @@
 
         const map = L.map('tm-map', {
           center: [cfg.school.lat, cfg.school.lon], zoom: cfg.view.zoom, minZoom: cfg.view.minZoom, maxZoom: cfg.view.maxZoom,
-          zoomAnimation: false, // 重ね描き(Canvas)とタイルの動きを揃えるため
+          zoomAnimation: false,
           attributionControl: true
         });
         S.map = map;
@@ -950,28 +743,25 @@
         S.overlay = createOverlay(map);
 
         const basemap = $('tm-basemap');
-        basemap.value = S.basemap;
-        basemap.addEventListener('change', () => {
-          if (!cfg.tiles.layers.some((l) => l.id === basemap.value)) return;
-          S.basemap = basemap.value;
-          S.tiles.setUrl(tileUrl(S.basemap));
-          savePrefs();
-        });
-        $('tm-home').addEventListener('click', () => map.setView([cfg.school.lat, cfg.school.lon], cfg.view.zoom));
+        if (basemap) {
+          basemap.value = S.basemap;
+          basemap.addEventListener('change', () => {
+            if (!cfg.tiles.layers.some((l) => l.id === basemap.value)) return;
+            S.basemap = basemap.value;
+            S.tiles.setUrl(tileUrl(S.basemap));
+            savePrefs();
+          });
+        }
+        $('tm-home')?.addEventListener('click', () => map.setView([cfg.school.lat, cfg.school.lon], cfg.view.zoom));
 
-        // --- 全画面切り替えボタンの処理 ---
         const fsBtn = $('tm-fullscreen-toggle');
         if (fsBtn) {
           fsBtn.addEventListener('click', () => {
             const isFS = document.body.classList.toggle('is-fullscreen');
             fsBtn.textContent = isFS ? '通常表示' : '全画面';
-            // CSSによるレイアウト変更が完了した後にマップのサイズを再計算させる
-            setTimeout(() => {
-              map.invalidateSize();
-            }, 100);
+            setTimeout(() => { map.invalidateSize(); }, 100);
           });
         }
-        // ----------------------------------
 
         map.on('click', (e) => { const hit = S.overlay.hitAt(e.containerPoint); select(hit ? { kind: hit.kind, id: hit.id } : null); });
         map.on('mousemove', (e) => { map.getContainer().style.cursor = S.overlay.hitAt(e.containerPoint) ? 'pointer' : ''; });
