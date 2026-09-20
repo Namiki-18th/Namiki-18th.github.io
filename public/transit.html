@@ -7,6 +7,107 @@
   <link rel="stylesheet" href="/assets/css/app.css">
   <link rel="stylesheet" href="/style.css">
   <link rel="icon" href="/favicon.ico" type="image/x-icon">
+  <link rel="stylesheet" href="/vendor/leaflet/leaflet.css">
+  <style>
+    /* ===== 交通マップ (.tm-*) =====
+       既存の app.css / style.css のトークン名に依存しないよう、色は「継承 + 半透明」で構成している。
+       アクセント色だけは設定画面の選択(--color-accent-blue)に追従する。 */
+    .tm-section { margin-top: 1.25rem; }
+    .tm-below { margin-top: 1.25rem; }
+    .tm-toolbar { display: flex; flex-wrap: wrap; gap: .5rem .9rem; align-items: center; justify-content: space-between; margin-bottom: .65rem; }
+    .tm-chipset, .tm-tools { display: flex; flex-wrap: wrap; align-items: center; gap: .4rem; }
+    .tm-chip, .tm-btn {
+      display: inline-flex; align-items: center; gap: .4rem; min-height: 36px; padding: .35rem .8rem;
+      border: 1px solid rgba(127, 127, 127, .38); border-radius: 999px; background: transparent; color: inherit;
+      font: inherit; font-size: .85rem; line-height: 1.2; cursor: pointer;
+    }
+    .tm-chip[aria-pressed="true"] { background: rgba(59, 130, 246, .16); border-color: var(--color-accent-blue, #3b82f6); }
+    .tm-chip[aria-pressed="false"] { opacity: .62; }
+    .tm-chip:focus-visible, .tm-btn:focus-visible, .tm-select select:focus-visible, .tm-pop-close:focus-visible {
+      outline: 2px solid var(--color-accent-blue-light, #60a5fa); outline-offset: 2px;
+    }
+    .tm-chip[hidden] { display: none; }
+    .tm-dot { width: .8rem; height: .8rem; border-radius: 50%; border: 2px solid #fff; box-shadow: 0 0 0 1px rgba(0, 0, 0, .4); flex: none; }
+    .tm-dot.rail { background: #2563eb; }
+    .tm-dot.bus { background: #f59e0b; }
+    .tm-dot.other { background: #7c3aed; }
+    .tm-dot.stop { background: #334155; width: .6rem; height: .6rem; }
+    .tm-dot.late { background: #fff; border-color: #dc2626; box-shadow: none; }
+    .tm-count { font-variant-numeric: tabular-nums; opacity: .8; }
+    .tm-select { display: inline-flex; align-items: center; gap: .4rem; font-size: .85rem; }
+    .tm-select select {
+      min-height: 36px; padding: .3rem .6rem; border: 1px solid rgba(127, 127, 127, .38); border-radius: 8px;
+      background: transparent; color: inherit; font: inherit; font-size: .85rem;
+    }
+    .tm-select select option { color: #111; background: #fff; }
+    .tm-updated { font-size: .8rem; opacity: .75; font-variant-numeric: tabular-nums; }
+
+    .tm-map-wrap { position: relative; }
+    .tm-map {
+      position: relative; isolation: isolate; /* Leaflet内部の高いz-indexがサイドバー等に被らないようにする */
+      height: clamp(420px, 66vh, 780px); height: clamp(420px, 66dvh, 780px);
+      border: 1px solid rgba(127, 127, 127, .32); border-radius: 14px; overflow: hidden; background: #d6dee8;
+    }
+    html.dark .tm-map { background: #18212c; }
+    /* ダークテーマでは淡色地図を反転して背景に馴染ませる(車両・駅の描画はタイル層の外なので影響なし) */
+    html.dark .tm-map .leaflet-tile-pane { filter: invert(1) hue-rotate(180deg) brightness(.9) contrast(.92) saturate(.8); }
+    .tm-map .leaflet-control-attribution { font-size: 11px; }
+    .tm-canvas { position: absolute; left: 0; top: 0; z-index: 450; pointer-events: none; }
+    .tm-msg {
+      position: absolute; left: 50%; top: .75rem; transform: translateX(-50%); z-index: 900; max-width: min(92%, 34rem);
+      padding: .45rem .9rem; border-radius: 999px; font-size: .82rem; text-align: center;
+      color: #fff; background: rgba(15, 23, 42, .86); pointer-events: none;
+    }
+    .tm-msg[hidden] { display: none; }
+    .tm-msg.fatal { border-radius: 12px; pointer-events: auto; background: rgba(153, 27, 27, .92); }
+
+    .tm-pop {
+      position: absolute; z-index: 460; width: 15.5rem; max-width: calc(100% - 16px); padding: .7rem .8rem .6rem;
+      border-radius: 12px; color: #1e293b; background: #fff; box-shadow: 0 6px 22px rgba(0, 0, 0, .3);
+      font-size: .82rem; line-height: 1.45;
+    }
+    .tm-pop[hidden] { display: none; }
+    .tm-pop-title { display: flex; align-items: center; gap: .45rem; margin: 0 1.6rem .4rem 0; font-weight: 700; font-size: .92rem; }
+    .tm-pop-close {
+      position: absolute; right: .35rem; top: .3rem; width: 28px; height: 28px; border: 0; border-radius: 50%;
+      background: transparent; color: #475569; font-size: 1.15rem; line-height: 1; cursor: pointer;
+    }
+    .tm-pop-list { display: grid; grid-template-columns: max-content 1fr; gap: .15rem .7rem; margin: 0; }
+    .tm-pop-list dt { color: #64748b; }
+    .tm-pop-list dd { margin: 0; word-break: break-word; }
+    .tm-pop-late { color: #b91c1c; font-weight: 700; }
+    .tm-pop-early { color: #047857; }
+
+    .tm-info { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 22rem), 1fr)); gap: 1rem; margin-top: 1rem; }
+    .tm-panel { padding: .9rem 1rem 1rem; border: 1px solid rgba(127, 127, 127, .28); border-radius: 14px; background: rgba(127, 127, 127, .07); }
+    .tm-panel h2 { margin: 0 0 .55rem; font-size: 1rem; }
+    .tm-hint { margin: 0; font-size: .85rem; opacity: .75; }
+    .tm-list { list-style: none; margin: 0; padding: 0; display: grid; gap: .45rem; }
+    .tm-list li { padding: .5rem .65rem; border-radius: 10px; background: rgba(127, 127, 127, .09); font-size: .85rem; }
+    .tm-tag {
+      display: inline-block; margin-right: .4rem; padding: .05rem .5rem; border-radius: 999px; font-size: .72rem; font-weight: 600;
+      background: rgba(59, 130, 246, .18); border: 1px solid rgba(59, 130, 246, .5);
+    }
+    .tm-alert summary { cursor: pointer; }
+    .tm-alert p { margin: .35rem 0 0; white-space: pre-line; opacity: .9; }
+    .tm-feed { display: flex; align-items: center; justify-content: space-between; gap: .75rem; }
+    .tm-feed-name { display: flex; align-items: center; gap: .5rem; min-width: 0; }
+    .tm-feed-name span:last-child { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+    .tm-feed-meta { flex: none; font-size: .78rem; opacity: .8; font-variant-numeric: tabular-nums; text-align: right; }
+    .tm-status { width: .55rem; height: .55rem; border-radius: 50%; flex: none; background: #94a3b8; }
+    .tm-status.ok { background: #16a34a; }
+    .tm-status.ng { background: #dc2626; }
+    .tm-fold { margin-top: .6rem; font-size: .85rem; }
+    .tm-fold summary { cursor: pointer; opacity: .85; }
+    .tm-fold .tm-list { margin-top: .45rem; }
+    .tm-credit { margin: .75rem 0 0; font-size: .75rem; line-height: 1.6; opacity: .72; }
+    .tm-credit a { color: inherit; text-decoration: underline; }
+    @media (max-width: 640px) {
+      .tm-map { height: clamp(360px, 58vh, 640px); height: clamp(360px, 58dvh, 640px); }
+      .tm-pop { width: 14rem; }
+    }
+    @media (prefers-reduced-motion: reduce) { .tm-chip, .tm-btn { transition: none; } }
+  </style>
 </head>
 <body>
   <aside class="sidebar">
@@ -99,10 +200,37 @@
       <header class="page-header">
         <p class="text-sm-muted">通学に役立つ最新情報</p>
         <h1>交通情報</h1>
-        <p class="content-card-subtitle">鉄道や道路の状況をまとめて確認できます。</p>
+        <p class="content-card-subtitle">鉄道・バスの現在位置と運行状況を、地図でまとめて確認できます。</p>
       </header>
 
-      <section class="transit-grid" aria-label="交通情報一覧">
+      <section class="tm-section" aria-label="交通マップ">
+        <div class="tm-toolbar">
+          <div class="tm-chipset" role="group" aria-label="地図に表示するもの">
+            <button type="button" class="tm-chip" data-tm-layer="rail" aria-pressed="true"><span class="tm-dot rail" aria-hidden="true"></span>列車 <span class="tm-count" data-tm-count="rail"></span></button>
+            <button type="button" class="tm-chip" data-tm-layer="bus" aria-pressed="true"><span class="tm-dot bus" aria-hidden="true"></span>バス <span class="tm-count" data-tm-count="bus"></span></button>
+            <button type="button" class="tm-chip" data-tm-layer="other" aria-pressed="true" hidden><span class="tm-dot other" aria-hidden="true"></span>その他 <span class="tm-count" data-tm-count="other"></span></button>
+            <button type="button" class="tm-chip" data-tm-layer="stops" aria-pressed="true"><span class="tm-dot stop" aria-hidden="true"></span>駅・バス停</button>
+            <button type="button" class="tm-chip" data-tm-layer="delayed" aria-pressed="false"><span class="tm-dot late" aria-hidden="true"></span>3分以上の遅れだけ</button>
+          </div>
+          <div class="tm-tools">
+            <label class="tm-select">地図
+              <select id="tm-basemap" aria-label="地図の種類">
+                <option value="pale">淡色</option>
+                <option value="std">標準</option>
+              </select>
+            </label>
+            <button type="button" class="tm-btn" id="tm-home">学校の周辺へ</button>
+            <span class="tm-updated" id="tm-updated" role="status" aria-live="polite">読み込み中…</span>
+          </div>
+        </div>
+
+        <div class="tm-map-wrap">
+          <div id="tm-map" class="tm-map" role="application" aria-label="鉄道・バスの現在位置マップ。矢印キーで移動、プラスとマイナスで拡大縮小できます。"></div>
+          <div id="tm-msg" class="tm-msg" role="status" hidden></div>
+        </div>
+      </section>
+
+      <section class="transit-grid tm-below" aria-label="運行状況">
         <article class="transit-card" data-transit-card="jr">
           <div class="transit-header">
             <h2 class="transit-name">JR常磐線</h2>
@@ -127,34 +255,77 @@
       </section>
 
       <p id="transit-error" class="placeholder-text" hidden>交通情報を取得できませんでした。時間をおいて再度お試しください。</p>
+
+      <section class="tm-info" aria-label="運行情報とデータ提供元">
+        <article class="tm-panel" aria-labelledby="tm-alerts-title">
+          <h2 id="tm-alerts-title">運行情報</h2>
+          <p class="tm-hint" id="tm-alerts-empty">読み込み中…</p>
+          <ul class="tm-list" id="tm-alerts"></ul>
+        </article>
+        <article class="tm-panel" aria-labelledby="tm-feeds-title">
+          <h2 id="tm-feeds-title">データの提供元</h2>
+          <p class="tm-hint" id="tm-feeds-empty">読み込み中…</p>
+          <ul class="tm-list" id="tm-feeds"></ul>
+          <details class="tm-fold" id="tm-feeds-ng-wrap" hidden>
+            <summary>いま取得できていないデータ (<span id="tm-feeds-ng-count">0</span>)</summary>
+            <ul class="tm-list" id="tm-feeds-ng"></ul>
+          </details>
+          <p class="tm-credit">
+            列車・バスの位置と運行情報は<a href="https://www.odpt.org/" target="_blank" rel="noopener noreferrer">公共交通オープンデータセンター</a>および各交通事業者のデータを利用しています。
+            位置は数十秒〜数分遅れることがあり、実際の運行と異なる場合があります。
+            地図は<a href="https://maps.gsi.go.jp/development/ichiran.html" target="_blank" rel="noopener noreferrer">国土地理院(地理院タイル)</a>です。
+          </p>
+        </article>
+      </section>
     </div>
   </main>
 
+  <script src="/vendor/leaflet/leaflet.js"></script>
   <script nonce="%%CSP_NONCE%%">
+    // 定期更新で「データを取得中...」の全体表示が点滅しないよう、ラッパー導入前の fetch を保持しておく
+    const rawFetch = window.fetch.bind(window);
+
+    // ---- 運行状況カード(JR常磐線 / つくばエクスプレス / 道路交通情報) ----
     const transitSources = [
       { key: 'jr', url: '/api/transit', dataKey: 'jr' },
       { key: 'tx', url: '/api/transit', dataKey: 'tx' },
       { key: 'road', url: '/api/road', dataKey: null }
     ];
+    const ROAD_TROUBLE_STATUSES = ['渋滞・規制あり', '周辺注意'];
 
-    async function loadTransitSource(source) {
-      const response = await fetch(source.url);
-      if (!response.ok) throw new Error(`HTTP ${response.status}`);
-      const payload = await response.json();
-      const data = source.dataKey ? payload[source.dataKey] : payload;
-      const card = document.querySelector(`[data-transit-card="${source.key}"]`);
-      if (!card || !data) return;
-      card.querySelector('[data-transit-status]').textContent = data.status || '情報なし';
-      card.querySelector('[data-transit-detail]').textContent = data.detail || '詳細情報はありません。';
-      card.dataset.transitTrouble = data.isTrouble ? 'true' : 'false';
+    // サーバーは道路情報の改行を <br> で返す。HTMLとしては挿入せず、テキストと改行要素だけで組み立てる
+    function setDetail(element, text) {
+      element.textContent = '';
+      String(text || '').split(/<br\s*\/?>/i).forEach((line, index) => {
+        if (index > 0) element.appendChild(document.createElement('br'));
+        element.appendChild(document.createTextNode(line));
+      });
     }
 
-    Promise.allSettled(transitSources.map(loadTransitSource)).then((results) => {
-      if (results.every((result) => result.status === 'rejected')) {
-        document.getElementById('transit-error').hidden = false;
-      }
-    });
+    async function refreshStatusCards() {
+      const payloads = new Map();
+      const urls = [...new Set(transitSources.map((source) => source.url))];
+      const results = await Promise.allSettled(urls.map(async (url) => {
+        const response = await rawFetch(url, { credentials: 'same-origin' });
+        if (!response.ok) throw new Error(`HTTP ${response.status}`);
+        payloads.set(url, await response.json());
+      }));
+      transitSources.forEach((source) => {
+        const payload = payloads.get(source.url);
+        const data = payload && (source.dataKey ? payload[source.dataKey] : payload);
+        const card = document.querySelector(`[data-transit-card="${source.key}"]`);
+        if (!card || !data) return;
+        const isTrouble = typeof data.isTrouble === 'boolean' ? data.isTrouble : ROAD_TROUBLE_STATUSES.includes(data.status);
+        card.querySelector('[data-transit-status]').textContent = data.status || '情報なし';
+        setDetail(card.querySelector('[data-transit-detail]'), data.detail || '詳細情報はありません。');
+        card.dataset.transitTrouble = isTrouble ? 'true' : 'false';
+      });
+      document.getElementById('transit-error').hidden = !results.every((result) => result.status === 'rejected');
+    }
+    refreshStatusCards();
+    setInterval(() => { if (!document.hidden) refreshStatusCards(); }, 60 * 1000);
 
+    // ---- テーマ・プロフィール・アカウントメニュー(従来どおり) ----
     function initThemeToggle() {
       const toggleSwitch = document.getElementById('theme-toggle-switch');
       toggleSwitch?.classList.toggle('on', document.documentElement.classList.contains('dark'));
@@ -220,6 +391,524 @@
         if (menu) menu.style.display = menu.classList.contains('show') ? 'block' : 'none';
       }
     });
+  </script>
+  <script nonce="%%CSP_NONCE%%">
+    // ===== 交通マップ =====
+    // 通信は全て自サーバー(/api/transit/...)宛て。ODPT・地図タイルの取得はサーバー側が中継する。
+    (() => {
+      'use strict';
+      const rf = typeof rawFetch === 'function' ? rawFetch : window.fetch.bind(window); // 全体ローディング表示を出さない fetch
+      const $ = (id) => document.getElementById(id);
+      const MODES = ['rail', 'bus', 'other'];
+      const MODE_LABEL = { rail: '列車', bus: 'バス', other: 'その他' };
+      const MODE_COLOR = { rail: '#2563eb', bus: '#f59e0b', other: '#7c3aed' };
+      const LATE_SEC = 180;      // 3分以上を「遅れ」とする
+      const STOP_MIN_ZOOM = 11;  // これ未満では駅・バス停を出さない
+      const BLANK_TILE = 'data:image/gif;base64,R0lGODlhAQABAAAAACH5BAEKAAEALAAAAAABAAEAAAICTAEAOw==';
+      const PREF_KEY = 'namiki-transit-map';
+      const HIT_PAD = (window.L && L.Browser && L.Browser.mobile) ? 8 : 2; // 指で押しやすいよう、タッチ端末では判定を広げる
+      const REASON = {
+        'key-missing': 'アクセストークン未設定', 'http-401': '認証エラー', 'http-403': '利用権限なし', 'http-404': 'データが見つかりません',
+        timeout: 'タイムアウト', network: '通信エラー', 'not-protobuf': '形式エラー', decode: '形式エラー', 'too-large': 'サイズ超過'
+      };
+
+      const S = {
+        map: null, overlay: null, tiles: null, cfg: null,
+        on: { rail: true, bus: true, other: true, stops: true, delayed: false },
+        vehicles: [], vIndex: new Map(), stops: [], sIndex: new Map(),
+        feeds: new Map(), statics: new Map(),
+        selected: null, seq: { v: 0, s: 0 }, updatedAt: 0, stale: false, truncated: false, error: false, basemap: 'pale'
+      };
+
+      // ---------- 小さなユーティリティ ----------
+      async function api(url) {
+        const res = await rf(url, { credentials: 'same-origin', headers: { Accept: 'application/json' } });
+        if (res.status === 401) { window.location.href = '/login'; throw new Error('unauthorized'); }
+        if (!res.ok) throw new Error('HTTP ' + res.status);
+        return res.json();
+      }
+      const clock = (ms) => (ms ? new Date(ms).toLocaleTimeString('ja-JP', { hour12: false }) : '--:--:--');
+      const isLate = (v) => typeof v.d === 'number' && v.d >= LATE_SEC;
+      function el(tag, className, text) {
+        const node = document.createElement(tag);
+        if (className) node.className = className;
+        if (text !== undefined) node.textContent = text;
+        return node;
+      }
+      function showMsg(text, fatal) {
+        const box = $('tm-msg');
+        if (!text) { box.hidden = true; return; }
+        box.textContent = text;
+        box.classList.toggle('fatal', Boolean(fatal));
+        box.hidden = false;
+      }
+      function loadPrefs() {
+        try {
+          const p = JSON.parse(localStorage.getItem(PREF_KEY) || '{}');
+          Object.keys(S.on).forEach((k) => { if (typeof p.on?.[k] === 'boolean') S.on[k] = p.on[k]; });
+          if (p.basemap === 'pale' || p.basemap === 'std') S.basemap = p.basemap;
+        } catch (_) { /* 保存値が壊れていても既定値で動く */ }
+      }
+      function savePrefs() {
+        try { localStorage.setItem(PREF_KEY, JSON.stringify({ on: S.on, basemap: S.basemap })); } catch (_) { /* 保存できなくても動作に影響なし */ }
+      }
+
+      // ---------- 詳細ポップアップ(自前のHTML要素。Canvasより手前に出す) ----------
+      function buildPopup(container) {
+        const box = el('div', 'tm-pop');
+        box.hidden = true;
+        box.setAttribute('role', 'dialog');
+        box.setAttribute('aria-label', '詳細');
+        const close = el('button', 'tm-pop-close', '×');
+        close.type = 'button';
+        close.setAttribute('aria-label', '閉じる');
+        const title = el('div', 'tm-pop-title');
+        const list = el('dl', 'tm-pop-list');
+        box.append(close, title, list);
+        container.appendChild(box);
+        if (window.L && L.DomEvent) { L.DomEvent.disableClickPropagation(box); L.DomEvent.disableScrollPropagation(box); }
+        close.addEventListener('click', () => select(null));
+        return { box, title, list };
+      }
+
+      function delayText(d) {
+        if (typeof d !== 'number') return { text: '', cls: '' };
+        if (d >= 60) return { text: `約${Math.round(d / 60)}分遅れ`, cls: d >= LATE_SEC ? 'tm-pop-late' : '' };
+        if (d <= -60) return { text: `約${Math.round(-d / 60)}分早い`, cls: 'tm-pop-early' };
+        return { text: 'ほぼ定刻', cls: '' };
+      }
+
+      function fillPopup(pop, item) {
+        pop.title.textContent = '';
+        pop.list.textContent = '';
+        const row = (k, v, cls) => {
+          if (v === '' || v === null || v === undefined) return;
+          pop.list.append(el('dt', '', k), el('dd', cls || '', String(v)));
+        };
+        if (item.kind === 'vehicle') {
+          const v = item.ref;
+          const feed = S.feeds.get(v.f);
+          const dot = el('span', 'tm-dot ' + v.m);
+          pop.title.append(dot, document.createTextNode(`${MODE_LABEL[v.m] || '車両'}${v.r ? ' ' + v.r : ''}`));
+          row('事業者', feed ? feed.label : '');
+          const dl = delayText(v.d);
+          row('遅れ', dl.text, dl.cls);
+          if (v.sn) row('次の停車', v.st === 1 ? `${v.sn}に停車中` : v.st === 0 ? `まもなく ${v.sn}` : `${v.sn}に向かっています`);
+          row('速度', typeof v.s === 'number' ? `時速${v.s}km` : '');
+          row('車両', v.l);
+          row('位置の時刻', v.ts ? clock(v.ts * 1000) : '');
+        } else if (item.kind === 'stop') {
+          const s = item.ref;
+          pop.title.append(el('span', 'tm-dot stop'), document.createTextNode(s.n));
+          row('種別', s.m === 'bus' ? 'バス停' : '駅');
+          const st = S.statics.get(s.g);
+          row('提供元', st ? st.label : '');
+        } else {
+          pop.title.append(el('span', 'tm-dot late'), document.createTextNode(S.cfg.school.name));
+          row('種別', '学校');
+        }
+      }
+
+      // ---------- Canvas 重ね描き(車両・駅・学校) ----------
+      function createOverlay(map) {
+        const container = map.getContainer();
+        const canvas = el('canvas', 'tm-canvas');
+        canvas.setAttribute('aria-hidden', 'true');
+        container.appendChild(canvas);
+        const ctx = canvas.getContext('2d');
+        const pop = buildPopup(container);
+        let w = 0, h = 0, dpr = 1, raf = 0;
+        let hits = [];
+
+        function fit() {
+          const size = map.getSize();
+          w = size.x; h = size.y; dpr = window.devicePixelRatio || 1;
+          canvas.width = Math.max(1, Math.round(w * dpr));
+          canvas.height = Math.max(1, Math.round(h * dpr));
+          canvas.style.width = w + 'px';
+          canvas.style.height = h + 'px';
+        }
+
+        function arrow(x, y, deg, size) {
+          ctx.save();
+          ctx.translate(x, y);
+          ctx.rotate((deg * Math.PI) / 180);
+          ctx.beginPath();
+          ctx.moveTo(0, -size);
+          ctx.lineTo(size * 0.78, size * 0.85);
+          ctx.lineTo(0, size * 0.4);
+          ctx.lineTo(-size * 0.78, size * 0.85);
+          ctx.closePath();
+          ctx.stroke(); // 白い縁 → 塗りの順(塗りを縁が隠さない)
+          ctx.fill();
+          ctx.restore();
+        }
+
+        function draw() {
+          ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+          ctx.clearRect(0, 0, w, h);
+          hits = [];
+          const z = map.getZoom();
+          const sel = S.selected;
+
+          // 駅・バス停
+          if (S.on.stops && z >= STOP_MIN_ZOOM) {
+            const r = z >= 15 ? 5 : z >= 13 ? 4 : 3;
+            const labeled = [];
+            ctx.lineWidth = 2.5;
+            ctx.strokeStyle = '#fff';
+            ctx.fillStyle = '#334155';
+            for (const s of S.stops) {
+              const p = map.latLngToContainerPoint([s.la, s.lo]);
+              if (p.x < -20 || p.y < -20 || p.x > w + 20 || p.y > h + 20) continue;
+              ctx.beginPath();
+              ctx.arc(p.x, p.y, r, 0, Math.PI * 2);
+              ctx.stroke();
+              ctx.fill();
+              hits.push({ x: p.x, y: p.y, r: r + 5 + HIT_PAD, kind: 'stop', id: `${s.g}:${s.id}` });
+              if (z >= 15) labeled.push([s.n, p.x, p.y]);
+            }
+            if (labeled.length && labeled.length <= 250) {
+              ctx.font = '12px system-ui, -apple-system, "Hiragino Sans", "Noto Sans JP", sans-serif';
+              ctx.textAlign = 'left';
+              ctx.textBaseline = 'middle';
+              ctx.lineWidth = 3;
+              ctx.strokeStyle = 'rgba(255,255,255,.92)';
+              ctx.fillStyle = '#1e293b';
+              for (const [name, x, y] of labeled) { ctx.strokeText(name, x + 8, y); ctx.fillText(name, x + 8, y); }
+            }
+          }
+
+          // 車両(遅れている車両を上に重ねる)
+          const list = S.on.delayed ? S.vehicles.filter(isLate) : S.vehicles;
+          const size = z >= 15 ? 11 : z >= 13 ? 9 : 7;
+          ctx.lineWidth = 3;
+          ctx.lineJoin = 'round';
+          ctx.strokeStyle = '#fff';
+          for (const pass of [false, true]) {
+            for (const v of list) {
+              if (isLate(v) !== pass) continue;
+              const p = map.latLngToContainerPoint([v.la, v.lo]);
+              if (p.x < -20 || p.y < -20 || p.x > w + 20 || p.y > h + 20) continue;
+              ctx.fillStyle = (v.m === 'rail' && v.k) || MODE_COLOR[v.m] || MODE_COLOR.other;
+              if (pass) { // 遅れの赤いリング
+                ctx.save();
+                ctx.strokeStyle = '#dc2626';
+                ctx.lineWidth = 3;
+                ctx.beginPath();
+                ctx.arc(p.x, p.y, size + 4, 0, Math.PI * 2);
+                ctx.stroke();
+                ctx.restore();
+              }
+              if (typeof v.b === 'number' && z >= 12) arrow(p.x, p.y, v.b, size);
+              else { ctx.beginPath(); ctx.arc(p.x, p.y, size * 0.7, 0, Math.PI * 2); ctx.stroke(); ctx.fill(); }
+              hits.push({ x: p.x, y: p.y, r: size + 6 + HIT_PAD, kind: 'vehicle', id: v.id });
+              if (sel && sel.kind === 'vehicle' && sel.id === v.id) {
+                ctx.save();
+                ctx.strokeStyle = '#0f172a';
+                ctx.lineWidth = 2;
+                ctx.beginPath();
+                ctx.arc(p.x, p.y, size + 8, 0, Math.PI * 2);
+                ctx.stroke();
+                ctx.restore();
+              }
+            }
+          }
+
+          // 学校
+          if (S.cfg) {
+            const p = map.latLngToContainerPoint([S.cfg.school.lat, S.cfg.school.lon]);
+            if (p.x > -20 && p.y > -20 && p.x < w + 20 && p.y < h + 20) {
+              ctx.beginPath();
+              ctx.arc(p.x, p.y, 10, 0, Math.PI * 2);
+              ctx.fillStyle = '#e11d48';
+              ctx.strokeStyle = '#fff';
+              ctx.lineWidth = 2.5;
+              ctx.fill();
+              ctx.stroke();
+              ctx.fillStyle = '#fff';
+              ctx.font = 'bold 12px system-ui, "Hiragino Sans", "Noto Sans JP", sans-serif';
+              ctx.textAlign = 'center';
+              ctx.textBaseline = 'middle';
+              ctx.fillText('学', p.x, p.y + 0.5);
+              hits.push({ x: p.x, y: p.y, r: 14 + HIT_PAD, kind: 'school', id: 'school' });
+            }
+          }
+          placePopup();
+        }
+
+        function schedule() { if (!raf) raf = requestAnimationFrame(() => { raf = 0; draw(); }); }
+
+        function hitAt(pt) {
+          let best = null;
+          let bestD = Infinity;
+          for (let i = hits.length - 1; i >= 0; i--) {
+            const hit = hits[i];
+            const d = (hit.x - pt.x) ** 2 + (hit.y - pt.y) ** 2;
+            if (d <= hit.r * hit.r && d < bestD) { best = hit; bestD = d; }
+          }
+          return best;
+        }
+
+        function lookup(sel) {
+          if (!sel) return null;
+          if (sel.kind === 'vehicle') { const v = S.vIndex.get(sel.id); return v ? { kind: 'vehicle', ref: v, la: v.la, lo: v.lo } : null; }
+          if (sel.kind === 'stop') { const s = S.sIndex.get(sel.id); return s ? { kind: 'stop', ref: s, la: s.la, lo: s.lo } : null; }
+          return S.cfg ? { kind: 'school', ref: null, la: S.cfg.school.lat, lo: S.cfg.school.lon } : null;
+        }
+
+        function placePopup() {
+          const item = lookup(S.selected);
+          if (!item) { pop.box.hidden = true; return; }
+          const p = map.latLngToContainerPoint([item.la, item.lo]);
+          const size = map.getSize();
+          pop.box.hidden = false;
+          const pw = pop.box.offsetWidth || 248;
+          const ph = pop.box.offsetHeight || 140;
+          const x = Math.min(Math.max(p.x, pw / 2 + 8), Math.max(pw / 2 + 8, size.x - pw / 2 - 8));
+          let y = p.y - ph - 18;
+          if (y < 8) y = Math.min(p.y + 18, Math.max(8, size.y - ph - 8));
+          pop.box.style.left = Math.round(x - pw / 2) + 'px';
+          pop.box.style.top = Math.round(y) + 'px';
+        }
+
+        function refreshPopup() {
+          const item = lookup(S.selected);
+          if (item) fillPopup(pop, item); else { S.selected = null; pop.box.hidden = true; }
+        }
+
+        map.on('move zoom moveend zoomend resize', () => { if (map.getSize().x !== w || map.getSize().y !== h) fit(); schedule(); });
+        fit();
+        return { schedule, hitAt, refreshPopup, fit };
+      }
+
+      function select(sel) {
+        S.selected = sel;
+        if (S.overlay) { S.overlay.refreshPopup(); S.overlay.schedule(); }
+      }
+
+      // ---------- データ取得 ----------
+      function updateCounts() {
+        const counts = { rail: 0, bus: 0, other: 0 };
+        S.vehicles.forEach((v) => { if (counts[v.m] !== undefined) counts[v.m]++; });
+        MODES.forEach((m) => {
+          const badge = document.querySelector(`[data-tm-count="${m}"]`);
+          if (badge) badge.textContent = S.on[m] ? String(counts[m]) : '';
+        });
+        return counts;
+      }
+
+      function afterVehicles() {
+        if (!S.map) return; // 地図が初期化できていない時は、致命メッセージを消さない
+        S.vIndex = new Map(S.vehicles.map((v) => [v.id, v]));
+        updateCounts();
+        const status = $('tm-updated');
+        if (S.error) status.textContent = '更新できませんでした。自動で再試行します';
+        else if (S.stale) status.textContent = `位置データが古くなっています(最終 ${clock(S.updatedAt)})`;
+        else status.textContent = `最終更新 ${clock(S.updatedAt)}` + (S.truncated ? ' ・ 表示数を制限中(拡大すると全て表示)' : '');
+
+        const shown = S.on.delayed ? S.vehicles.filter(isLate).length : S.vehicles.length;
+        const anyMode = MODES.some((m) => S.on[m]);
+        if (S.error && !S.vehicles.length) showMsg('位置データを取得できませんでした。自動で再試行します。');
+        else if (!anyMode) showMsg('列車・バスの表示がすべてオフです。上のボタンで表示できます。');
+        else if (S.updatedAt && shown === 0) showMsg(S.on.delayed ? 'この範囲に3分以上遅れている列車・バスはありません。' : 'この範囲に走行中の列車・バスの位置情報はありません。地図を動かすか、縮小してみてください。');
+        else showMsg('');
+        if (S.overlay) { S.overlay.refreshPopup(); S.overlay.schedule(); }
+      }
+
+      async function loadVehicles() {
+        if (!S.map || document.hidden) return;
+        const seq = ++S.seq.v;
+        const modes = MODES.filter((m) => S.on[m]);
+        if (!modes.length) { S.vehicles = []; S.error = false; afterVehicles(); return; }
+        try {
+          const bbox = encodeURIComponent(S.map.getBounds().pad(0.15).toBBoxString());
+          const data = await api(`/api/transit/map/vehicles?bbox=${bbox}&modes=${modes.join(',')}&limit=3000`);
+          if (seq !== S.seq.v) return;
+          S.vehicles = Array.isArray(data.vehicles) ? data.vehicles : [];
+          S.updatedAt = data.updatedAt || 0;
+          S.stale = Boolean(data.stale);
+          S.truncated = Boolean(data.truncated);
+          S.error = false;
+        } catch (_) {
+          if (seq !== S.seq.v) return;
+          S.error = true; // 直前の表示は残す
+        }
+        afterVehicles();
+      }
+
+      async function loadStops() {
+        if (!S.map) return;
+        const seq = ++S.seq.s;
+        if (!S.on.stops || S.map.getZoom() < STOP_MIN_ZOOM) { S.stops = []; S.sIndex = new Map(); if (S.overlay) S.overlay.schedule(); return; }
+        try {
+          const bbox = encodeURIComponent(S.map.getBounds().pad(0.15).toBBoxString());
+          const data = await api(`/api/transit/map/stops?bbox=${bbox}&limit=1500`);
+          if (seq !== S.seq.s) return;
+          S.stops = Array.isArray(data.stops) ? data.stops : [];
+          S.sIndex = new Map(S.stops.map((s) => [`${s.g}:${s.id}`, s]));
+        } catch (_) { /* 駅の取得失敗は車両表示に影響させない */ }
+        if (S.overlay) S.overlay.schedule();
+      }
+
+      // ---------- 運行情報・データ提供元パネル ----------
+      function renderAlerts(alerts) {
+        const list = $('tm-alerts');
+        list.textContent = '';
+        $('tm-alerts-empty').hidden = alerts.length > 0;
+        $('tm-alerts-empty').textContent = '現在、事業者から発表されている運行情報はありません。';
+        alerts.forEach((a) => {
+          const li = el('li', 'tm-alert');
+          const tag = el('span', 'tm-tag', a.label);
+          const head = a.header || a.desc;
+          if (a.desc && a.header) {
+            const details = el('details');
+            const summary = el('summary');
+            summary.append(tag, document.createTextNode(head));
+            details.append(summary, el('p', '', a.desc));
+            li.appendChild(details);
+          } else li.append(tag, document.createTextNode(head));
+          list.appendChild(li);
+        });
+      }
+
+      function renderFeeds(info) {
+        const groups = new Map();
+        for (const f of info.feeds) {
+          if (f.kind === 'trip') continue;
+          let g = groups.get(f.label);
+          if (!g) { g = { label: f.label, modes: new Set(), vehicles: 0, hasVehicleFeed: false, ok: 0, ng: 0, reasons: new Set(), updatedAt: 0 }; groups.set(f.label, g); }
+          g.modes.add(f.mode);
+          if (f.kind === 'vehicle') g.hasVehicleFeed = true;
+          if (f.ok === true) { g.ok++; g.updatedAt = Math.max(g.updatedAt, f.updatedAt); if (f.kind === 'vehicle') g.vehicles += f.count; }
+          else if (f.ok === false) { g.ng++; if (f.error) g.reasons.add(f.error); }
+        }
+        const okList = $('tm-feeds');
+        const ngList = $('tm-feeds-ng');
+        okList.textContent = '';
+        ngList.textContent = '';
+        const all = [...groups.values()];
+        const good = all.filter((g) => g.ok > 0 || g.ng === 0).sort((a, b) => b.vehicles - a.vehicles || a.label.localeCompare(b.label, 'ja'));
+        const bad = all.filter((g) => g.ok === 0 && g.ng > 0).sort((a, b) => a.label.localeCompare(b.label, 'ja'));
+        const modeText = (g) => [...g.modes].map((m) => MODE_LABEL[m] || m).join('・');
+        good.forEach((g) => {
+          const li = el('li', 'tm-feed');
+          const name = el('div', 'tm-feed-name');
+          name.append(el('span', 'tm-status ' + (g.ok > 0 ? 'ok' : '')), el('span', '', g.label));
+          const meta = g.ok === 0 ? '確認中' : g.hasVehicleFeed ? `${modeText(g)} ${g.vehicles}台 ・ ${clock(g.updatedAt)}` : `運行情報のみ ・ ${clock(g.updatedAt)}`;
+          li.append(name, el('div', 'tm-feed-meta', meta));
+          okList.appendChild(li);
+        });
+        bad.forEach((g) => {
+          const li = el('li', 'tm-feed');
+          const name = el('div', 'tm-feed-name');
+          name.append(el('span', 'tm-status ng'), el('span', '', g.label));
+          li.append(name, el('div', 'tm-feed-meta', [...g.reasons].map((r) => REASON[r] || '取得エラー').join(' / ')));
+          ngList.appendChild(li);
+        });
+        $('tm-feeds-empty').hidden = all.length > 0;
+        $('tm-feeds-empty').textContent = 'データの提供元を確認中です。';
+        $('tm-feeds-ng-wrap').hidden = bad.length === 0;
+        $('tm-feeds-ng-count').textContent = String(bad.length);
+      }
+
+      async function loadInfo() {
+        try {
+          const info = await api('/api/transit/map/info');
+          S.feeds = new Map(info.feeds.map((f) => [f.id, f]));
+          S.statics = new Map((info.statics || []).map((s) => [s.id, s]));
+          const chip = document.querySelector('[data-tm-layer="other"]');
+          if (chip) chip.hidden = !info.feeds.some((f) => f.kind === 'vehicle' && f.mode === 'other');
+          renderAlerts(info.alerts || []);
+          renderFeeds(info);
+        } catch (_) {
+          $('tm-alerts-empty').hidden = false;
+          $('tm-alerts-empty').textContent = '運行情報を取得できませんでした。';
+          $('tm-feeds-empty').hidden = false;
+          $('tm-feeds-empty').textContent = 'データの提供元を取得できませんでした。';
+        }
+      }
+
+      // ---------- 初期化 ----------
+      function bindControls() {
+        document.querySelectorAll('[data-tm-layer]').forEach((btn) => {
+          const key = btn.dataset.tmLayer;
+          btn.setAttribute('aria-pressed', String(S.on[key]));
+          btn.addEventListener('click', () => {
+            S.on[key] = !S.on[key];
+            btn.setAttribute('aria-pressed', String(S.on[key]));
+            savePrefs();
+            if (MODES.includes(key)) { updateCounts(); loadVehicles(); }
+            else if (key === 'stops') loadStops();
+            else { afterVehicles(); }
+          });
+        });
+      }
+
+      async function init() {
+        loadPrefs();
+        bindControls();
+        loadInfo();
+        setInterval(() => { if (!document.hidden) loadInfo(); }, 60 * 1000);
+
+        if (typeof L === 'undefined') {
+          showMsg('地図ライブラリ(Leaflet)を読み込めませんでした。サーバーで npm install leaflet を実行してください。', true);
+          $('tm-updated').textContent = '地図を表示できません';
+          return;
+        }
+        let cfg;
+        try { cfg = await api('/api/transit/map/config'); } catch (_) {
+          showMsg('地図の設定を取得できませんでした。ページを再読み込みしてください。', true);
+          $('tm-updated').textContent = '地図を表示できません';
+          return;
+        }
+        S.cfg = cfg;
+        if (!cfg.tiles.layers.some((l) => l.id === S.basemap)) S.basemap = cfg.tiles.layers[0].id;
+        const tileUrl = (layer) => cfg.tiles.template.replace('{layer}', layer);
+
+        const map = L.map('tm-map', {
+          center: [cfg.school.lat, cfg.school.lon], zoom: cfg.view.zoom, minZoom: cfg.view.minZoom, maxZoom: cfg.view.maxZoom,
+          zoomAnimation: false, // 重ね描き(Canvas)とタイルの動きを揃えるため
+          attributionControl: true
+        });
+        S.map = map;
+        map.attributionControl.setPrefix(false);
+        map.attributionControl.addAttribution('データ: <a href="https://www.odpt.org/" target="_blank" rel="noopener noreferrer">公共交通オープンデータセンター</a>・各交通事業者');
+        S.tiles = L.tileLayer(tileUrl(S.basemap), {
+          minZoom: cfg.view.minZoom, maxZoom: cfg.view.maxZoom, errorTileUrl: BLANK_TILE, keepBuffer: 2,
+          attribution: '地図: <a href="https://maps.gsi.go.jp/development/ichiran.html" target="_blank" rel="noopener noreferrer">国土地理院(地理院タイル)</a>'
+        }).addTo(map);
+        L.control.scale({ imperial: false, position: 'bottomleft' }).addTo(map);
+        S.overlay = createOverlay(map);
+
+        const basemap = $('tm-basemap');
+        basemap.value = S.basemap;
+        basemap.addEventListener('change', () => {
+          if (!cfg.tiles.layers.some((l) => l.id === basemap.value)) return;
+          S.basemap = basemap.value;
+          S.tiles.setUrl(tileUrl(S.basemap));
+          savePrefs();
+        });
+        $('tm-home').addEventListener('click', () => map.setView([cfg.school.lat, cfg.school.lon], cfg.view.zoom));
+
+        map.on('click', (e) => { const hit = S.overlay.hitAt(e.containerPoint); select(hit ? { kind: hit.kind, id: hit.id } : null); });
+        map.on('mousemove', (e) => { map.getContainer().style.cursor = S.overlay.hitAt(e.containerPoint) ? 'pointer' : ''; });
+        let moveTimer = 0;
+        map.on('moveend zoomend', () => { clearTimeout(moveTimer); moveTimer = setTimeout(() => { loadVehicles(); loadStops(); }, 250); });
+        document.addEventListener('keydown', (e) => { if (e.key === 'Escape') select(null); });
+        if (typeof ResizeObserver === 'function') new ResizeObserver(() => map.invalidateSize({ pan: false })).observe(map.getContainer());
+
+        const pollMs = Math.max(15, Math.round((cfg.pollSec || 30) / 2)) * 1000;
+        setInterval(() => { if (!document.hidden) loadVehicles(); }, pollMs);
+        document.addEventListener('visibilitychange', () => { if (!document.hidden) { loadVehicles(); loadInfo(); } });
+
+        S.overlay.schedule();
+        loadVehicles();
+        loadStops();
+      }
+
+      init();
+    })();
   </script>
 </body>
 </html>
