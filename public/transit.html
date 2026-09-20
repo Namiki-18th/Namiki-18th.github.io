@@ -615,21 +615,29 @@
         return `hsl(${hue}, 70%, 45%)`;
       }
 
-      function getRouteWeight(zoom) {
-        if (zoom >= 16) return 8;
-        if (zoom >= 14) return 5;
-        if (zoom >= 12) return 3;
-        return 1.5;
+      // ===== 駅 (Station) のGeoJSONレンダリング処理 =====
+      function getStationWeights(zoom) {
+        const routeW = getRouteWeight(zoom);
+        return {
+          bg: routeW + 4,
+          fg: Math.max(1, routeW + 1)
+        };
       }
 
-      async function loadGeoJsonRoutes() {
+      // プロパティから駅名を取得するヘルパー関数
+      function getStationName(props) {
+        if (!props) return 'Unknown';
+        return props.name || props.station_name || props.N02_005 || props.station || 'Unknown';
+      }
+
+      async function loadGeoJsonStations() {
         if (!S.map) return;
         try {
-          const url = '/api/transit/railroadsection';
+          const url = '/api/transit/station';
           let res;
           
           if ('caches' in window) {
-            const cache = await caches.open('namiki-transit-routes-v1');
+            const cache = await caches.open('namiki-transit-stations-v1');
             res = await cache.match(url);
             if (!res) {
               res = await rf(url, { headers: { 'Accept': 'application/json' } });
@@ -642,37 +650,96 @@
           if (!res.ok) throw new Error('HTTP Error: ' + res.status);
           const geojson = await res.json();
 
-          // 路線用のPane(重なり順)を作成・設定
-          if (!S.map.getPane('transit-routes')) {
-            S.map.createPane('transit-routes');
-            S.map.getPane('transit-routes').style.zIndex = 400; // 標準のオーバーレイ層
+          if (!S.map.getPane('transit-stations')) {
+            S.map.createPane('transit-stations');
+            S.map.getPane('transit-stations').style.zIndex = 410; 
           }
-          const routeRenderer = L.canvas({ padding: 0.1, pane: 'transit-routes' });
+          const stationRenderer = L.canvas({ padding: 0.1, pane: 'transit-stations' });
           
-          routeLayer = L.geoJSON(geojson, {
-            renderer: routeRenderer,
+          // 1. ズームイン時の長方形：黒色の外枠レイヤー (結合せず路線ごとに配置)
+          const stationBgLayer = L.geoJSON(geojson, {
+            renderer: stationRenderer,
             interactive: false,
-            style: (feature) => {
-              const props = feature.properties || {};
-              return {
-                color: getRouteColor(props),
-                weight: getRouteWeight(S.map.getZoom()),
-                opacity: 0.6
-              };
-            }
-          }).addTo(S.map);
+            style: () => ({ color: '#000000', lineCap: 'square' })
+          });
 
-          S.map.on('zoomend', () => {
-            if (routeLayer) {
-              const currentZoom = S.map.getZoom();
-              routeLayer.setStyle(() => ({
-                weight: getRouteWeight(currentZoom)
-              }));
+          // 2. ズームイン時の長方形：白色の内塗りレイヤー (結合せず路線ごとに配置)
+          const stationFgLayer = L.geoJSON(geojson, {
+            renderer: stationRenderer,
+            interactive: false,
+            style: () => ({ color: '#ffffff', lineCap: 'square' })
+          });
+
+          // 3. ズームアウト時用の大きな丸レイヤー (同じ駅名を1つに結合)
+          const stationDotsLayer = L.layerGroup();
+          
+          // 駅名ごとに中心座標を集計する
+          const stationGroups = new Map();
+          
+          L.geoJSON(geojson, {
+            onEachFeature: (feature, layer) => {
+              const name = getStationName(feature.properties);
+              const center = layer.getBounds ? layer.getBounds().getCenter() : (layer.getLatLng ? layer.getLatLng() : null);
+              
+              if (center && name !== 'Unknown') {
+                if (!stationGroups.has(name)) {
+                  stationGroups.set(name, []);
+                }
+                stationGroups.get(name).push(center);
+              } else if (center) {
+                // 名前がないものは単独で描画
+                L.circleMarker(center, {
+                  renderer: stationRenderer, interactive: false, radius: 4.5,
+                  color: '#000000', weight: 1.5, fillColor: '#ffffff', fillOpacity: 1
+                }).addTo(stationDotsLayer);
+              }
             }
           });
 
+          // 集計した座標の平均（重心）を計算して1つの丸を作る
+          stationGroups.forEach((centers) => {
+            let latSum = 0;
+            let lngSum = 0;
+            centers.forEach(c => {
+              latSum += c.lat;
+              lngSum += c.lng;
+            });
+            const avgCenter = L.latLng(latSum / centers.length, lngSum / centers.length);
+            
+            L.circleMarker(avgCenter, {
+              renderer: stationRenderer,
+              interactive: false,
+              radius: 4.5,
+              color: '#000000',
+              weight: 1.5,
+              fillColor: '#ffffff',
+              fillOpacity: 1
+            }).addTo(stationDotsLayer);
+          });
+
+          // ズームレベルに応じて表示レイヤーを切り替える
+          function updateStationDisplay() {
+            const z = S.map.getZoom();
+            if (z <= 10) {
+              if (!S.map.hasLayer(stationDotsLayer)) S.map.addLayer(stationDotsLayer);
+              if (S.map.hasLayer(stationBgLayer)) S.map.removeLayer(stationBgLayer);
+              if (S.map.hasLayer(stationFgLayer)) S.map.removeLayer(stationFgLayer);
+            } else {
+              if (S.map.hasLayer(stationDotsLayer)) S.map.removeLayer(stationDotsLayer);
+              if (!S.map.hasLayer(stationBgLayer)) S.map.addLayer(stationBgLayer);
+              if (!S.map.hasLayer(stationFgLayer)) S.map.addLayer(stationFgLayer);
+
+              const w = getStationWeights(z);
+              stationBgLayer.setStyle({ weight: w.bg, opacity: 1 });
+              stationFgLayer.setStyle({ weight: w.fg, opacity: 1 });
+            }
+          }
+
+          S.map.on('zoomend', updateStationDisplay);
+          updateStationDisplay();
+
         } catch (err) {
-          console.error('路線図データの取得に失敗:', err);
+          console.error('駅データの取得に失敗:', err);
         }
       }
       
