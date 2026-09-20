@@ -53,7 +53,6 @@
     .tm-dot.rail { background: #2563eb; }
     .tm-dot.bus { background: #f59e0b; }
     .tm-dot.other { background: #7c3aed; }
-    .tm-dot.stop { background: #334155; width: .6rem; height: .6rem; }
     .tm-dot.late { background: #fff; border-color: #dc2626; box-shadow: none; }
     .tm-count { font-variant-numeric: tabular-nums; opacity: .8; }
     .tm-updated { font-size: .8rem; opacity: .75; font-variant-numeric: tabular-nums; }
@@ -200,7 +199,7 @@
             <button type="button" class="tm-chip" data-tm-layer="rail" aria-pressed="true"><span class="tm-dot rail" aria-hidden="true"></span>列車 <span class="tm-count" data-tm-count="rail"></span></button>
             <button type="button" class="tm-chip" data-tm-layer="bus" aria-pressed="true"><span class="tm-dot bus" aria-hidden="true"></span>バス <span class="tm-count" data-tm-count="bus"></span></button>
             <button type="button" class="tm-chip" data-tm-layer="other" aria-pressed="true" hidden><span class="tm-dot other" aria-hidden="true"></span>その他 <span class="tm-count" data-tm-count="other"></span></button>
-            <button type="button" class="tm-chip" data-tm-layer="stops" aria-pressed="true"><span class="tm-dot stop" aria-hidden="true"></span>駅・バス停</button>
+            <!-- 既存の駅・バス停ボタンを削除 -->
             <button type="button" class="tm-chip" data-tm-layer="delayed" aria-pressed="false"><span class="tm-dot late" aria-hidden="true"></span>3分以上の遅れだけ</button>
           </div>
           <div class="tm-tools">
@@ -300,17 +299,17 @@
       const MODE_LABEL = { rail: '列車', bus: 'バス', other: 'その他' };
       const MODE_COLOR = { rail: '#2563eb', bus: '#f59e0b', other: '#7c3aed' };
       const LATE_SEC = 180;
-      const STOP_MIN_ZOOM = 11;
       const BLANK_TILE = 'data:image/gif;base64,R0lGODlhAQABAAAAACH5BAEKAAEALAAAAAABAAEAAAICTAEAOw==';
       const PREF_KEY = 'namiki-transit-map';
       const HIT_PAD = (window.L && L.Browser && L.Browser.mobile) ? 8 : 2;
 
+      // 古い駅・バス停の設定とデータを削除
       const S = {
         map: null, overlay: null, tiles: null, cfg: null,
-        on: { rail: true, bus: true, other: true, stops: true, delayed: false },
-        vehicles: [], vIndex: new Map(), stops: [], sIndex: new Map(),
+        on: { rail: true, bus: true, other: true, delayed: false },
+        vehicles: [], vIndex: new Map(),
         feeds: new Map(), statics: new Map(),
-        selected: null, seq: { v: 0, s: 0 }, updatedAt: 0, stale: false, truncated: false, error: false
+        selected: null, seq: { v: 0 }, updatedAt: 0, stale: false, truncated: false, error: false
       };
 
       async function api(url) {
@@ -388,12 +387,6 @@
           row('速度', typeof v.s === 'number' ? `時速${v.s}km` : '');
           row('車両', v.l);
           row('位置の時刻', v.ts ? clock(v.ts * 1000) : '');
-        } else if (item.kind === 'stop') {
-          const s = item.ref;
-          pop.title.append(el('span', 'tm-dot stop'), document.createTextNode(s.n));
-          row('種別', s.m === 'bus' ? 'バス停' : '駅');
-          const st = S.statics.get(s.g);
-          row('提供元', st ? st.label : '');
         } else {
           pop.title.append(el('span', 'tm-dot late'), document.createTextNode(S.cfg.school.name));
           row('種別', '学校');
@@ -440,33 +433,6 @@
           hits = [];
           const z = map.getZoom();
           const sel = S.selected;
-
-          if (S.on.stops && z >= STOP_MIN_ZOOM) {
-            const r = z >= 15 ? 5 : z >= 13 ? 4 : 3;
-            const labeled = [];
-            ctx.lineWidth = 2.5;
-            ctx.strokeStyle = '#fff';
-            ctx.fillStyle = '#334155';
-            for (const s of S.stops) {
-              const p = map.latLngToContainerPoint([s.la, s.lo]);
-              if (p.x < -20 || p.y < -20 || p.x > w + 20 || p.y > h + 20) continue;
-              ctx.beginPath();
-              ctx.arc(p.x, p.y, r, 0, Math.PI * 2);
-              ctx.stroke();
-              ctx.fill();
-              hits.push({ x: p.x, y: p.y, r: r + 5 + HIT_PAD, kind: 'stop', id: `${s.g}:${s.id}` });
-              if (z >= 15) labeled.push([s.n, p.x, p.y]);
-            }
-            if (labeled.length && labeled.length <= 250) {
-              ctx.font = '12px system-ui, -apple-system, "Hiragino Sans", "Noto Sans JP", sans-serif';
-              ctx.textAlign = 'left';
-              ctx.textBaseline = 'middle';
-              ctx.lineWidth = 3;
-              ctx.strokeStyle = 'rgba(255,255,255,.92)';
-              ctx.fillStyle = '#1e293b';
-              for (const [name, x, y] of labeled) { ctx.strokeText(name, x + 8, y); ctx.fillText(name, x + 8, y); }
-            }
-          }
 
           const list = S.on.delayed ? S.vehicles.filter(isLate) : S.vehicles;
           const size = z >= 15 ? 11 : z >= 13 ? 9 : 7;
@@ -540,7 +506,6 @@
         function lookup(sel) {
           if (!sel) return null;
           if (sel.kind === 'vehicle') { const v = S.vIndex.get(sel.id); return v ? { kind: 'vehicle', ref: v, la: v.la, lo: v.lo } : null; }
-          if (sel.kind === 'stop') { const s = S.sIndex.get(sel.id); return s ? { kind: 'stop', ref: s, la: s.la, lo: s.lo } : null; }
           return S.cfg ? { kind: 'school', ref: null, la: S.cfg.school.lat, lo: S.cfg.school.lon } : null;
         }
 
@@ -625,20 +590,6 @@
         afterVehicles();
       }
 
-      async function loadStops() {
-        if (!S.map) return;
-        const seq = ++S.seq.s;
-        if (!S.on.stops || S.map.getZoom() < STOP_MIN_ZOOM) { S.stops = []; S.sIndex = new Map(); if (S.overlay) S.overlay.schedule(); return; }
-        try {
-          const bbox = encodeURIComponent(S.map.getBounds().pad(0.15).toBBoxString());
-          const data = await api(`/api/transit/map/stops?bbox=${bbox}&limit=1500`);
-          if (seq !== S.seq.s) return;
-          S.stops = Array.isArray(data.stops) ? data.stops : [];
-          S.sIndex = new Map(S.stops.map((s) => [`${s.g}:${s.id}`, s]));
-        } catch (_) {}
-        if (S.overlay) S.overlay.schedule();
-      }
-
       async function loadInfo() {
         try {
           const info = await api('/api/transit/map/info');
@@ -649,7 +600,7 @@
         } catch (_) {}
       }
 
-      // ===== 路線図の色分けとズーム連動の設定 =====
+      // ===== 路線図の設定 =====
       let routeLayer = null;
 
       function getRouteColor(props) {
@@ -720,14 +671,15 @@
       }
       
       // ===== 駅 (Station) のGeoJSONレンダリング処理 =====
-      let stationLayer = null;
-
-      // ズームレベルに応じて駅の線の太さを変え、広域表示では非表示にして軽量化する
-      function getStationWeight(zoom) {
-        if (zoom >= 15) return 6;
-        if (zoom >= 13) return 4;
-        if (zoom >= 11) return 2;
-        return 0; // ズームが10以下の場合は描画しない
+      // ズームレベルに応じて駅の線の太さを路線の太さから計算する
+      // 広域表示(ズーム10以下)では非表示にして軽量化
+      function getStationWeights(zoom) {
+        if (zoom <= 10) return { bg: 0, fg: 0 };
+        const routeW = getRouteWeight(zoom);
+        return {
+          bg: routeW + 4, // 黒い枠線（路線より少し太くする）
+          fg: Math.max(1, routeW + 1)  // 白い中塗り（黒枠の内側に収める）
+        };
       }
 
       async function loadGeoJsonStations() {
@@ -736,7 +688,6 @@
           const url = '/api/transit/station';
           let res;
           
-          // Cache API による通信のキャッシュ化（再読込時の軽量化）
           if ('caches' in window) {
             const cache = await caches.open('namiki-transit-stations-v1');
             res = await cache.match(url);
@@ -751,46 +702,44 @@
           if (!res.ok) throw new Error('HTTP Error: ' + res.status);
           const geojson = await res.json();
 
-          // 軽量化のためCanvasレンダラーを使用
           const canvasRenderer = L.canvas({ padding: 0.1 });
           
-          stationLayer = L.geoJSON(geojson, {
+          // 1. 黒色の外枠レイヤー
+          const stationBgLayer = L.geoJSON(geojson, {
             renderer: canvasRenderer,
-            interactive: false, // マウスイベント無効化による劇的な軽量化
-            style: (feature) => {
-              const weight = getStationWeight(S.map.getZoom());
+            interactive: false,
+            style: () => {
+              const w = getStationWeights(S.map.getZoom());
               return {
-                color: '#ef4444', // 目立つ赤色（路線図と区別するため）
-                weight: weight,
-                opacity: weight > 0 ? 0.8 : 0 // weightが0の場合は完全に透明にする
+                color: '#000000',
+                weight: w.bg,
+                opacity: w.bg > 0 ? 1 : 0,
+                lineCap: 'square'
               };
-            },
-            // 万が一Pointデータが含まれている場合のためのフォールバック
-            pointToLayer: (feature, latlng) => {
-               const weight = getStationWeight(S.map.getZoom());
-               if(weight === 0) return L.circleMarker(latlng, {radius: 0, opacity: 0, fillOpacity: 0});
-               return L.circleMarker(latlng, {
-                  radius: weight,
-                  fillColor: '#ef4444',
-                  color: '#fff',
-                  weight: 1,
-                  opacity: 1,
-                  fillOpacity: 0.8,
-                  interactive: false
-               });
+            }
+          }).addTo(S.map);
+
+          // 2. 白色の内塗りレイヤー
+          const stationFgLayer = L.geoJSON(geojson, {
+            renderer: canvasRenderer,
+            interactive: false,
+            style: () => {
+              const w = getStationWeights(S.map.getZoom());
+              return {
+                color: '#ffffff',
+                weight: w.fg,
+                opacity: w.fg > 0 ? 1 : 0,
+                lineCap: 'square'
+              };
             }
           }).addTo(S.map);
 
           // ズームレベル変更時に駅の太さと表示状態を再計算
           S.map.on('zoomend', () => {
-            if (stationLayer) {
-              const currentZoom = S.map.getZoom();
-              const weight = getStationWeight(currentZoom);
-              stationLayer.setStyle((feature) => ({
-                weight: weight,
-                opacity: weight > 0 ? 0.8 : 0,
-                radius: weight
-              }));
+            if (stationBgLayer && stationFgLayer) {
+              const w = getStationWeights(S.map.getZoom());
+              stationBgLayer.setStyle({ weight: w.bg, opacity: w.bg > 0 ? 1 : 0 });
+              stationFgLayer.setStyle({ weight: w.fg, opacity: w.fg > 0 ? 1 : 0 });
             }
           });
 
@@ -809,7 +758,6 @@
             btn.setAttribute('aria-pressed', String(S.on[key]));
             savePrefs();
             if (MODES.includes(key)) { updateCounts(); loadVehicles(); }
-            else if (key === 'stops') loadStops();
             else { afterVehicles(); }
           });
         });
@@ -834,7 +782,6 @@
         }
         S.cfg = cfg;
         
-        // 淡色レイヤーに固定
         const tileUrl = cfg.tiles.template.replace('{layer}', 'pale');
 
         const map = L.map('tm-map', {
@@ -854,7 +801,6 @@
 
         $('tm-home')?.addEventListener('click', () => map.setView([cfg.school.lat, cfg.school.lon], cfg.view.zoom));
 
-        // 現在地機能の追加
         $('tm-geolocation')?.addEventListener('click', () => {
           if (!navigator.geolocation) {
             showMsg('お使いのブラウザは現在地機能に対応していません。');
@@ -885,7 +831,7 @@
         map.on('click', (e) => { const hit = S.overlay.hitAt(e.containerPoint); select(hit ? { kind: hit.kind, id: hit.id } : null); });
         map.on('mousemove', (e) => { map.getContainer().style.cursor = S.overlay.hitAt(e.containerPoint) ? 'pointer' : ''; });
         let moveTimer = 0;
-        map.on('moveend zoomend', () => { clearTimeout(moveTimer); moveTimer = setTimeout(() => { loadVehicles(); loadStops(); }, 250); });
+        map.on('moveend zoomend', () => { clearTimeout(moveTimer); moveTimer = setTimeout(() => { loadVehicles(); }, 250); });
         document.addEventListener('keydown', (e) => { if (e.key === 'Escape') select(null); });
         if (typeof ResizeObserver === 'function') new ResizeObserver(() => map.invalidateSize({ pan: false })).observe(map.getContainer());
 
@@ -895,11 +841,9 @@
 
         S.overlay.schedule();
         loadVehicles();
-        loadStops();
         
-        // ▼ マップ初期化完了後、路線図と駅をレンダリング ▼
         loadGeoJsonRoutes();
-        loadGeoJsonStations(); // ここで駅の描画を追加
+        loadGeoJsonStations();
       }
 
       init();
