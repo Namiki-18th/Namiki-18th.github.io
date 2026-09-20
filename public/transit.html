@@ -199,7 +199,6 @@
             <button type="button" class="tm-chip" data-tm-layer="rail" aria-pressed="true"><span class="tm-dot rail" aria-hidden="true"></span>列車 <span class="tm-count" data-tm-count="rail"></span></button>
             <button type="button" class="tm-chip" data-tm-layer="bus" aria-pressed="true"><span class="tm-dot bus" aria-hidden="true"></span>バス <span class="tm-count" data-tm-count="bus"></span></button>
             <button type="button" class="tm-chip" data-tm-layer="other" aria-pressed="true" hidden><span class="tm-dot other" aria-hidden="true"></span>その他 <span class="tm-count" data-tm-count="other"></span></button>
-            <!-- 既存の駅・バス停ボタンを削除 -->
             <button type="button" class="tm-chip" data-tm-layer="delayed" aria-pressed="false"><span class="tm-dot late" aria-hidden="true"></span>3分以上の遅れだけ</button>
           </div>
           <div class="tm-tools">
@@ -303,13 +302,13 @@
       const PREF_KEY = 'namiki-transit-map';
       const HIT_PAD = (window.L && L.Browser && L.Browser.mobile) ? 8 : 2;
 
-      // 古い駅・バス停の設定とデータを削除
       const S = {
         map: null, overlay: null, tiles: null, cfg: null,
         on: { rail: true, bus: true, other: true, delayed: false },
         vehicles: [], vIndex: new Map(),
         feeds: new Map(), statics: new Map(),
-        selected: null, seq: { v: 0 }, updatedAt: 0, stale: false, truncated: false, error: false
+        selected: null, seq: { v: 0 }, updatedAt: 0, stale: false, truncated: false, error: false,
+        ignoreMapClick: false // 駅クリック直後にマップクリックで選択解除されるのを防ぐためのフラグ
       };
 
       async function api(url) {
@@ -375,6 +374,7 @@
           if (v === '' || v === null || v === undefined) return;
           pop.list.append(el('dt', '', k), el('dd', cls || '', String(v)));
         };
+        
         if (item.kind === 'vehicle') {
           const v = item.ref;
           const feed = S.feeds.get(v.f);
@@ -387,9 +387,14 @@
           row('速度', typeof v.s === 'number' ? `時速${v.s}km` : '');
           row('車両', v.l);
           row('位置の時刻', v.ts ? clock(v.ts * 1000) : '');
-        } else {
+        } else if (item.kind === 'school') {
           pop.title.append(el('span', 'tm-dot late'), document.createTextNode(S.cfg.school.name));
           row('種別', '学校');
+        } else if (item.kind === 'station') {
+          const dot = el('span', 'tm-dot');
+          dot.style.background = '#475569';
+          pop.title.append(dot, document.createTextNode(item.name));
+          row('乗り入れ', item.routes && item.routes.length > 0 ? item.routes.join('、') : '情報なし');
         }
       }
 
@@ -506,6 +511,7 @@
         function lookup(sel) {
           if (!sel) return null;
           if (sel.kind === 'vehicle') { const v = S.vIndex.get(sel.id); return v ? { kind: 'vehicle', ref: v, la: v.la, lo: v.lo } : null; }
+          if (sel.kind === 'station') { return { kind: 'station', name: sel.name, routes: sel.routes, la: sel.la, lo: sel.lo }; }
           return S.cfg ? { kind: 'school', ref: null, la: S.cfg.school.lat, lo: S.cfg.school.lon } : null;
         }
 
@@ -683,7 +689,6 @@
         };
       }
 
-      // プロパティから駅名を取得するヘルパー関数
       function getStationName(props) {
         if (!props) return 'Unknown';
         return props.name || props.station_name || props.N02_005 || props.station || 'Unknown';
@@ -715,64 +720,100 @@
           }
           const stationRenderer = L.canvas({ padding: 0.1, pane: 'transit-stations' });
           
-          // 1. ズームイン時の長方形：黒色の外枠レイヤー (結合せず路線ごとに配置)
+          // --- Pass 1: 駅情報を事前に集約する ---
+          const stationGroups = new Map();
+          const unknownStations = [];
+
+          L.geoJSON(geojson, {
+            onEachFeature: (feature, layer) => {
+              const name = getStationName(feature.properties);
+              const center = layer.getBounds ? layer.getBounds().getCenter() : (layer.getLatLng ? layer.getLatLng() : null);
+              
+              if (center) {
+                if (name !== 'Unknown') {
+                  if (!stationGroups.has(name)) {
+                    stationGroups.set(name, { centers: [], props: [] });
+                  }
+                  stationGroups.get(name).centers.push(center);
+                  stationGroups.get(name).props.push(feature.properties);
+                } else {
+                  unknownStations.push({ center, props: feature.properties });
+                }
+              }
+            }
+          });
+
+          // 駅のクリックを処理する共通関数 (車両のクリックと競合しないよう調整)
+          const handleStationClick = (e, name, routes, latlng) => {
+            const pt = e.containerPoint || (S.map && S.map.latLngToContainerPoint(latlng));
+            // 駅の上の車両がクリックされた場合は車両選択を優先する
+            if (pt && S.overlay && S.overlay.hitAt(pt)) return;
+
+            // マップ全体のクリックによる「選択解除」を1回だけ防ぐ
+            S.ignoreMapClick = true;
+            setTimeout(() => { S.ignoreMapClick = false; }, 50);
+
+            select({ kind: 'station', name: name, routes: routes, la: latlng.lat, lo: latlng.lng });
+          };
+          
+          // 1. ズームイン時の長方形：黒色の外枠レイヤー
           const stationBgLayer = L.geoJSON(geojson, {
             renderer: stationRenderer,
             interactive: false,
             style: () => ({ color: '#000000', lineCap: 'square' })
           });
 
-          // 2. ズームイン時の長方形：白色の内塗りレイヤー (結合せず路線ごとに配置)
+          // 2. ズームイン時の長方形：白色の内塗りレイヤー (こちらをインタラクティブに)
           const stationFgLayer = L.geoJSON(geojson, {
             renderer: stationRenderer,
-            interactive: false,
-            style: () => ({ color: '#ffffff', lineCap: 'square' })
-          });
-
-          // 3. ズームアウト時用の大きな丸レイヤー (同じ駅名を1つに結合)
-          const stationDotsLayer = L.layerGroup();
-          
-          // 駅名ごとに中心座標を集計する
-          const stationGroups = new Map();
-          
-          L.geoJSON(geojson, {
+            interactive: true,
+            style: () => ({ color: '#ffffff', lineCap: 'square' }),
             onEachFeature: (feature, layer) => {
-              const name = getStationName(feature.properties);
-              const center = layer.getBounds ? layer.getBounds().getCenter() : (layer.getLatLng ? layer.getLatLng() : null);
-              
-              if (center && name !== 'Unknown') {
-                if (!stationGroups.has(name)) {
-                  stationGroups.set(name, []);
+              layer.on('click', (e) => {
+                const name = getStationName(feature.properties);
+                let routes = [];
+                if (stationGroups.has(name)) {
+                  routes = [...new Set(stationGroups.get(name).props.map(p => p.N02_004 || p.N02_003 || p.route_name || p.company || '').filter(Boolean))];
+                } else {
+                  const r = feature.properties.N02_004 || feature.properties.N02_003 || feature.properties.route_name || feature.properties.company || '';
+                  if (r) routes.push(r);
                 }
-                stationGroups.get(name).push(center);
-              } else if (center) {
-                // 名前がないものは単独で描画
-                L.circleMarker(center, {
-                  renderer: stationRenderer, interactive: false, radius: 4.5,
-                  color: '#000000', weight: 1.5, fillColor: '#ffffff', fillOpacity: 1
-                }).addTo(stationDotsLayer);
-              }
+                handleStationClick(e, name, routes, e.latlng);
+              });
             }
           });
 
-          // 集計した座標の平均（重心）を計算して1つの丸を作る
-          stationGroups.forEach((centers) => {
-            let latSum = 0;
-            let lngSum = 0;
-            centers.forEach(c => {
-              latSum += c.lat;
-              lngSum += c.lng;
-            });
-            const avgCenter = L.latLng(latSum / centers.length, lngSum / centers.length);
+          // 3. ズームアウト時用の大きな丸レイヤー
+          const stationDotsLayer = L.layerGroup();
+          
+          stationGroups.forEach((data, name) => {
+            let latSum = 0; let lngSum = 0;
+            data.centers.forEach(c => { latSum += c.lat; lngSum += c.lng; });
+            const avgCenter = L.latLng(latSum / data.centers.length, lngSum / data.centers.length);
+            
+            // 乗り入れ路線を重複排除して配列化
+            const routes = [...new Set(data.props.map(p => p.N02_004 || p.N02_003 || p.route_name || p.company || '').filter(Boolean))];
             
             L.circleMarker(avgCenter, {
               renderer: stationRenderer,
-              interactive: false,
+              interactive: true,
               radius: 4.5,
               color: '#000000',
               weight: 1.5,
               fillColor: '#ffffff',
               fillOpacity: 1
+            }).on('click', (e) => {
+              handleStationClick(e, name, routes, avgCenter);
+            }).addTo(stationDotsLayer);
+          });
+
+          unknownStations.forEach(item => {
+            const r = item.props.N02_004 || item.props.N02_003 || item.props.route_name || item.props.company || '';
+            L.circleMarker(item.center, {
+              renderer: stationRenderer, interactive: true, radius: 4.5,
+              color: '#000000', weight: 1.5, fillColor: '#ffffff', fillOpacity: 1
+            }).on('click', (e) => {
+              handleStationClick(e, '不明', r ? [r] : [], item.center);
             }).addTo(stationDotsLayer);
           });
 
@@ -881,7 +922,17 @@
           );
         });
 
-        map.on('click', (e) => { const hit = S.overlay.hitAt(e.containerPoint); select(hit ? { kind: hit.kind, id: hit.id } : null); });
+        // マップクリック時の挙動を拡張。
+        // S.ignoreMapClickが立っている場合(駅がクリックされた直後)は、ポップアップのクリアを行いません。
+        map.on('click', (e) => { 
+          const hit = S.overlay.hitAt(e.containerPoint); 
+          if (hit) {
+            select({ kind: hit.kind, id: hit.id });
+          } else if (!S.ignoreMapClick) {
+            select(null);
+          }
+        });
+        
         map.on('mousemove', (e) => { map.getContainer().style.cursor = S.overlay.hitAt(e.containerPoint) ? 'pointer' : ''; });
         let moveTimer = 0;
         map.on('moveend zoomend', () => { clearTimeout(moveTimer); moveTimer = setTimeout(() => { loadVehicles(); }, 250); });
