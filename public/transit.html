@@ -108,19 +108,21 @@
     }
     @media (prefers-reduced-motion: reduce) { .tm-chip, .tm-btn { transition: none; } }
 
-    /* ===== ここから追加: 地図全画面化＆ツールバーのオーバーレイ表示 ===== */
+    /* ===== ここから追加: 地図全画面化（切り替え式） ===== */
     
-    /* 1. タイトルや下の運行状況・詳細情報などをすべて非表示にする */
-    .page-header, 
-    .tm-below, 
-    #transit-error, 
-    .tm-info {
+    /* 1. 全画面モード時：タイトルや下の運行状況・詳細情報、サイドバーを非表示にする */
+    body.is-fullscreen .page-header, 
+    body.is-fullscreen .tm-below, 
+    body.is-fullscreen #transit-error, 
+    body.is-fullscreen .tm-info,
+    body.is-fullscreen .sidebar,
+    body.is-fullscreen .mobile-topbar {
       display: none !important;
     }
     
     /* 2. メインエリアの余白をなくし、画面の高さいっぱいに広げる */
-    .app-main, 
-    .content-area {
+    body.is-fullscreen .app-main, 
+    body.is-fullscreen .content-area {
       padding: 0 !important;
       margin: 0 !important;
       max-width: 100% !important;
@@ -131,20 +133,20 @@
     }
     
     /* 3. マップセクションを画面の残りの領域すべてに広げる */
-    .tm-section {
+    body.is-fullscreen .tm-section {
       margin: 0 !important;
       flex: 1;
       display: flex;
       position: relative;
     }
-    .tm-map-wrap {
+    body.is-fullscreen .tm-map-wrap {
       flex: 1;
       width: 100%;
       position: relative;
     }
     
     /* 地図自体の枠線や角丸を消し、領域を100%にする */
-    .tm-map {
+    body.is-fullscreen .tm-map {
       height: 100% !important;
       width: 100%;
       border: none;
@@ -152,7 +154,7 @@
     }
     
     /* 4. ツールバー（ボタンや設定）を地図の上に浮かせて配置する */
-    .tm-toolbar {
+    body.is-fullscreen .tm-toolbar {
       position: absolute;
       top: 15px;
       left: 15px;
@@ -167,7 +169,7 @@
     }
     
     /* ダークモード用のツールバー背景色 */
-    html.dark .tm-toolbar {
+    html.dark body.is-fullscreen .tm-toolbar {
       background: rgba(24, 33, 44, 0.9);
       box-shadow: 0 4px 16px rgba(0, 0, 0, 0.5);
     }
@@ -278,6 +280,7 @@
             <button type="button" class="tm-chip" data-tm-layer="delayed" aria-pressed="false"><span class="tm-dot late" aria-hidden="true"></span>3分以上の遅れだけ</button>
           </div>
           <div class="tm-tools">
+            <button type="button" class="tm-btn" id="tm-fullscreen-toggle">全画面</button>
             <label class="tm-select">地図
               <select id="tm-basemap" aria-label="地図の種類">
                 <option value="pale">淡色</option>
@@ -955,6 +958,20 @@
           savePrefs();
         });
         $('tm-home').addEventListener('click', () => map.setView([cfg.school.lat, cfg.school.lon], cfg.view.zoom));
+
+        // --- 全画面切り替えボタンの処理 ---
+        const fsBtn = $('tm-fullscreen-toggle');
+        if (fsBtn) {
+          fsBtn.addEventListener('click', () => {
+            const isFS = document.body.classList.toggle('is-fullscreen');
+            fsBtn.textContent = isFS ? '通常表示' : '全画面';
+            // CSSによるレイアウト変更が完了した後にマップのサイズを再計算させる
+            setTimeout(() => {
+              map.invalidateSize();
+            }, 100);
+          });
+        }
+        // ----------------------------------
 
         map.on('click', (e) => { const hit = S.overlay.hitAt(e.containerPoint); select(hit ? { kind: hit.kind, id: hit.id } : null); });
         map.on('mousemove', (e) => { map.getContainer().style.cursor = S.overlay.hitAt(e.containerPoint) ? 'pointer' : ''; });
