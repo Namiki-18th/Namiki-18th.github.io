@@ -42,7 +42,7 @@ async function getLatestTimestamp() {
   for (let i = 1; i <= 15; i++) {
     const d = new Date(now.getTime() - i * 60 * 1000);
     const timestamp = formatJarticTime(d);
-    const testUrl = `https://www.jartic.or.jp/d/traffic_info/r1/${timestamp}/d/201/A03.json`;
+    const testUrl = `https://www.jartic.or.jp/d/traffic_info/r1/${timestamp}/d/301/A03.json`;
     
     console.log(`[タイムスタンプ検索] ${i}分前 (タイムスタンプ: ${timestamp}) をテスト中 (${testUrl})`);
     
