@@ -842,6 +842,8 @@
       }
 
       // ===== 道路情報 (一般道・高速道路) =====
+      const roadSvgRenderer = L.svg({ padding: 0.1 });
+
       function getRoadStyle(feature, type) {
         const props = feature.properties || {};
         let isClosure = false;
@@ -893,6 +895,7 @@
           S.layers[type].clearLayers();
 
           const geoLayer = L.geoJSON(geojson, {
+            renderer: roadSvgRenderer,
             filter: (feature) => {
               if (!S.on.closure) return true;
               const props = feature.properties || {};
