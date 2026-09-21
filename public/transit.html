@@ -54,6 +54,9 @@
     .tm-dot.bus { background: #f59e0b; }
     .tm-dot.other { background: #7c3aed; }
     .tm-dot.late { background: #fff; border-color: #dc2626; box-shadow: none; }
+    .tm-dot.local { background: #10b981; }
+    .tm-dot.expw { background: #3b82f6; }
+    .tm-dot.closure { background: #fff; border-color: #dc2626; box-shadow: none; }
     .tm-count { font-variant-numeric: tabular-nums; opacity: .8; }
     .tm-updated { font-size: .8rem; opacity: .75; font-variant-numeric: tabular-nums; }
 
@@ -196,10 +199,22 @@
       <section class="tm-section" aria-label="交通マップ">
         <div class="tm-toolbar">
           <div class="tm-chipset" role="group" aria-label="地図に表示するもの">
+            <!-- 交通用レイヤー -->
             <button type="button" class="tm-chip" data-tm-layer="rail" aria-pressed="true"><span class="tm-dot rail" aria-hidden="true"></span>列車 <span class="tm-count" data-tm-count="rail"></span></button>
             <button type="button" class="tm-chip" data-tm-layer="bus" aria-pressed="true"><span class="tm-dot bus" aria-hidden="true"></span>バス <span class="tm-count" data-tm-count="bus"></span></button>
             <button type="button" class="tm-chip" data-tm-layer="other" aria-pressed="true" hidden><span class="tm-dot other" aria-hidden="true"></span>その他 <span class="tm-count" data-tm-count="other"></span></button>
             <button type="button" class="tm-chip" data-tm-layer="delayed" aria-pressed="false"><span class="tm-dot late" aria-hidden="true"></span>3分以上の遅れだけ</button>
+            
+            <!-- 道路用レイヤー（追加） -->
+            <button type="button" class="tm-chip" data-tm-layer="local" aria-pressed="false">
+              <span class="tm-dot local" aria-hidden="true"></span>一般道 <span class="tm-count" data-tm-count="local"></span>
+            </button>
+            <button type="button" class="tm-chip" data-tm-layer="expw" aria-pressed="false">
+              <span class="tm-dot expw" aria-hidden="true"></span>高速道路 <span class="tm-count" data-tm-count="expw"></span>
+            </button>
+            <button type="button" class="tm-chip" data-tm-layer="closure" aria-pressed="false">
+              <span class="tm-dot closure" aria-hidden="true"></span>通行止め・渋滞のみ
+            </button>
           </div>
           <div class="tm-tools">
             <button type="button" class="tm-btn" id="tm-geolocation">現在地へ</button>
@@ -209,7 +224,7 @@
         </div>
 
         <div class="tm-map-wrap">
-          <div id="tm-map" class="tm-map" role="application" aria-label="鉄道・バスの現在位置マップ。矢印キーで移動、プラスとマイナスで拡大縮小できます。"></div>
+          <div id="tm-map" class="tm-map" role="application" aria-label="鉄道・バス・道路の状況マップ。矢印キーで移動、プラスとマイナスで拡大縮小できます。"></div>
           <div id="tm-msg" class="tm-msg" role="status" hidden></div>
         </div>
       </section>
@@ -284,12 +299,15 @@
     });
   </script>
   <script nonce="%%CSP_NONCE%%">
-    // ===== 交通マップ =====
+    // ===== 交通マップ & 道路マップ =====
     (() => {
       'use strict';
       const rf = typeof rawFetch === 'function' ? rawFetch : window.fetch.bind(window);
       const $ = (id) => document.getElementById(id);
+      
       const MODES = ['rail', 'bus', 'other'];
+      const ROAD_MODES = ['local', 'expw'];
+      
       const MODE_LABEL = { rail: '列車', bus: 'バス', other: 'その他' };
       const MODE_COLOR = { rail: '#2563eb', bus: '#f59e0b', other: '#7c3aed' };
       const LATE_SEC = 180;
@@ -299,11 +317,12 @@
 
       const S = {
         map: null, overlay: null, tiles: null, cfg: null,
-        on: { rail: true, bus: true, other: true, delayed: false },
+        on: { rail: true, bus: true, other: true, delayed: false, local: false, expw: false, closure: false },
         vehicles: [], vIndex: new Map(),
         feeds: new Map(), statics: new Map(),
         selected: null, seq: { v: 0 }, updatedAt: 0, stale: false, truncated: false, error: false,
-        ignoreMapClick: false 
+        ignoreMapClick: false,
+        layers: { local: null, expw: null } // 道路用レイヤー
       };
 
       async function api(url) {
@@ -321,7 +340,6 @@
         return node;
       }
       
-      // ★最適化: メッセージ更新を requestAnimationFrame にラップ
       function showMsg(text, fatal) {
         requestAnimationFrame(() => {
           const box = $('tm-msg');
@@ -545,7 +563,6 @@
         if (S.overlay) { S.overlay.refreshPopup(); S.overlay.schedule(); }
       }
 
-      // ★最適化: カウント表示の更新を requestAnimationFrame にラップ
       function updateCounts() {
         const counts = { rail: 0, bus: 0, other: 0 };
         S.vehicles.forEach((v) => { if (counts[v.m] !== undefined) counts[v.m]++; });
@@ -563,7 +580,6 @@
         S.vIndex = new Map(S.vehicles.map((v) => [v.id, v]));
         updateCounts();
         
-        // ★最適化: 日時等のテキスト更新を requestAnimationFrame にラップ
         requestAnimationFrame(() => {
           const status = $('tm-updated');
           if (status) {
@@ -575,6 +591,7 @@
 
         const shown = S.on.delayed ? S.vehicles.filter(isLate).length : S.vehicles.length;
         const anyMode = MODES.some((m) => S.on[m]);
+        
         if (S.error && !S.vehicles.length) showMsg('位置データを取得できませんでした。自動で再試行します。');
         else if (!anyMode) showMsg('列車・バスの表示がすべてオフです。上のボタンで表示できます。');
         else if (S.updatedAt && shown === 0) showMsg(S.on.delayed ? 'この範囲に3分以上遅れている列車・バスはありません。' : 'この範囲に走行中の列車・バスの位置情報はありません。地図を動かすか、縮小してみてください。');
@@ -688,7 +705,7 @@
         }
       }
 
-      // ===== 駅 (Station) のGeoJSONレンダリング処理 =====
+      // ===== 駅 (Station) の設定 =====
       function getStationWeights(zoom) {
         const routeW = getRouteWeight(zoom);
         return {
@@ -842,6 +859,77 @@
         }
       }
 
+      // ===== 道路情報 (一般道・高速道路) =====
+      function getRoadStyle(feature, type) {
+        const props = feature.properties || {};
+        const isClosure = props.status === 'closure' || props.status === 'closed';
+        const isTrafficJam = props.status === 'jam' || props.status === 'heavy';
+        
+        let color = type === 'expw' ? '#3b82f6' : '#10b981';
+        let weight = type === 'expw' ? 6 : 4;
+        let opacity = 0.7;
+
+        if (isClosure) {
+          color = '#dc2626';
+          weight = 8;
+          opacity = 1.0;
+        } else if (isTrafficJam) {
+          color = '#f59e0b';
+          weight = 7;
+          opacity = 0.9;
+        }
+
+        return { color, weight, opacity };
+      }
+
+      async function loadRoadData(type) {
+        if (!S.map || !S.on[type]) {
+          S.layers[type].clearLayers();
+          return;
+        }
+        try {
+          const res = await rf(`/api/road/${type}`, { headers: { 'Accept': 'application/json' } });
+          if (!res.ok) throw new Error('HTTP Error: ' + res.status);
+          const geojson = await res.json();
+
+          S.layers[type].clearLayers();
+
+          const geoLayer = L.geoJSON(geojson, {
+            filter: (feature) => {
+              if (!S.on.closure) return true;
+              const st = feature.properties?.status;
+              return ['closure', 'closed', 'jam', 'heavy'].includes(st);
+            },
+            style: (feature) => getRoadStyle(feature, type),
+            onEachFeature: (feature, layer) => {
+              layer.bindPopup(() => {
+                const props = feature.properties || {};
+                const name = props.name || props.road_name || '名称不明';
+                const status = props.status || '順調';
+                let desc = `<b>${name}</b><br>状況: ${status}`;
+                if (props.detail) desc += `<br>詳細: ${props.detail}`;
+                return desc;
+              });
+            }
+          });
+
+          geoLayer.addTo(S.layers[type]);
+          
+          requestAnimationFrame(() => {
+            const countEl = document.querySelector(`[data-tm-count="${type}"]`);
+            if (countEl) countEl.textContent = geoLayer.getLayers().length;
+          });
+        } catch (err) {
+          console.error(`道路情報(${type})の取得に失敗:`, err);
+        }
+      }
+
+      function refreshAllRoadData() {
+        if (S.on.local) loadRoadData('local');
+        if (S.on.expw) loadRoadData('expw');
+      }
+
+      // ===== UI・ボタン制御 =====
       function bindControls() {
         document.querySelectorAll('[data-tm-layer]').forEach((btn) => {
           const key = btn.dataset.tmLayer;
@@ -850,8 +938,21 @@
             S.on[key] = !S.on[key];
             btn.setAttribute('aria-pressed', String(S.on[key]));
             savePrefs();
-            if (MODES.includes(key)) { updateCounts(); loadVehicles(); }
-            else { afterVehicles(); }
+            
+            if (MODES.includes(key)) { 
+              updateCounts(); loadVehicles(); 
+            } else if (ROAD_MODES.includes(key)) {
+              if (S.on[key]) {
+                if (!S.map.hasLayer(S.layers[key])) S.map.addLayer(S.layers[key]);
+                loadRoadData(key);
+              } else {
+                if (S.map.hasLayer(S.layers[key])) S.map.removeLayer(S.layers[key]);
+              }
+            } else if (key === 'closure') {
+              refreshAllRoadData();
+            } else {
+              afterVehicles(); 
+            }
           });
         });
       }
@@ -880,18 +981,25 @@
         const map = L.map('tm-map', {
           center: [cfg.school.lat, cfg.school.lon], zoom: cfg.view.zoom, minZoom: cfg.view.minZoom, maxZoom: cfg.view.maxZoom,
           zoomAnimation: false,
-          preferCanvas: true, // ★軽量化: Leafletのデフォルト描画をすべてCanvasに強制し、重いSVGレイヤーの生成を防止
+          preferCanvas: true,
           attributionControl: true
         });
         S.map = map;
         map.attributionControl.setPrefix(false);
-        map.attributionControl.addAttribution('データ: <a href="https://www.odpt.org/" target="_blank" rel="noopener noreferrer">公共交通オープンデータセンター</a>・各交通事業者');
+        map.attributionControl.addAttribution('データ: <a href="https://www.odpt.org/" target="_blank" rel="noopener noreferrer">公共交通オープンデータセンター</a>・<a href="https://www.jartic.or.jp/" target="_blank" rel="noopener noreferrer">JARTIC</a>(推測)等');
+        
         S.tiles = L.tileLayer(tileUrl, {
           minZoom: cfg.view.minZoom, maxZoom: cfg.view.maxZoom, errorTileUrl: BLANK_TILE, keepBuffer: 2,
           attribution: '地図: <a href="https://maps.gsi.go.jp/development/ichiran.html" target="_blank" rel="noopener noreferrer">国土地理院(地理院タイル)</a>'
         }).addTo(map);
         L.control.scale({ imperial: false, position: 'bottomleft' }).addTo(map);
         S.overlay = createOverlay(map);
+
+        // 道路用レイヤーの追加
+        S.layers.local = L.layerGroup();
+        S.layers.expw = L.layerGroup();
+        if (S.on.local) map.addLayer(S.layers.local);
+        if (S.on.expw) map.addLayer(S.layers.expw);
 
         $('tm-home')?.addEventListener('click', () => map.setView([cfg.school.lat, cfg.school.lon], cfg.view.zoom));
 
@@ -939,13 +1047,22 @@
 
         const pollMs = Math.max(15, Math.round((cfg.pollSec || 30) / 2)) * 1000;
         setInterval(() => { if (!document.hidden) loadVehicles(); }, pollMs);
-        document.addEventListener('visibilitychange', () => { if (!document.hidden) { loadVehicles(); loadInfo(); } });
+        setInterval(() => { if (!document.hidden) refreshAllRoadData(); }, 300000); // 道路データは5分毎
+        
+        document.addEventListener('visibilitychange', () => { 
+          if (!document.hidden) { 
+            loadVehicles(); 
+            loadInfo(); 
+            refreshAllRoadData();
+          } 
+        });
 
         S.overlay.schedule();
         loadVehicles();
         
         loadGeoJsonRoutes();
         loadGeoJsonStations();
+        refreshAllRoadData();
       }
 
       init();
