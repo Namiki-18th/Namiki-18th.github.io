@@ -17,8 +17,43 @@
   <link rel="stylesheet" href="/assets/css/app.css">
   <link rel="stylesheet" href="/style.css">
   <link rel="icon" href="/favicon.ico" type="image/x-icon">
+  <link rel="icon" href="/favicon.png" type="image/png" sizes="256x256">
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Noto+Sans+JP:wght@400;500;600;700&display=swap" />
   <link rel="stylesheet" href="/vendor/leaflet/leaflet.css">
   <style nonce="%%CSP_NONCE%%">
+    /* CSS崩れの補正・インライン調整 (index共通) */
+    .user-info-header { display: flex; align-items: center; gap: 0.75rem; }
+    .popup-user-avatar { width: 2.25rem; height: 2.25rem; border-radius: 9999px; object-fit: cover; border: 1px solid var(--color-border, #e2e8f0); flex-shrink: 0; }
+    html.dark .popup-user-avatar { border-color: var(--color-border, #334155); }
+    .user-info-text { flex: 1; min-width: 0; }
+    .sidebar-avatar-image, .mobile-avatar-image { object-fit: cover; border-radius: 9999px; }
+
+    .cursor-pointer { cursor: pointer; }
+    .u-hidden { display: none; }
+    .mt-quarter-rem { margin-top: 0.25rem; }
+
+    .sidebar-nav-button,
+    .mobile-brand-name,
+    .account-popup-item {
+      background: transparent;
+      border: none;
+      font: inherit;
+      color: inherit;
+      cursor: pointer;
+      text-decoration: none;
+    }
+    .sidebar-nav-button {
+      text-align: left;
+      width: 100%;
+    }
+    .account-popup-item {
+      text-align: left;
+      width: 100%;
+    }
+    .mobile-brand-name {
+      padding: 0;
+    }
+
     /* ===== 画面レイアウトの全画面化調整 ===== */
     .app-main {
       height: 100vh;
@@ -211,11 +246,11 @@
         justify-content: flex-start;
         -webkit-overflow-scrolling: touch;
         scrollbar-width: none;
-        background-color: #ffffff;
-        border-top: 1px solid rgba(127, 127, 127, 0.25);
+        background-color: var(--bg-card, #ffffff);
+        border-top: 1px solid var(--color-border, rgba(127, 127, 127, 0.25));
       }
       html.dark .mobile-tab-bar {
-        background-color: #1e293b;
+        background-color: var(--bg-card, #1f2937);
       }
       .mobile-tab-bar::-webkit-scrollbar {
         display: none; 
@@ -227,16 +262,19 @@
         justify-content: center;
         flex-shrink: 0;
         padding: 0.5rem 1rem;
-        color: #64748b;
+        color: var(--color-text-secondary, #64748b);
         text-decoration: none;
+        background: transparent;
+        border: none;
+        cursor: pointer;
         gap: 0.25rem;
         min-width: 4.5rem;
       }
       html.dark .mobile-nav-button {
-        color: #94a3b8;
+        color: var(--color-text-secondary, #94a3b8);
       }
       .mobile-nav-button.active {
-        color: #3b82f6;
+        color: var(--color-accent-blue, #3b82f6);
       }
       .mobile-nav-button svg {
         width: 1.5rem;
@@ -256,13 +294,13 @@
         top: 60px;
         right: 10px;
         z-index: 100;
-        background-color: #ffffff;
+        background-color: var(--bg-card, #ffffff);
         border-radius: 0.5rem;
         box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
-        border: 1px solid rgba(127, 127, 127, 0.25);
+        border: 1px solid var(--color-border, rgba(127, 127, 127, 0.25));
       }
       html.dark #mobile-account-popup-menu {
-        background-color: #1e293b;
+        background-color: var(--bg-card, #1f2937);
       }
     }
     @media (min-width: 768px) {
@@ -274,65 +312,68 @@
 </head>
 <body>
   <aside class="sidebar">
-    <div class="sidebar-header" data-href="/index">
+    <div class="sidebar-header cursor-pointer" data-href="/index">
       <div class="flex items-center gap-3">
-        <div class="logo-badge"><img src="/logo.webp" alt="Logo" class="logo-badge-img"></div>
+        <div class="logo-badge">
+          <img src="/logo.webp" alt="Logo" class="logo-badge-img">
+          <svg class="logo-badge-icon u-hidden" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="width:1.2rem;height:1.2rem;"><path d="M22 10v6M2 10l10-5 10 5-10 5z"/><path d="M6 12v5c0 2 2 3 6 3s6-1 6-3v-5"/></svg>
+        </div>
         <h1 class="font-bold text-sm sidebar-brand-text">並木中等教育学校18回生<br><span class="text-xs font-normal sidebar-brand-tagline">ダッシュボード</span></h1>
       </div>
     </div>
     <nav class="sidebar-nav">
-      <a href="/index" class="sidebar-nav-button" title="ホーム">
+      <button data-href="/index" class="sidebar-nav-button" title="ホーム">
         <svg class="icon-nav" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6" /></svg>
         <span class="sidebar-nav-text">ホーム</span>
-      </a>
-      <a href="/schedule" class="sidebar-nav-button" title="時間割">
+      </button>
+      <button data-href="/schedule" class="sidebar-nav-button" title="時間割">
         <svg class="icon-nav" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
         <span class="sidebar-nav-text">時間割</span>
-      </a>
-      <a href="/notice" class="sidebar-nav-button" title="お知らせ">
+      </button>
+      <button data-href="/notice" class="sidebar-nav-button" title="お知らせ">
         <svg class="icon-nav" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9" /></svg>
         <span class="sidebar-nav-text">お知らせ</span>
-      </a>
-      <a href="/link" class="sidebar-nav-button" title="リンク">
+      </button>
+      <button data-href="/link" class="sidebar-nav-button" title="リンク">
         <svg class="icon-nav" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13.828 10.172a4 4 0 00-5.656 0l-4 4a4 4 0 105.656 5.656l1.102-1.101m-.758-4.899a4 4 0 005.656 0l4-4a4 4 0 00-5.656-5.656l-1.1 1.1" /></svg>
         <span class="sidebar-nav-text">リンク</span>
-      </a>
-      <a href="/calendar" class="sidebar-nav-button" title="カレンダー">
+      </button>
+      <button data-href="/calendar" class="sidebar-nav-button" title="カレンダー">
         <svg class="icon-nav" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" /></svg>
         <span class="sidebar-nav-text">カレンダー</span>
-      </a>
-      <a href="/classroom" class="sidebar-nav-button" title="Classroom">
+      </button>
+      <button data-href="/classroom" class="sidebar-nav-button" title="Classroom">
         <svg class="icon-nav" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10" /></svg>
         <span class="sidebar-nav-text">Classroom</span>
-      </a>
-      <a href="/transit" class="sidebar-nav-button active" title="交通情報">
+      </button>
+      <button data-href="/transit" class="sidebar-nav-button mt-quarter-rem active" title="交通情報">
         <svg class="icon-nav" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true"><path stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" d="M6 3h12a2 2 0 0 1 2 2v10a3 3 0 0 1-3 3H7a3 3 0 0 1-3-3V5a2 2 0 0 1 2-2Z" /><path stroke="currentColor" stroke-width="1.8" stroke-linecap="round" d="M4 9h16M8 6h.01M16 6h.01M7 21v-3M17 21v-3M8 13h.01M16 13h.01" /></svg>
         <span class="sidebar-nav-text">交通情報</span>
-      </a>
+      </button>
 
       <div class="sidebar-nav-divider">
-        <a href="/privacy" class="sidebar-nav-button" title="プライバシーポリシー">
+        <button data-href="/privacy" class="sidebar-nav-button" title="プライバシーポリシー">
           <svg class="icon-nav" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" /></svg>
           <span class="sidebar-nav-text">プライバシーポリシー</span>
-        </a>
-        <a href="/terms" class="sidebar-nav-button" title="利用規約">
+        </button>
+        <button data-href="/terms" class="sidebar-nav-button" title="利用規約">
           <svg class="icon-nav" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 00.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" /></svg>
           <span class="sidebar-nav-text">利用規約</span>
-        </a>
+        </button>
       </div>
 
-      <a href="/report" class="sidebar-nav-button" title="報告">
+      <button data-href="/report" class="sidebar-nav-button nav-report-btn" title="報告">
         <svg class="icon-nav" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" /></svg>
         <span class="sidebar-nav-text">報告</span>
-      </a>
+      </button>
     </nav>
     <div class="sidebar-footer">
       <div id="account-popup-menu" class="account-popup-menu">
         <div class="user-info-header">
           <img id="popup-user-avatar" src="https://via.placeholder.com/40?text=U" alt="User Avatar" class="popup-user-avatar" />
           <div class="user-info-text">
-            <span id="popup-user-name" class="truncate">読み込み中...</span>
-            <span id="popup-user-email" class="truncate">読み込み中...</span>
+            <span id="popup-user-name" class="truncate popup-user-name">読み込み中...</span>
+            <span id="popup-user-email" class="truncate popup-user-email">読み込み中...</span>
           </div>
         </div>
         <button id="btn-admin-settings" class="account-popup-item">管理者設定</button>
@@ -341,23 +382,27 @@
           <span>表示切替</span>
           <span class="toggle-switch" id="theme-toggle-switch"><span class="toggle-circle"></span></span>
         </button>
-        <div class="gen-08cddd"></div>
-        <a href="/logout" class="account-popup-item text-red">ログアウト</a>
+        <div class="gen-08cddd popup-divider"></div>
+        <button data-href="/logout" class="account-popup-item text-red">ログアウト</button>
       </div>
-      <div id="sidebar-user-toggle" class="sidebar-user-row" title="ユーザーメニュー">
+      <div id="sidebar-user-toggle" class="sidebar-user-row cursor-pointer" title="ユーザーメニュー">
         <img id="sidebar-user-avatar" src="https://via.placeholder.com/40?text=U" alt="Avatar" class="sidebar-avatar-image" />
         <div class="sidebar-user-info"><span id="sidebar-user-name" class="sidebar-user-name-text truncate">読み込み中...</span><span id="sidebar-user-id" class="sidebar-user-id-text truncate">読み込み中...</span></div>
       </div>
     </div>
   </aside>
+
   <header class="mobile-topbar">
-    <a href="/index" class="mobile-brand-name">並木中等教育学校18回生</a>
-    <button id="mobile-user-avatar-btn" type="button" aria-label="ユーザーメニュー"><img id="mobile-user-avatar" src="https://via.placeholder.com/32?text=U" alt="Avatar" class="mobile-avatar-image" /></button>
+    <button data-href="/index" class="mobile-brand-name">並木中等教育学校18回生</button>
+    <button id="mobile-user-avatar-btn" type="button" aria-label="ユーザーメニュー" class="cursor-pointer">
+      <img id="mobile-user-avatar" src="https://via.placeholder.com/32?text=U" alt="Avatar" class="mobile-avatar-image" />
+    </button>
     <div id="mobile-account-popup-menu" class="account-popup-menu">
-      <a href="/setting" class="account-popup-item">設定</a>
-      <a href="/logout" class="account-popup-item text-red">ログアウト</a>
+      <button data-href="/setting" class="account-popup-item">設定</button>
+      <button data-href="/logout" class="account-popup-item text-red">ログアウト</button>
     </div>
   </header>
+
   <main class="app-main">
     <div class="content-area">
       <section class="tm-section" aria-label="交通マップ">
@@ -408,39 +453,48 @@
   </main>
 
   <nav class="mobile-tab-bar">
-    <a href="/index" class="mobile-nav-button" title="ホーム">
+    <button data-href="/index" class="mobile-nav-button" title="ホーム">
       <svg class="icon-nav" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6" /></svg>
       <span class="mobile-nav-text">ホーム</span>
-    </a>
-    <a href="/schedule" class="mobile-nav-button" title="時間割">
+    </button>
+    <button data-href="/schedule" class="mobile-nav-button" title="時間割">
       <svg class="icon-nav" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
       <span class="mobile-nav-text">時間割</span>
-    </a>
-    <a href="/notice" class="mobile-nav-button" title="お知らせ">
+    </button>
+    <button data-href="/notice" class="mobile-nav-button" title="お知らせ">
       <svg class="icon-nav" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9" /></svg>
       <span class="mobile-nav-text">お知らせ</span>
-    </a>
-    <a href="/link" class="mobile-nav-button" title="リンク">
+    </button>
+    <button data-href="/link" class="mobile-nav-button" title="リンク">
       <svg class="icon-nav" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13.828 10.172a4 4 0 00-5.656 0l-4 4a4 4 0 105.656 5.656l1.102-1.101m-.758-4.899a4 4 0 005.656 0l4-4a4 4 0 00-5.656-5.656l-1.1 1.1" /></svg>
       <span class="mobile-nav-text">リンク</span>
-    </a>
-    <a href="/calendar" class="mobile-nav-button" title="カレンダー">
+    </button>
+    <button data-href="/calendar" class="mobile-nav-button" title="カレンダー">
       <svg class="icon-nav" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" /></svg>
       <span class="mobile-nav-text">カレンダー</span>
-    </a>
-    <a href="/classroom" class="mobile-nav-button" title="Classroom">
+    </button>
+    <button data-href="/classroom" class="mobile-nav-button" title="Classroom">
       <svg class="icon-nav" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10" /></svg>
       <span class="mobile-nav-text">Classroom</span>
-    </a>
-    <a href="/transit" class="mobile-nav-button active" title="交通情報">
+    </button>
+    <button data-href="/transit" class="mobile-nav-button active" title="交通情報">
       <svg class="icon-nav" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true"><path stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" d="M6 3h12a2 2 0 0 1 2 2v10a3 3 0 0 1-3 3H7a3 3 0 0 1-3-3V5a2 2 0 0 1 2-2Z" /><path stroke="currentColor" stroke-width="1.8" stroke-linecap="round" d="M4 9h16M8 6h.01M16 6h.01M7 21v-3M17 21v-3M8 13h.01M16 13h.01" /></svg>
       <span class="mobile-nav-text">交通情報</span>
-    </a>
+    </button>
   </nav>
 
   <script src="/vendor/leaflet/leaflet.js"></script>
   <script nonce="%%CSP_NONCE%%">
     const rawFetch = window.fetch.bind(window);
+
+    // data-href による画面遷移設定を追加
+    document.addEventListener('DOMContentLoaded', () => {
+      document.querySelectorAll('[data-href]').forEach(el => {
+        el.addEventListener('click', (e) => {
+          window.location.href = el.dataset.href;
+        });
+      });
+    });
 
     // 既定アバター: 終了済みの外部画像サービス(via.placeholder.com)に頼らず、頭文字入りの画像をその場で作る
     let avatarInitial = 'U';
