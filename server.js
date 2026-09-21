@@ -1443,6 +1443,22 @@ app.get('/api/transit/station', ensureAuth, asyncHandler(async (req, res) => {
   res.json(await safeReadJSON(path.join(DATA_DIR, 'station.geojson'), { type: 'FeatureCollection', features: [] }));
 }));
 
+// --- [追加: 東武線列車情報取得 API] ---
+app.get('/api/tobu', ensureAuth, asyncHandler(async (req, res) => {
+  const odptKey = process.env.ODPT_2026_KEY;
+  if (!odptKey) {
+    return res.status(500).json({ error: 'ODPT_2026_KEY is not configured' });
+  }
+  try {
+    const apiUrl = `https://api-challenge.odpt.org/api/v4/odpt:Train?odpt:operator=odpt.Operator:Tobu&acl:consumerKey=${odptKey}`;
+    const response = await axios.get(apiUrl, { timeout: 5000 });
+    res.json(response.data);
+  } catch (err) {
+    console.error('[Tobu API Error]:', err.message);
+    res.status(502).json({ error: 'Failed to fetch data from ODPT API' });
+  }
+}));
+
 // --- [交通マップ (ODPT): 列車・バス位置 / 駅・バス停 / 運行情報 / 地図タイル中継] ---
 const transitMap = require('./transit-map');
 transitMap.register(app, { express, ensureAuth, ensureAdmin, asyncHandler, rateLimit });
