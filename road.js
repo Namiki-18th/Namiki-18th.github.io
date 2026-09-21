@@ -26,41 +26,146 @@ function formatJarticTime(date) {
   const m = String(d.getMonth() + 1).padStart(2, '0');
   const day = String(d.getDate()).padStart(2, '0');
   const h = String(d.getHours()).padStart(2, '0');
-  const min = String(d.getMinutes()).padStart(2, '0'); // 1分単位でそのまま取得
+  const min = String(d.getMinutes()).padStart(2, '0');
   return `${y}${m}${day}${h}${min}`;
 }
 
 /**
- * サーバーに存在する最新のタイムスタンプを特定します
- * （現在時刻から1分前、2分前、3分前...と1分刻みで最大15回テスト）
+ * YYYYMMDDHHMM 形式の文字列を JST の Date オブジェクトに変換します
+ * @param {string} str 
+ * @returns {Date}
+ */
+function parseJarticTimestamp(str) {
+  const y = str.slice(0, 4);
+  const m = str.slice(4, 6);
+  const d = str.slice(6, 8);
+  const h = str.slice(8, 10);
+  const min = str.slice(10, 12);
+  return new Date(`${y}-${m}-${d}T${h}:${min}:00+09:00`);
+}
+
+/**
+ * 指定されたタイムスタンプが有効かどうかをテストします
+ * @param {string} timestamp 
+ * @returns {Promise<boolean>}
+ */
+async function testTimestamp(timestamp) {
+  const testUrl = `https://www.jartic.or.jp/d/traffic_info/r1/${timestamp}/d/301/A03.json`;
+  try {
+    const response = await fetch(testUrl, {
+      headers: {
+        'Referer': 'https://www.jartic.or.jp/',
+        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36'
+      }
+    });
+    return response.ok;
+  } catch {
+    return false;
+  }
+}
+
+/**
+ * キャッシュをファイルに保存します
+ * @param {string} cachePath 
+ * @param {string} timestamp 
+ */
+async function saveCache(cachePath, timestamp) {
+  try {
+    await fs.writeFile(cachePath, timestamp, 'utf-8');
+    console.log(`[キャッシュ保存] タイムスタンプ ${timestamp} をファイルに保存しました。`);
+  } catch (err) {
+    console.warn(`[キャッシュ保存警告] ${err.message}`);
+  }
+}
+
+/**
+ * 最新の有効なタイムスタンプを特定します
  * @returns {Promise<string>} - 有効なタイムスタンプ
  */
 async function getLatestTimestamp() {
-  const now = new Date();
+  const dataDir = path.join(process.cwd(), 'data');
+  const cachePath = path.join(dataDir, 'timestamp_cache.txt');
 
-  // 1分前から順に1分刻みで遡ってテスト（最大15回）
+  await fs.mkdir(dataDir, { recursive: true });
+
+  let cachedTimestamp = null;
+  try {
+    const raw = await fs.readFile(cachePath, 'utf-8');
+    const trimmed = raw.trim();
+    if (trimmed.length === 12) {
+      cachedTimestamp = trimmed;
+    }
+  } catch {
+    // キャッシュファイルが存在しない場合
+  }
+
+  if (cachedTimestamp) {
+    const cachedDate = parseJarticTimestamp(cachedTimestamp);
+    const now = new Date();
+    const diffMinutes = (now.getTime() - cachedDate.getTime()) / (60 * 1000);
+
+    console.log(`[キャッシュ確認] 保持しているタイムスタンプ: ${cachedTimestamp} (経過約 ${Math.floor(diffMinutes)} 分)`);
+
+    if (diffMinutes >= 5) {
+      // 1. キャッシュから5分以上経過している場合：時間 + 5分 から試す
+      const targetDate = new Date(cachedDate.getTime() + 5 * 60 * 1000);
+      const targetTs = formatJarticTime(targetDate);
+      console.log(`[キャッシュ確認] 5分以上経過のため、+5分後のタイムスタンプ (${targetTs}) をテスト中...`);
+
+      if (await testTimestamp(targetTs)) {
+        console.log(`[キャッシュ有効] タイムスタンプ ${targetTs} は有効です。`);
+        await saveCache(cachePath, targetTs);
+        return targetTs;
+      }
+
+      console.log(`[キャッシュ確認] +5分のテストに失敗しました。+1分と-1分を試行します...`);
+
+      // 2. ヒットしなかったら +1分 をテスト
+      const plus1Date = new Date(targetDate.getTime() + 1 * 60 * 1000);
+      const plus1Ts = formatJarticTime(plus1Date);
+      console.log(`[タイムスタンプ調整] +1分 (${plus1Ts}) をテスト中...`);
+      if (await testTimestamp(plus1Ts)) {
+        console.log(`[タイムスタンプ調整] 成功: ${plus1Ts} が有効です。`);
+        await saveCache(cachePath, plus1Ts);
+        return plus1Ts;
+      }
+
+      // 3. それもダメなら -1分 をテスト
+      const minus1Date = new Date(targetDate.getTime() - 1 * 60 * 1000);
+      const minus1Ts = formatJarticTime(minus1Date);
+      console.log(`[タイムスタンプ調整] -1分 (${minus1Ts}) をテスト中...`);
+      if (await testTimestamp(minus1Ts)) {
+        console.log(`[タイムスタンプ調整] 成功: ${minus1Ts} が有効です。`);
+        await saveCache(cachePath, minus1Ts);
+        return minus1Ts;
+      }
+
+      console.log(`[タイムスタンプ調整] それでも無理だったため、通常の全体再検索に移行します。`);
+    } else {
+      // 5分未満の場合：まずはそのままテスト
+      console.log(`[キャッシュ確認] 保存されていたタイムスタンプ (${cachedTimestamp}) をテスト中...`);
+      if (await testTimestamp(cachedTimestamp)) {
+        console.log(`[キャッシュ有効] 記憶されていたタイムスタンプ ${cachedTimestamp} は現在も有効です。`);
+        return cachedTimestamp;
+      }
+      console.log(`[キャッシュ無効] 記憶されていたタイムスタンプのテストに失敗しました。再検索に移行します。`);
+    }
+  }
+
+  // 4. それでも無理（またはキャッシュがない）場合は、1分前〜15分前まで順番に再検索
+  const now = new Date();
   for (let i = 1; i <= 15; i++) {
     const d = new Date(now.getTime() - i * 60 * 1000);
     const timestamp = formatJarticTime(d);
-    const testUrl = `https://www.jartic.or.jp/d/traffic_info/r1/${timestamp}/d/301/A03.json`;
     
-    console.log(`[タイムスタンプ検索] ${i}分前 (タイムスタンプ: ${timestamp}) をテスト中 (${testUrl})`);
+    console.log(`[タイムスタンプ検索] ${i}分前 (タイムスタンプ: ${timestamp}) をテスト中...`);
     
-    try {
-      const response = await fetch(testUrl, {
-        headers: {
-          'Referer': 'https://www.jartic.or.jp/',
-          'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36'
-        }
-      });
-      if (response.ok) {
-        console.log(`[タイムスタンプ検索] 成功: 有効なタイムスタンプ ${timestamp} を確認しました。`);
-        return timestamp;
-      } else {
-        console.log(`[タイムスタンプ検索] 失敗: ステータスコード ${response.status}`);
-      }
-    } catch (error) {
-      console.log(`[タイムスタンプ検索] 通信エラー: ${error.message}`);
+    if (await testTimestamp(timestamp)) {
+      console.log(`[タイムスタンプ検索] 成功: 有効なタイムスタンプ ${timestamp} を確認しました。`);
+      await saveCache(cachePath, timestamp);
+      return timestamp;
+    } else {
+      console.log(`[タイムスタンプ検索] 失敗`);
     }
   }
   throw new Error('有効なJARTICデータのタイムスタンプが見つかりませんでした。');
@@ -155,9 +260,9 @@ async function main() {
   const scriptStartTime = Date.now();
   try {
     console.log('=== JARTICデータ取得スクリプト開始 ===');
-    console.log('JARTICデータの最新タイムスタンプを検索中...');
+    console.log('JARTICデータのタイムスタンプを確認中...');
     const timestamp = await getLatestTimestamp();
-    console.log(`最新のタイムスタンプを確認しました: ${timestamp}`);
+    console.log(`利用するタイムスタンプ: ${timestamp}`);
 
     const dataDir = path.join(process.cwd(), 'data');
     console.log(`データ保存ディレクトリを確認/作成中: ${dataDir}`);
