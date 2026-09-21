@@ -925,19 +925,16 @@
               layer.bindPopup(() => {
                 const props = feature.properties || {};
                 
-                // 新API構造 (expwなど)
+                // 新API構造 (expwなど) による自然な文章の生成
                 if (props.r !== undefined || props.rd !== undefined) {
                   const r = props.r || '名称不明';
-                  const d = props.d ? ` (${props.d})` : '';
-                  const i = props.i || '区間不明';
+                  const i = props.i ? `${props.i}で` : '';
+                  const c = props.c ? `${props.c}により` : '';
+                  const d = props.d ? `${props.d}線が` : '';
                   const rd = props.rd || '状況不明';
-                  const c = props.c || '';
                   
-                  let desc = `<b>${r}${d}</b><br>`;
-                  desc += `区間: ${i}<br>`;
-                  desc += `状況: <b>${rd}</b>`;
-                  if (c) desc += `<br>理由: ${c}`;
-                  return desc;
+                  // 例: "札幌夕張線 ３号線は栗山町角田付近でその他により上下線が通行止になっています。"
+                  return `<b>${r}</b><br>${i}${c}${d}<b>${rd}</b>になっています。`;
                 }
 
                 // 既存の構造へのフォールバック
