@@ -4,6 +4,16 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>交通情報 - 並木中等教育学校18回生</title>
+  <script nonce="%%CSP_NONCE%%">
+    // 保存済みのテーマ設定を描画前に反映する(反映しないと、ライト設定でもページを開くたびにダークで表示されてしまう)
+    try {
+      var savedTheme = localStorage.getItem('namiki-theme');
+      if (savedTheme === 'light' || savedTheme === 'dark') {
+        document.documentElement.classList.toggle('dark', savedTheme === 'dark');
+        document.documentElement.classList.toggle('light', savedTheme === 'light');
+      }
+    } catch (e) {}
+  </script>
   <link rel="stylesheet" href="/assets/css/app.css">
   <link rel="stylesheet" href="/style.css">
   <link rel="icon" href="/favicon.ico" type="image/x-icon">
@@ -12,11 +22,15 @@
     /* ===== 画面レイアウトの全画面化調整 ===== */
     .app-main {
       height: 100vh;
-      height: 100dvh;
       display: flex;
       flex-direction: column;
       box-sizing: border-box;
       padding: 1rem;
+      /* モバイルの固定トップバーと重なる場合は、JS(fitLayout)が --tm-bar-clear で避ける分を足す */
+      padding-top: calc(1rem + var(--tm-bar-clear, 0px));
+    }
+    @supports (height: 100dvh) {
+      .app-main { height: var(--tm-main-h, 100dvh); }
     }
     .content-area {
       height: 100%;
@@ -36,19 +50,31 @@
       min-height: 0;
     }
     .tm-toolbar { display: flex; flex-wrap: wrap; gap: .5rem .9rem; align-items: center; justify-content: space-between; margin-bottom: .65rem; flex: none; }
-    .tm-chipset, .tm-tools { display: flex; flex-wrap: wrap; align-items: center; gap: .4rem; }
+    .tm-chipset { display: flex; flex-wrap: wrap; align-items: center; gap: .4rem .7rem; min-width: 0; }
+    .tm-group { display: flex; flex-wrap: wrap; align-items: center; gap: .4rem; }
+    .tm-sep { flex: none; width: 1px; align-self: stretch; min-height: 22px; background: rgba(127, 127, 127, .38); }
+    .tm-tools { display: flex; flex-wrap: wrap; align-items: center; gap: .4rem; }
+
     .tm-chip, .tm-btn {
       display: inline-flex; align-items: center; gap: .4rem; min-height: 36px; padding: .35rem .8rem;
       border: 1px solid rgba(127, 127, 127, .38); border-radius: 999px; background: transparent; color: inherit;
-      font: inherit; font-size: .85rem; line-height: 1.2; cursor: pointer;
+      font: inherit; font-size: .85rem; line-height: 1.2; white-space: nowrap; cursor: pointer;
+      transition: background-color .15s ease, border-color .15s ease, opacity .15s ease;
+      -webkit-tap-highlight-color: transparent;
     }
+    .tm-chip:hover, .tm-btn:hover:not(:disabled) { background: rgba(127, 127, 127, .14); }
     .tm-chip[aria-pressed="true"] { background: rgba(59, 130, 246, .16); border-color: var(--color-accent-blue, #3b82f6); }
+    .tm-chip[aria-pressed="true"]:hover { background: rgba(59, 130, 246, .26); }
     .tm-chip[aria-pressed="false"] { opacity: .62; }
-    .tm-chip:focus-visible, .tm-btn:focus-visible, .tm-pop-close:focus-visible {
+    .tm-chip[aria-pressed="false"]:hover { opacity: .92; }
+    .tm-chip:focus-visible, .tm-btn:focus-visible, .tm-pop-close:focus-visible, .tm-msg-btn:focus-visible {
       outline: 2px solid var(--color-accent-blue-light, #60a5fa); outline-offset: 2px;
     }
     .tm-chip[hidden] { display: none; }
     .tm-btn:disabled { opacity: 0.5; cursor: not-allowed; }
+    .tm-btn svg { width: 1rem; height: 1rem; flex: none; }
+    @media (pointer: coarse) { .tm-chip, .tm-btn { min-height: 44px; } }
+
     .tm-dot { width: .8rem; height: .8rem; border-radius: 50%; border: 2px solid #fff; box-shadow: 0 0 0 1px rgba(0, 0, 0, .4); flex: none; }
     .tm-dot.rail { background: #2563eb; }
     .tm-dot.bus { background: #f59e0b; }
@@ -58,21 +84,30 @@
     .tm-dot.expw { background: #3b82f6; }
     .tm-dot.closure { background: #fff; border-color: #dc2626; box-shadow: none; }
     .tm-count { font-variant-numeric: tabular-nums; opacity: .8; }
-    .tm-updated { font-size: .8rem; opacity: .75; font-variant-numeric: tabular-nums; }
+
+    /* 更新状況(色の点で 正常 / 古い / 失敗 が分かる) */
+    .tm-updated { display: inline-flex; align-items: center; gap: .4rem; font-size: .8rem; opacity: .85; font-variant-numeric: tabular-nums; }
+    .tm-updated::before { content: ""; flex: none; width: .5rem; height: .5rem; border-radius: 50%; background: currentColor; opacity: .45; }
+    .tm-updated[data-state="ok"]::before { background: #10b981; opacity: 1; }
+    .tm-updated[data-state="stale"]::before { background: #f59e0b; opacity: 1; }
+    .tm-updated[data-state="error"]::before { background: #dc2626; opacity: 1; }
 
     .tm-map-wrap {
       position: relative;
-      flex: 1;
-      height: 100%;
-      min-height: 0;
+      flex: 1 1 auto;
+      min-height: 240px;
     }
+    /* 親の高さに左右されず常に枠いっぱいに広がるよう絶対配置にする */
     .tm-map {
-      position: relative; isolation: isolate;
+      position: absolute; top: 0; right: 0; bottom: 0; left: 0; isolation: isolate; box-sizing: border-box;
       height: 100% !important;
-      width: 100%;
       border: 1px solid rgba(127, 127, 127, .32); border-radius: 14px; overflow: hidden; background: #d6dee8;
+      --tm-pop-bg: #fff; --tm-pop-fg: #1e293b; --tm-pop-sub: #64748b; --tm-pop-late: #b91c1c; --tm-pop-early: #047857;
     }
-    html.dark .tm-map { background: #18212c; }
+    html.dark .tm-map {
+      background: #18212c;
+      --tm-pop-bg: #1e293b; --tm-pop-fg: #e2e8f0; --tm-pop-sub: #94a3b8; --tm-pop-late: #fca5a5; --tm-pop-early: #6ee7b7;
+    }
     html.dark .tm-map .leaflet-tile-pane { filter: invert(1) hue-rotate(180deg) brightness(.9) contrast(.92) saturate(.8); }
     .tm-map .leaflet-control-attribution { font-size: 11px; }
     .tm-canvas { position: absolute; left: 0; top: 0; z-index: 450; pointer-events: none; }
@@ -83,29 +118,69 @@
     }
     .tm-msg[hidden] { display: none; }
     .tm-msg.fatal { border-radius: 12px; pointer-events: auto; background: rgba(153, 27, 27, .92); }
+    .tm-msg-btn {
+      margin-left: .6rem; padding: .15rem .75rem; border: 1px solid rgba(255, 255, 255, .7); border-radius: 999px;
+      background: transparent; color: inherit; font: inherit; cursor: pointer;
+    }
+    .tm-msg-btn:hover { background: rgba(255, 255, 255, .18); }
 
+    /* 車両・駅・学校のポップアップ */
     .tm-pop {
       position: absolute; z-index: 460; width: 15.5rem; max-width: calc(100% - 16px); padding: .7rem .8rem .6rem;
-      border-radius: 12px; color: #1e293b; background: #fff; box-shadow: 0 6px 22px rgba(0, 0, 0, .3);
+      border-radius: 12px; color: var(--tm-pop-fg); background: var(--tm-pop-bg);
+      border: 1px solid rgba(127, 127, 127, .25); box-shadow: 0 6px 22px rgba(0, 0, 0, .3);
       font-size: .82rem; line-height: 1.45;
     }
     .tm-pop[hidden] { display: none; }
     .tm-pop-title { display: flex; align-items: center; gap: .45rem; margin: 0 1.6rem .4rem 0; font-weight: 700; font-size: .92rem; }
     .tm-pop-close {
       position: absolute; right: .35rem; top: .3rem; width: 28px; height: 28px; border: 0; border-radius: 50%;
-      background: transparent; color: #475569; font-size: 1.15rem; line-height: 1; cursor: pointer;
+      background: transparent; color: var(--tm-pop-sub); font-size: 1.15rem; line-height: 1; cursor: pointer;
     }
+    .tm-pop-close:hover { background: rgba(127, 127, 127, .2); }
     .tm-pop-list { display: grid; grid-template-columns: max-content 1fr; gap: .15rem .7rem; margin: 0; }
-    .tm-pop-list dt { color: #64748b; }
+    .tm-pop-list dt { color: var(--tm-pop-sub); }
     .tm-pop-list dd { margin: 0; word-break: break-word; }
-    .tm-pop-late { color: #b91c1c; font-weight: 700; }
-    .tm-pop-early { color: #047857; }
+    .tm-pop-late { color: var(--tm-pop-late); font-weight: 700; }
+    .tm-pop-early { color: var(--tm-pop-early); }
+
+    /* 道路のポップアップ (Leaflet標準ポップアップをテーマに合わせる) */
+    .tm-road-pop .leaflet-popup-content-wrapper,
+    .tm-road-pop .leaflet-popup-tip { background: var(--tm-pop-bg); color: var(--tm-pop-fg); }
+    .tm-road-pop .leaflet-popup-close-button { color: var(--tm-pop-sub); }
+    .tm-road-body { margin: .1rem 0; padding-left: .6rem; border-left: 4px solid #10b981; font-size: .85rem; line-height: 1.55; }
+    .tm-road-body.is-closure { border-left-color: #dc2626; }
+    .tm-road-body.is-jam { border-left-color: #f59e0b; }
+
+    /* Leaflet標準コントロールのダークテーマ対応 */
+    html.dark .tm-map .leaflet-bar a { background-color: #1e293b; color: #e2e8f0; border-bottom-color: #334155; }
+    html.dark .tm-map .leaflet-bar a:hover { background-color: #334155; }
+    html.dark .tm-map .leaflet-bar a.leaflet-disabled { background-color: #1e293b; color: #64748b; }
+    html.dark .tm-map .leaflet-control-attribution { background: rgba(15, 23, 42, .78); color: #cbd5e1; }
+    html.dark .tm-map .leaflet-control-attribution a { color: #93c5fd; }
+    html.dark .tm-map .leaflet-control-scale-line { background: rgba(15, 23, 42, .7); color: #e2e8f0; border-color: #94a3b8; }
 
     @media (max-width: 640px) {
       .tm-pop { width: 14rem; }
-      .app-main { padding: .5rem; }
+      .app-main { padding: .5rem; padding-top: calc(.5rem + var(--tm-bar-clear, 0px)); }
+      /* 絞り込みボタンは横スクロールにして、地図の面積を確保する */
+      .tm-toolbar { flex-direction: column; flex-wrap: nowrap; align-items: stretch; gap: .4rem; }
+      .tm-chipset {
+        flex-wrap: nowrap; overflow-x: auto; padding-right: 1.5rem; scrollbar-width: none;
+        -webkit-overflow-scrolling: touch;
+        -webkit-mask-image: linear-gradient(to right, #000 calc(100% - 1.5rem), transparent);
+        mask-image: linear-gradient(to right, #000 calc(100% - 1.5rem), transparent);
+      }
+      .tm-chipset::-webkit-scrollbar { display: none; }
+      .tm-group { flex-wrap: nowrap; }
+      .tm-chip { flex: none; }
+      .tm-tools { justify-content: space-between; }
     }
-    @media (prefers-reduced-motion: reduce) { .tm-chip, .tm-btn { transition: none; } }
+    @media (prefers-reduced-motion: reduce) {
+      .tm-chip, .tm-btn { transition: none; }
+      /* 動きを減らす設定のときは点滅させず、常時表示にする */
+      path.road-alert-blink { animation: none !important; }
+    }
     /* 渋滞・通行止め道路の点滅アニメーション (1秒点灯・1秒消灯) */
     @keyframes roadAlertBlink {
       0%, 49.9% { opacity: 1; }
@@ -211,26 +286,38 @@
         <div class="tm-toolbar">
           <div class="tm-chipset" role="group" aria-label="地図に表示するもの">
             <!-- 交通用レイヤー -->
-            <button type="button" class="tm-chip" data-tm-layer="rail" aria-pressed="true"><span class="tm-dot rail" aria-hidden="true"></span>列車 <span class="tm-count" data-tm-count="rail"></span></button>
-            <button type="button" class="tm-chip" data-tm-layer="bus" aria-pressed="true"><span class="tm-dot bus" aria-hidden="true"></span>バス <span class="tm-count" data-tm-count="bus"></span></button>
-            <button type="button" class="tm-chip" data-tm-layer="other" aria-pressed="true" hidden><span class="tm-dot other" aria-hidden="true"></span>その他 <span class="tm-count" data-tm-count="other"></span></button>
-            <button type="button" class="tm-chip" data-tm-layer="delayed" aria-pressed="false"><span class="tm-dot late" aria-hidden="true"></span>3分以上の遅れだけ</button>
-            
+            <div class="tm-group" role="group" aria-label="列車・バス">
+              <button type="button" class="tm-chip" data-tm-layer="rail" aria-pressed="true"><span class="tm-dot rail" aria-hidden="true"></span>列車 <span class="tm-count" data-tm-count="rail"></span></button>
+              <button type="button" class="tm-chip" data-tm-layer="bus" aria-pressed="true"><span class="tm-dot bus" aria-hidden="true"></span>バス <span class="tm-count" data-tm-count="bus"></span></button>
+              <button type="button" class="tm-chip" data-tm-layer="other" aria-pressed="true" hidden><span class="tm-dot other" aria-hidden="true"></span>その他 <span class="tm-count" data-tm-count="other"></span></button>
+              <button type="button" class="tm-chip" data-tm-layer="delayed" aria-pressed="false"><span class="tm-dot late" aria-hidden="true"></span>3分以上の遅れだけ</button>
+            </div>
+
+            <span class="tm-sep" aria-hidden="true"></span>
+
             <!-- 道路用レイヤー -->
-            <button type="button" class="tm-chip" data-tm-layer="local" aria-pressed="false">
-              <span class="tm-dot local" aria-hidden="true"></span>一般道 <span class="tm-count" data-tm-count="local"></span>
-            </button>
-            <button type="button" class="tm-chip" data-tm-layer="expw" aria-pressed="false">
-              <span class="tm-dot expw" aria-hidden="true"></span>高速道路 <span class="tm-count" data-tm-count="expw"></span>
-            </button>
-            <button type="button" class="tm-chip" data-tm-layer="closure" aria-pressed="false">
-              <span class="tm-dot closure" aria-hidden="true"></span>通行止め・渋滞のみ
-            </button>
+            <div class="tm-group" role="group" aria-label="道路">
+              <button type="button" class="tm-chip" data-tm-layer="local" aria-pressed="false">
+                <span class="tm-dot local" aria-hidden="true"></span>一般道 <span class="tm-count" data-tm-count="local"></span>
+              </button>
+              <button type="button" class="tm-chip" data-tm-layer="expw" aria-pressed="false">
+                <span class="tm-dot expw" aria-hidden="true"></span>高速道路 <span class="tm-count" data-tm-count="expw"></span>
+              </button>
+              <button type="button" class="tm-chip" data-tm-layer="closure" aria-pressed="false">
+                <span class="tm-dot closure" aria-hidden="true"></span>通行止め・渋滞のみ
+              </button>
+            </div>
           </div>
           <div class="tm-tools">
-            <button type="button" class="tm-btn" id="tm-geolocation">現在地へ</button>
-            <button type="button" class="tm-btn" id="tm-home">学校の周辺へ</button>
-            <span class="tm-updated" id="tm-updated" role="status" aria-live="polite">読み込み中…</span>
+            <button type="button" class="tm-btn" id="tm-geolocation">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="3.5" /><path d="M12 2v3M12 19v3M2 12h3M19 12h3" /></svg>
+              <span class="tm-btn-label">現在地へ</span>
+            </button>
+            <button type="button" class="tm-btn" id="tm-home">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 21s-7-6.2-7-11a7 7 0 1114 0c0 4.8-7 11-7 11z" /><circle cx="12" cy="10" r="2.5" /></svg>
+              <span class="tm-btn-label">学校の周辺へ</span>
+            </button>
+            <span class="tm-updated" id="tm-updated" role="status" aria-live="polite" data-state="loading">読み込み中…</span>
           </div>
         </div>
 
@@ -245,6 +332,15 @@
   <script src="/vendor/leaflet/leaflet.js"></script>
   <script nonce="%%CSP_NONCE%%">
     const rawFetch = window.fetch.bind(window);
+
+    // 既定アバター: 終了済みの外部画像サービス(via.placeholder.com)に頼らず、頭文字入りの画像をその場で作る
+    let avatarInitial = 'U';
+    function avatarFallback(name) {
+      const first = Array.from(String(name || '').trim())[0] || 'U';
+      const ch = /[&<>"']/.test(first) ? 'U' : first;
+      const svg = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 40 40"><rect width="40" height="40" fill="#3b82f6"/><text x="20" y="21" text-anchor="middle" dominant-baseline="central" font-family="system-ui, sans-serif" font-size="18" fill="#fff">${ch}</text></svg>`;
+      return 'data:image/svg+xml;charset=utf-8,' + encodeURIComponent(svg);
+    }
 
     function initThemeToggle() {
       const toggleSwitch = document.getElementById('theme-toggle-switch');
@@ -270,9 +366,10 @@
       document.getElementById('sidebar-user-name').textContent = profile.name || 'ユーザー';
       document.getElementById('popup-user-name').textContent = profile.name || 'ユーザー';
       document.getElementById('popup-user-email').textContent = profile.email || 'メールアドレス未設定';
+      avatarInitial = profile.name || 'U';
       const avatar = profile.picture && profile.picture !== 'admin.png'
         ? profile.picture
-        : `https://via.placeholder.com/40/3b82f6/ffffff?text=${encodeURIComponent((profile.name || 'U').charAt(0))}`;
+        : avatarFallback(avatarInitial);
       document.getElementById('sidebar-user-avatar').src = avatar;
       document.getElementById('popup-user-avatar').src = avatar;
       document.getElementById('mobile-user-avatar').src = avatar;
@@ -294,6 +391,17 @@
       document.getElementById('mobile-account-popup-menu')?.classList.remove('show');
     });
     initThemeToggle();
+    // アバター画像を読み込めないときは、頭文字の画像に差し替える
+    ['sidebar-user-avatar', 'popup-user-avatar', 'mobile-user-avatar'].forEach((id) => {
+      const img = document.getElementById(id);
+      if (!img) return;
+      img.src = avatarFallback(avatarInitial);
+      img.addEventListener('error', () => {
+        if (img.dataset.fallback) return;
+        img.dataset.fallback = '1';
+        img.src = avatarFallback(avatarInitial);
+      });
+    });
     loadProfile().catch(() => {});
 
     document.addEventListener('click', (event) => {
@@ -315,15 +423,19 @@
       'use strict';
       const rf = typeof rawFetch === 'function' ? rawFetch : window.fetch.bind(window);
       const $ = (id) => document.getElementById(id);
-      
+
       const MODES = ['rail', 'bus', 'other'];
       const ROAD_MODES = ['local', 'expw'];
-      
+
       const MODE_LABEL = { rail: '列車', bus: 'バス', other: 'その他' };
       const MODE_COLOR = { rail: '#2563eb', bus: '#f59e0b', other: '#7c3aed' };
+      const ROAD_LABEL = { local: '一般道', expw: '高速道路' };
       const LATE_SEC = 180;
       const BLANK_TILE = 'data:image/gif;base64,R0lGODlhAQABAAAAACH5BAEKAAEALAAAAAABAAEAAAICTAEAOw==';
       const PREF_KEY = 'namiki-transit-map';
+      const STATIC_CACHE_MS = 7 * 24 * 60 * 60 * 1000; // 路線・駅データは1週間で再取得
+      const ROAD_REFRESH_MS = 5 * 60 * 1000;           // 道路データは5分毎
+      const STATION_GROUP_M = 2000;                    // 同名駅を「同じ駅」とみなす距離
       const HIT_PAD = (window.L && L.Browser && L.Browser.mobile) ? 8 : 2;
 
       const S = {
@@ -331,37 +443,107 @@
         on: { rail: true, bus: true, other: true, delayed: false, local: false, expw: false, closure: false },
         vehicles: [], vIndex: new Map(),
         feeds: new Map(), statics: new Map(),
-        selected: null, seq: { v: 0 }, updatedAt: 0, stale: false, truncated: false, error: false,
+        otherAvailable: false, // 「その他」の車両データがあるときだけ true
+        selected: null, seq: { v: 0 }, roadSeq: { local: 0, expw: 0 },
+        updatedAt: 0, stale: false, truncated: false, error: false,
         ignoreMapClick: false,
-        layers: { local: null, expw: null }
+        layers: { local: null, expw: null },
+        roadRenderer: null, meRenderer: null, meLayer: null
       };
 
+      // ===== レイアウト調整 =====
+      // モバイルの固定トップバーに地図の操作部が隠れたり、トップバーの分だけ画面が縦にはみ出したりしないようにする
+      function fitLayout() {
+        const root = document.documentElement;
+        const main = document.querySelector('.app-main');
+        if (!main) return;
+        root.style.removeProperty('--tm-bar-clear');
+        root.style.removeProperty('--tm-main-h');
+        const mainRect = main.getBoundingClientRect();
+        const mainTop = mainRect.top + window.scrollY;
+        if (mainTop > 1) root.style.setProperty('--tm-main-h', Math.max(0, window.innerHeight - mainTop) + 'px');
+        const bar = document.querySelector('.mobile-topbar');
+        if (!bar) return;
+        const cs = getComputedStyle(bar);
+        if (cs.display === 'none' || (cs.position !== 'fixed' && cs.position !== 'absolute')) return;
+        const contentTop = mainRect.top + (parseFloat(getComputedStyle(main).paddingTop) || 0);
+        const clear = Math.max(0, bar.getBoundingClientRect().bottom + 6 - contentTop);
+        if (clear > 0) root.style.setProperty('--tm-bar-clear', Math.round(clear) + 'px');
+      }
+      let fitRaf = 0;
+      const scheduleFit = () => { if (!fitRaf) fitRaf = requestAnimationFrame(() => { fitRaf = 0; fitLayout(); }); };
+      window.addEventListener('resize', scheduleFit);
+      window.addEventListener('orientationchange', scheduleFit);
+      window.addEventListener('load', scheduleFit);
+      fitLayout();
+
+      // ===== 共通ヘルパー =====
       async function api(url) {
         const res = await rf(url, { credentials: 'same-origin', headers: { Accept: 'application/json' } });
         if (res.status === 401) { window.location.href = '/login'; throw new Error('unauthorized'); }
         if (!res.ok) throw new Error('HTTP ' + res.status);
         return res.json();
       }
-      const clock = (ms) => (ms ? new Date(ms).toLocaleTimeString('ja-JP', { hour12: false }) : '--:--:--');
+      const clock = (ms) => (ms ? new Date(ms).toLocaleTimeString('ja-JP', { hour: '2-digit', minute: '2-digit', second: '2-digit', hourCycle: 'h23' }) : '--:--:--');
       const isLate = (v) => typeof v.d === 'number' && v.d >= LATE_SEC;
+      // 現在のボタン状態で地図に出すべき車両か(ボタンを切り替えた瞬間に反映するため、描画側でも判定する)
+      const isShown = (v) => S.on[v.m] !== false && (!S.on.delayed || isLate(v));
       function el(tag, className, text) {
         const node = document.createElement(tag);
         if (className) node.className = className;
         if (text !== undefined) node.textContent = text;
         return node;
       }
-      
-      function showMsg(text, fatal) {
+
+      // 路線カラーが '#rrggbb' / 'rrggbb' / '#rgb' 以外だと Canvas が無視して前の色のまま描いてしまうため、正規化する
+      function vehicleColor(v) {
+        if (v._c) return v._c;
+        let color = MODE_COLOR[v.m] || MODE_COLOR.other;
+        if (v.m === 'rail' && typeof v.k === 'string') {
+          const k = v.k.trim();
+          if (/^#?[0-9a-f]{6}$/i.test(k)) color = k[0] === '#' ? k : '#' + k;
+          else if (/^#[0-9a-f]{3}$/i.test(k)) color = k;
+        }
+        v._c = color;
+        return color;
+      }
+
+      // メッセージ表示。ttl(ms) を渡した通知は、その間は定期更新の showMsg('') で消されない
+      let msgTimer = 0;
+      let toastUntil = 0;
+      function paintMsg(text, fatal) {
         requestAnimationFrame(() => {
           const box = $('tm-msg');
           if (!box) return;
-          if (!text) { box.hidden = true; return; }
+          if (!text) { box.hidden = true; box.textContent = ''; return; }
           box.textContent = text;
           box.classList.toggle('fatal', Boolean(fatal));
+          if (fatal) {
+            const btn = el('button', 'tm-msg-btn', '再読み込み');
+            btn.type = 'button';
+            btn.addEventListener('click', () => window.location.reload());
+            box.append(btn);
+          }
           box.hidden = false;
         });
       }
-      
+      function showMsg(text, fatal, ttl) {
+        if (!text && Date.now() < toastUntil) return;
+        clearTimeout(msgTimer);
+        toastUntil = 0;
+        paintMsg(text, fatal);
+        if (text && ttl) {
+          toastUntil = Date.now() + ttl;
+          msgTimer = setTimeout(() => { toastUntil = 0; paintMsg(''); }, ttl);
+        }
+      }
+      function setStatus(text, state) {
+        const status = $('tm-updated');
+        if (!status) return;
+        status.textContent = text;
+        status.dataset.state = state || 'ok';
+      }
+
       function loadPrefs() {
         try {
           const p = JSON.parse(localStorage.getItem(PREF_KEY) || '{}');
@@ -372,6 +554,7 @@
         try { localStorage.setItem(PREF_KEY, JSON.stringify({ on: S.on })); } catch (_) {}
       }
 
+      // ===== ポップアップ =====
       function buildPopup(container) {
         const box = el('div', 'tm-pop');
         box.hidden = true;
@@ -403,11 +586,12 @@
           if (v === '' || v === null || v === undefined) return;
           pop.list.append(el('dt', '', k), el('dd', cls || '', String(v)));
         };
-        
+
         if (item.kind === 'vehicle') {
           const v = item.ref;
           const feed = S.feeds.get(v.f);
           const dot = el('span', 'tm-dot ' + v.m);
+          dot.style.background = vehicleColor(v); // 地図上の色と揃える
           pop.title.append(dot, document.createTextNode(`${MODE_LABEL[v.m] || '車両'}${v.r ? ' ' + v.r : ''}`));
           row('事業者', feed ? feed.label : '');
           const dl = delayText(v.d);
@@ -417,16 +601,17 @@
           row('車両', v.l);
           row('位置の時刻', v.ts ? clock(v.ts * 1000) : '');
         } else if (item.kind === 'school') {
-          pop.title.append(el('span', 'tm-dot late'), document.createTextNode(S.cfg.school.name));
+          pop.title.append(el('span', 'tm-dot late'), document.createTextNode((S.cfg && S.cfg.school && S.cfg.school.name) || '学校'));
           row('種別', '学校');
         } else if (item.kind === 'station') {
           const dot = el('span', 'tm-dot');
           dot.style.background = '#475569';
-          pop.title.append(dot, document.createTextNode(item.name));
+          pop.title.append(dot, document.createTextNode(item.name || '駅名不明'));
           row('乗り入れ', item.routes && item.routes.length > 0 ? item.routes.join('、') : '情報なし');
         }
       }
 
+      // ===== 車両・学校を描く Canvas オーバーレイ =====
       function createOverlay(map) {
         const container = map.getContainer();
         const canvas = el('canvas', 'tm-canvas');
@@ -468,18 +653,24 @@
           const z = map.getZoom();
           const sel = S.selected;
 
-          const list = S.on.delayed ? S.vehicles.filter(isLate) : S.vehicles;
+          // 遅れている車両は最前面に描く
+          const normal = [];
+          const late = [];
+          for (const v of S.vehicles) {
+            if (typeof v.la !== 'number' || typeof v.lo !== 'number' || !isShown(v)) continue;
+            (isLate(v) ? late : normal).push(v);
+          }
           const size = z >= 15 ? 11 : z >= 13 ? 9 : 7;
+          let selPoint = null;
           ctx.lineWidth = 3;
           ctx.lineJoin = 'round';
           ctx.strokeStyle = '#fff';
-          for (const pass of [false, true]) {
-            for (const v of list) {
-              if (isLate(v) !== pass) continue;
+          for (const [group, isLatePass] of [[normal, false], [late, true]]) {
+            for (const v of group) {
               const p = map.latLngToContainerPoint([v.la, v.lo]);
               if (p.x < -20 || p.y < -20 || p.x > w + 20 || p.y > h + 20) continue;
-              ctx.fillStyle = (v.m === 'rail' && v.k) || MODE_COLOR[v.m] || MODE_COLOR.other;
-              if (pass) {
+              ctx.fillStyle = vehicleColor(v);
+              if (isLatePass) {
                 ctx.save();
                 ctx.strokeStyle = '#dc2626';
                 ctx.lineWidth = 3;
@@ -491,15 +682,7 @@
               if (typeof v.b === 'number' && z >= 12) arrow(p.x, p.y, v.b, size);
               else { ctx.beginPath(); ctx.arc(p.x, p.y, size * 0.7, 0, Math.PI * 2); ctx.stroke(); ctx.fill(); }
               hits.push({ x: p.x, y: p.y, r: size + 6 + HIT_PAD, kind: 'vehicle', id: v.id });
-              if (sel && sel.kind === 'vehicle' && sel.id === v.id) {
-                ctx.save();
-                ctx.strokeStyle = '#0f172a';
-                ctx.lineWidth = 2;
-                ctx.beginPath();
-                ctx.arc(p.x, p.y, size + 8, 0, Math.PI * 2);
-                ctx.stroke();
-                ctx.restore();
-              }
+              if (sel && sel.kind === 'vehicle' && sel.id === v.id) selPoint = p;
             }
           }
 
@@ -521,6 +704,17 @@
               hits.push({ x: p.x, y: p.y, r: 14 + HIT_PAD, kind: 'school', id: 'school' });
             }
           }
+
+          // 選択中の車両のリングは、他の車両に隠れないよう最後に描く
+          if (selPoint) {
+            ctx.save();
+            ctx.strokeStyle = '#0f172a';
+            ctx.lineWidth = 2;
+            ctx.beginPath();
+            ctx.arc(selPoint.x, selPoint.y, size + 8, 0, Math.PI * 2);
+            ctx.stroke();
+            ctx.restore();
+          }
           placePopup();
         }
 
@@ -539,7 +733,11 @@
 
         function lookup(sel) {
           if (!sel) return null;
-          if (sel.kind === 'vehicle') { const v = S.vIndex.get(sel.id); return v ? { kind: 'vehicle', ref: v, la: v.la, lo: v.lo } : null; }
+          if (sel.kind === 'vehicle') {
+            const v = S.vIndex.get(sel.id);
+            // 非表示にした車両のポップアップが残らないようにする
+            return v && isShown(v) ? { kind: 'vehicle', ref: v, la: v.la, lo: v.lo } : null;
+          }
           if (sel.kind === 'station') { return { kind: 'station', name: sel.name, routes: sel.routes, la: sel.la, lo: sel.lo }; }
           return S.cfg ? { kind: 'school', ref: null, la: S.cfg.school.lat, lo: S.cfg.school.lon } : null;
         }
@@ -574,6 +772,12 @@
         if (S.overlay) { S.overlay.refreshPopup(); S.overlay.schedule(); }
       }
 
+      // ===== 車両データ =====
+      // 「その他」は、該当データがある場合だけ表示対象にする(ボタンが隠れているのに要求してしまうのを防ぐ)
+      function activeModes() {
+        return MODES.filter((m) => S.on[m] && !(m === 'other' && !S.otherAvailable));
+      }
+
       function updateCounts() {
         const counts = { rail: 0, bus: 0, other: 0 };
         S.vehicles.forEach((v) => { if (counts[v.m] !== undefined) counts[v.m]++; });
@@ -590,34 +794,34 @@
         if (!S.map) return;
         S.vIndex = new Map(S.vehicles.map((v) => [v.id, v]));
         updateCounts();
-        
-        requestAnimationFrame(() => {
-          const status = $('tm-updated');
-          if (status) {
-            if (S.error) status.textContent = '更新できませんでした。自動で再試行します';
-            else if (S.stale) status.textContent = `位置データが古くなっています(最終 ${clock(S.updatedAt)})`;
-            else status.textContent = `最終更新 ${clock(S.updatedAt)}` + (S.truncated ? ' ・ 表示数を制限中(拡大すると全て表示)' : '');
-          }
-        });
 
-        const shown = S.on.delayed ? S.vehicles.filter(isLate).length : S.vehicles.length;
-        const anyMode = MODES.some((m) => S.on[m]);
-        
-        if (S.error && !S.vehicles.length) showMsg('位置データを取得できませんでした。自動で再試行します。');
-        else if (!anyMode) showMsg('列車・バスの表示がすべてオフです。上のボタンで表示できます。');
-        else if (S.updatedAt && shown === 0) showMsg(S.on.delayed ? 'この範囲に3分以上遅れている列車・バスはありません。' : 'この範囲に走行中の列車・バスの位置情報はありません。地図を動かすか、縮小してみてください。');
+        if (S.error) setStatus('更新できませんでした。自動で再試行します', 'error');
+        else if (S.stale) setStatus(`位置データが古くなっています(最終 ${clock(S.updatedAt)})`, 'stale');
+        else setStatus(`最終更新 ${clock(S.updatedAt)}` + (S.truncated ? ' ・ 表示数を制限中(拡大すると全て表示)' : ''), 'ok');
+
+        const modes = activeModes();
+        const shown = S.vehicles.filter(isShown).length;
+        const roadsOn = S.on.local || S.on.expw;
+
+        if (S.error && !S.vehicles.length && modes.length) showMsg('位置データを取得できませんでした。自動で再試行します。');
+        else if (!modes.length && !roadsOn) showMsg('表示する項目がすべてオフです。上のボタンで表示できます。');
+        else if (modes.length && S.updatedAt && shown === 0) showMsg(S.on.delayed ? 'この範囲に3分以上遅れている列車・バスはありません。' : 'この範囲に走行中の列車・バスの位置情報はありません。地図を動かすか、縮小してみてください。');
         else showMsg('');
-        
+
         if (S.overlay) { S.overlay.refreshPopup(); S.overlay.schedule(); }
       }
 
       async function loadVehicles() {
         if (!S.map || document.hidden) return;
         const seq = ++S.seq.v;
-        const modes = MODES.filter((m) => S.on[m]);
+        const modes = activeModes();
         if (!modes.length) { S.vehicles = []; S.error = false; afterVehicles(); return; }
         try {
-          const bbox = encodeURIComponent(S.map.getBounds().pad(0.15).toBBoxString());
+          // 世界の端をまたぐ範囲になってもAPIに不正な値を送らないよう、緯度経度を丸める
+          const b = S.map.getBounds().pad(0.15);
+          const lng = (x) => Math.max(-180, Math.min(180, x));
+          const lat = (y) => Math.max(-90, Math.min(90, y));
+          const bbox = encodeURIComponent([lng(b.getWest()), lat(b.getSouth()), lng(b.getEast()), lat(b.getNorth())].map((n) => n.toFixed(5)).join(','));
           const data = await api(`/api/transit/map/vehicles?bbox=${bbox}&modes=${modes.join(',')}&limit=3000`);
           if (seq !== S.seq.v) return;
           S.vehicles = Array.isArray(data.vehicles) ? data.vehicles : [];
@@ -635,11 +839,41 @@
       async function loadInfo() {
         try {
           const info = await api('/api/transit/map/info');
-          S.feeds = new Map(info.feeds.map((f) => [f.id, f]));
+          const feeds = Array.isArray(info.feeds) ? info.feeds : [];
+          S.feeds = new Map(feeds.map((f) => [f.id, f]));
           S.statics = new Map((info.statics || []).map((s) => [s.id, s]));
+          const hasOther = feeds.some((f) => f.kind === 'vehicle' && f.mode === 'other');
           const chip = document.querySelector('[data-tm-layer="other"]');
-          if (chip) chip.hidden = !info.feeds.some((f) => f.kind === 'vehicle' && f.mode === 'other');
+          if (chip) chip.hidden = !hasOther;
+          if (hasOther !== S.otherAvailable) { S.otherAvailable = hasOther; if (S.map) loadVehicles(); }
         } catch (_) {}
+      }
+
+      // ===== 路線・駅などの静的データ(Cache API + 有効期限) =====
+      // 一度キャッシュしたら永久に更新されない状態にならないよう、期限切れで再取得する。
+      // 再取得に失敗したときは古いキャッシュを使い、Cache API が使えない環境でも取得だけは行う。
+      async function fetchGeoJson(url, cacheName, maxAgeMs) {
+        const tsKey = 'namiki-transit-ts:' + cacheName;
+        let ts = 0;
+        try { ts = Number(localStorage.getItem(tsKey)) || 0; } catch (_) {}
+        let cache = null;
+        let cached = null;
+        if ('caches' in window) {
+          try { cache = await caches.open(cacheName); cached = await cache.match(url); } catch (_) { cache = null; cached = null; }
+        }
+        if (cached && ts && Date.now() - ts < maxAgeMs) return cached.json();
+        try {
+          const res = await rf(url, { credentials: 'same-origin', headers: { Accept: 'application/json' } });
+          if (res.status === 401) { window.location.href = '/login'; throw new Error('unauthorized'); }
+          if (!res.ok) throw new Error('HTTP ' + res.status);
+          if (cache) {
+            try { await cache.put(url, res.clone()); localStorage.setItem(tsKey, String(Date.now())); } catch (_) {}
+          }
+          return await res.json();
+        } catch (err) {
+          if (cached && err.message !== 'unauthorized') return cached.json();
+          throw err;
+        }
       }
 
       // ===== 路線図の設定 =====
@@ -666,29 +900,9 @@
       async function loadGeoJsonRoutes() {
         if (!S.map) return;
         try {
-          const url = '/api/transit/railroadsection';
-          let res;
-          
-          if ('caches' in window) {
-            const cache = await caches.open('namiki-transit-routes-v1');
-            res = await cache.match(url);
-            if (!res) {
-              res = await rf(url, { headers: { 'Accept': 'application/json' } });
-              if (res.ok) await cache.put(url, res.clone());
-            }
-          } else {
-            res = await rf(url, { headers: { 'Accept': 'application/json' } });
-          }
-
-          if (!res.ok) throw new Error('HTTP Error: ' + res.status);
-          const geojson = await res.json();
-
-          if (!S.map.getPane('transit-routes')) {
-            S.map.createPane('transit-routes');
-            S.map.getPane('transit-routes').style.zIndex = 400;
-          }
+          const geojson = await fetchGeoJson('/api/transit/railroadsection', 'namiki-transit-routes-v1', STATIC_CACHE_MS);
           const routeRenderer = L.canvas({ padding: 0.1, pane: 'transit-routes' });
-          
+
           routeLayer = L.geoJSON(geojson, {
             renderer: routeRenderer,
             interactive: false,
@@ -710,7 +924,6 @@
               }));
             }
           });
-
         } catch (err) {
           console.error('路線図データの取得に失敗:', err);
         }
@@ -726,68 +939,63 @@
       }
 
       function getStationName(props) {
-        if (!props) return 'Unknown';
-        return props.name || props.station_name || props.N02_005 || props.station || 'Unknown';
+        if (!props) return '';
+        return props.name || props.station_name || props.N02_005 || props.station || '';
+      }
+
+      // 乗り入れ表示は「会社名」ではなく「路線名(会社名)」にする
+      function routeLabel(p) {
+        const route = p.route_name || p.N02_003 || '';
+        const company = p.company || p.N02_004 || '';
+        if (route && company && route !== company) return `${route}(${company})`;
+        return route || company || '';
+      }
+
+      // GeoJSONのジオメトリから最初の座標を取り出す
+      function firstLatLng(geometry) {
+        let c = geometry && geometry.coordinates;
+        while (Array.isArray(c) && Array.isArray(c[0])) c = c[0];
+        return Array.isArray(c) && c.length >= 2 && isFinite(c[0]) && isFinite(c[1]) ? L.latLng(c[1], c[0]) : null;
       }
 
       async function loadGeoJsonStations() {
         if (!S.map) return;
         try {
-          const url = '/api/transit/station';
-          let res;
-          
-          if ('caches' in window) {
-            const cache = await caches.open('namiki-transit-stations-v1');
-            res = await cache.match(url);
-            if (!res) {
-              res = await rf(url, { headers: { 'Accept': 'application/json' } });
-              if (res.ok) await cache.put(url, res.clone());
-            }
-          } else {
-            res = await rf(url, { headers: { 'Accept': 'application/json' } });
-          }
-
-          if (!res.ok) throw new Error('HTTP Error: ' + res.status);
-          const geojson = await res.json();
-
-          if (!S.map.getPane('transit-stations')) {
-            S.map.createPane('transit-stations');
-            S.map.getPane('transit-stations').style.zIndex = 410; 
-          }
+          const geojson = await fetchGeoJson('/api/transit/station', 'namiki-transit-stations-v1', STATIC_CACHE_MS);
           const stationRenderer = L.canvas({ padding: 0.1, pane: 'transit-stations' });
-          
-          const stationGroups = new Map();
-          const unknownStations = [];
 
-          L.geoJSON(geojson, {
-            onEachFeature: (feature, layer) => {
-              const name = getStationName(feature.properties);
-              const center = layer.getBounds ? layer.getBounds().getCenter() : (layer.getLatLng ? layer.getLatLng() : null);
-              
-              if (center) {
-                if (name !== 'Unknown') {
-                  if (!stationGroups.has(name)) {
-                    stationGroups.set(name, { centers: [], props: [] });
-                  }
-                  stationGroups.get(name).centers.push(center);
-                  stationGroups.get(name).props.push(feature.properties);
-                } else {
-                  unknownStations.push({ center, props: feature.properties });
-                }
-              }
-            }
-          });
+          // 駅名ごとに、乗り入れ路線をまとめる(描画用のレイヤーを作らずデータだけで集計する)
+          const groups = new Map();
+          for (const f of (Array.isArray(geojson && geojson.features) ? geojson.features : [])) {
+            const props = f.properties || {};
+            const name = getStationName(props);
+            if (!name) continue;
+            if (!groups.has(name)) groups.set(name, []);
+            groups.get(name).push({ at: firstLatLng(f.geometry), route: routeLabel(props) });
+          }
 
-          const handleStationClick = (e, name, routes, latlng) => {
-            const pt = e.containerPoint || (S.map && S.map.latLngToContainerPoint(latlng));
+          const handleStationClick = (feature, e) => {
+            const pt = e.containerPoint || (S.map && S.map.latLngToContainerPoint(e.latlng));
             if (pt && S.overlay && S.overlay.hitAt(pt)) return;
 
             S.ignoreMapClick = true;
             setTimeout(() => { S.ignoreMapClick = false; }, 50);
 
-            select({ kind: 'station', name: name, routes: routes, la: latlng.lat, lo: latlng.lng });
+            const props = feature.properties || {};
+            const name = getStationName(props);
+            let routes;
+            if (name && groups.has(name)) {
+              // 同じ名前でも遠く離れた駅の路線は混ぜない
+              routes = groups.get(name)
+                .filter((g) => !g.at || S.map.distance(e.latlng, g.at) <= STATION_GROUP_M)
+                .map((g) => g.route);
+            } else {
+              routes = [routeLabel(props)];
+            }
+            routes = [...new Set(routes.filter(Boolean))];
+            select({ kind: 'station', name, routes, la: e.latlng.lat, lo: e.latlng.lng });
           };
-          
+
           const stationBgLayer = L.geoJSON(geojson, {
             renderer: stationRenderer,
             interactive: false,
@@ -799,31 +1007,17 @@
             interactive: true,
             style: () => ({ color: '#ffffff', lineCap: 'square' }),
             onEachFeature: (feature, layer) => {
-              layer.on('click', (e) => {
-                const name = getStationName(feature.properties);
-                let routes = [];
-                if (stationGroups.has(name)) {
-                  routes = [...new Set(stationGroups.get(name).props.map(p => p.N02_004 || p.N02_003 || p.route_name || p.company || '').filter(Boolean))];
-                } else {
-                  const r = feature.properties.N02_004 || feature.properties.N02_003 || feature.properties.route_name || feature.properties.company || '';
-                  if (r) routes.push(r);
-                }
-                handleStationClick(e, name, routes, e.latlng);
-              });
+              layer.on('click', (e) => handleStationClick(feature, e));
             }
           });
 
-          const stationDotsLayer = L.layerGroup();
-          
           function updateStationDisplay() {
             const z = S.map.getZoom();
-            // ズームレベルの閾値を 10 から 8 に変更 (9以上で長方形を表示、8以下で見えなくなる)
+            // ズームレベル8以下では非表示、9以上で長方形を表示する
             if (z <= 8) {
-              // ズームアウト時は何も表示しない（丸に切り替えない）
               if (S.map.hasLayer(stationBgLayer)) S.map.removeLayer(stationBgLayer);
               if (S.map.hasLayer(stationFgLayer)) S.map.removeLayer(stationFgLayer);
             } else {
-              // ズームイン時は長方形でレンダリング
               if (!S.map.hasLayer(stationBgLayer)) S.map.addLayer(stationBgLayer);
               if (!S.map.hasLayer(stationFgLayer)) S.map.addLayer(stationFgLayer);
 
@@ -835,115 +1029,104 @@
 
           S.map.on('zoomend', updateStationDisplay);
           updateStationDisplay();
-
         } catch (err) {
           console.error('駅データの取得に失敗:', err);
         }
       }
 
       // ===== 道路情報 (一般道・高速道路) =====
-      const roadSvgRenderer = L.svg({ padding: 0.1 });
+      // 通行止め・渋滞・対面通行の判定を1か所にまとめる(表示スタイルと「のみ」フィルターで判定がずれないように)
+      function roadState(props) {
+        if (props.rd !== undefined) {
+          const rd = String(props.rd || '');
+          if (/通行止|閉鎖/.test(rd)) return 'closure';
+          if (/渋滞|混雑|対面通行/.test(rd)) return 'jam';
+          return 'normal';
+        }
+        const st = props.status;
+        if (st === 'closure' || st === 'closed') return 'closure';
+        if (st === 'jam' || st === 'heavy') return 'jam';
+        return 'normal';
+      }
 
       function getRoadStyle(feature, type) {
-        const props = feature.properties || {};
-        let isClosure = false;
-        let isTrafficJam = false;
-
-        // 新API構造 (expwなど) への対応
-        if (props.rd !== undefined) {
-          const rd = props.rd || '';
-          isClosure = rd.includes('通行止') || rd.includes('閉鎖');
-          isTrafficJam = rd.includes('渋滞') || rd.includes('混雑') || rd.includes('対面通行');
-        } else {
-          // 既存の構造へのフォールバック
-          isClosure = props.status === 'closure' || props.status === 'closed';
-          isTrafficJam = props.status === 'jam' || props.status === 'heavy';
-        }
-
+        const state = roadState(feature.properties || {});
         let color = type === 'expw' ? '#3b82f6' : '#10b981';
         let weight = type === 'expw' ? 4 : 3;
         let opacity = 0.7;
-        let className = ''; // ←追加：基本はクラスなし
+        let className = '';
 
-        if (isClosure) {
+        if (state === 'closure') {
           color = '#dc2626';
-          weight = 8; // ←タップしやすいように少し太くしました
+          weight = 8; // タップしやすいよう太くする
           opacity = 1.0;
-          className = 'road-alert-blink'; // ←追加：点滅クラスを付与
-        } else if (isTrafficJam) {
+          className = 'road-alert-blink';
+        } else if (state === 'jam') {
           color = '#f59e0b';
-          weight = 8; // ←タップしやすいように少し太くしました
+          weight = 8;
           opacity = 0.9;
-          className = 'road-alert-blink'; // ←追加：点滅クラスを付与
+          className = 'road-alert-blink';
         }
-
-        // 戻り値に className を含める
         return { color, weight, opacity, className };
       }
 
-      async function loadRoadData(type) {
-        if (!S.map || !S.on[type]) {
-          S.layers[type].clearLayers();
-          return;
+      // 外部データを HTML 文字列に埋め込まず、DOM として組み立てる(表示内容にタグが含まれていても実行されない)
+      function roadPopupContent(props) {
+        const box = el('div', 'tm-road-body is-' + roadState(props));
+        if (props.r !== undefined || props.rd !== undefined) {
+          // 例: "札幌夕張線 ３号線は栗山町角田付近でその他により上下線が通行止になっています。"
+          const lead = `${props.i ? props.i + 'で' : ''}${props.c ? props.c + 'により' : ''}${props.d ? props.d + '線が' : ''}`;
+          box.append(
+            el('b', '', String(props.r || '名称不明')), el('br'),
+            document.createTextNode(lead),
+            el('b', '', String(props.rd || '状況不明')),
+            document.createTextNode('になっています。')
+          );
+          return box;
         }
+        box.append(el('b', '', String(props.name || props.road_name || '名称不明')), el('br'), document.createTextNode(`状況: ${props.status || '順調'}`));
+        if (props.detail) box.append(el('br'), document.createTextNode(`詳細: ${props.detail}`));
+        return box;
+      }
+
+      function setCount(key, text) {
+        requestAnimationFrame(() => {
+          const badge = document.querySelector(`[data-tm-count="${key}"]`);
+          if (badge) badge.textContent = text;
+        });
+      }
+
+      async function loadRoadData(type) {
+        if (!S.map || !S.layers[type]) return;
+        const seq = ++S.roadSeq[type];
+        if (!S.on[type]) { S.layers[type].clearLayers(); setCount(type, ''); return; }
         try {
-          // 既存のAPIパスを維持（必要であれば /api/expw のように変更してください）
-          const res = await rf(`/api/road/${type}`, { headers: { 'Accept': 'application/json' } });
-          if (!res.ok) throw new Error('HTTP Error: ' + res.status);
-          const geojson = await res.json();
+          const geojson = await api(`/api/road/${type}`);
+          // 取得中にオフにされた・別の更新が始まった場合は捨てる
+          if (seq !== S.roadSeq[type] || !S.on[type]) return;
 
           S.layers[type].clearLayers();
-
           const geoLayer = L.geoJSON(geojson, {
-            renderer: roadSvgRenderer,
-            filter: (feature) => {
-              if (!S.on.closure) return true;
-              const props = feature.properties || {};
-              
-              // 新API構造
-              if (props.rd !== undefined) {
-                const rd = props.rd || '';
-                return rd.includes('通行止') || rd.includes('閉鎖') || rd.includes('渋滞') || rd.includes('混雑');
-              }
-              // 既存の構造へのフォールバック
-              const st = props.status;
-              return ['closure', 'closed', 'jam', 'heavy'].includes(st);
-            },
+            renderer: S.roadRenderer,
+            filter: (feature) => !S.on.closure || roadState(feature.properties || {}) !== 'normal',
             style: (feature) => getRoadStyle(feature, type),
             onEachFeature: (feature, layer) => {
-              layer.bindPopup(() => {
-                const props = feature.properties || {};
-                
-                // 新API構造 (expwなど) による自然な文章の生成
-                if (props.r !== undefined || props.rd !== undefined) {
-                  const r = props.r || '名称不明';
-                  const i = props.i ? `${props.i}で` : '';
-                  const c = props.c ? `${props.c}により` : '';
-                  const d = props.d ? `${props.d}線が` : '';
-                  const rd = props.rd || '状況不明';
-                  
-                  // 例: "札幌夕張線 ３号線は栗山町角田付近でその他により上下線が通行止になっています。"
-                  return `<b>${r}</b><br>${i}${c}${d}<b>${rd}</b>になっています。`;
-                }
-
-                // 既存の構造へのフォールバック
-                const name = props.name || props.road_name || '名称不明';
-                const status = props.status || '順調';
-                let desc = `<b>${name}</b><br>状況: ${status}`;
-                if (props.detail) desc += `<br>詳細: ${props.detail}`;
-                return desc;
+              layer.on('click', (e) => {
+                // 車両が重なっているときは車両の詳細を優先する
+                if (S.overlay && S.overlay.hitAt(e.containerPoint)) return;
+                L.popup({ className: 'tm-road-pop', maxWidth: 280 })
+                  .setLatLng(e.latlng)
+                  .setContent(roadPopupContent(feature.properties || {}))
+                  .openOn(S.map);
               });
             }
           });
-
           geoLayer.addTo(S.layers[type]);
-          
-          requestAnimationFrame(() => {
-            const countEl = document.querySelector(`[data-tm-count="${type}"]`);
-            if (countEl) countEl.textContent = geoLayer.getLayers().length;
-          });
+          setCount(type, String(geoLayer.getLayers().length));
         } catch (err) {
+          if (err && err.message === 'unauthorized') return;
           console.error(`道路情報(${type})の取得に失敗:`, err);
+          if (seq === S.roadSeq[type]) showMsg(`${ROAD_LABEL[type]}の情報を取得できませんでした。`, false, 5000);
         }
       }
 
@@ -958,51 +1141,69 @@
           const key = btn.dataset.tmLayer;
           btn.setAttribute('aria-pressed', String(S.on[key]));
           btn.addEventListener('click', () => {
+            if (!S.map) return; // 地図を表示できていないときは何もしない
             S.on[key] = !S.on[key];
             btn.setAttribute('aria-pressed', String(S.on[key]));
             savePrefs();
-            
-            if (MODES.includes(key)) { 
-              updateCounts(); loadVehicles(); 
+
+            if (MODES.includes(key)) {
+              afterVehicles(); // 先に画面へ反映してから最新データを取り直す
+              loadVehicles();
             } else if (ROAD_MODES.includes(key)) {
               if (S.on[key]) {
                 if (!S.map.hasLayer(S.layers[key])) S.map.addLayer(S.layers[key]);
-                loadRoadData(key);
-              } else {
-                if (S.map.hasLayer(S.layers[key])) S.map.removeLayer(S.layers[key]);
+              } else if (S.map.hasLayer(S.layers[key])) {
+                S.map.removeLayer(S.layers[key]);
               }
+              loadRoadData(key);
             } else if (key === 'closure') {
+              if (S.on.closure && !S.on.local && !S.on.expw) showMsg('「通行止め・渋滞のみ」は、一般道か高速道路を表示しているときに使えます。', false, 5000);
               refreshAllRoadData();
             } else {
-              afterVehicles(); 
+              afterVehicles();
             }
           });
         });
       }
 
+      // 現在地の表示(位置の点と、精度の円)
+      function showMyLocation(lat, lon, accuracy) {
+        if (!S.map || !S.meRenderer) return;
+        if (S.meLayer) S.meLayer.remove();
+        S.meLayer = L.layerGroup().addTo(S.map);
+        if (accuracy && accuracy < 3000) {
+          L.circle([lat, lon], { radius: accuracy, renderer: S.meRenderer, interactive: false, color: '#2563eb', weight: 1, fillColor: '#2563eb', fillOpacity: 0.1 }).addTo(S.meLayer);
+        }
+        L.circleMarker([lat, lon], { radius: 7, renderer: S.meRenderer, interactive: false, color: '#ffffff', weight: 3, fillColor: '#2563eb', fillOpacity: 1 }).addTo(S.meLayer);
+      }
+
+      function fail(text) {
+        showMsg(text, true);
+        setStatus('地図を表示できません', 'error');
+      }
+
       async function init() {
         loadPrefs();
         bindControls();
-        loadInfo();
+        const infoReady = loadInfo();
         setInterval(() => { if (!document.hidden) loadInfo(); }, 60 * 1000);
 
-        if (typeof L === 'undefined') {
-          showMsg('地図ライブラリ(Leaflet)を読み込めませんでした。', true);
-          if ($('tm-updated'))$('tm-updated').textContent = '地図を表示できません';
-          return;
-        }
+        if (typeof L === 'undefined') { fail('地図ライブラリ(Leaflet)を読み込めませんでした。'); return; }
         let cfg;
         try { cfg = await api('/api/transit/map/config'); } catch (_) {
-          showMsg('地図の設定を取得できませんでした。ページを再読み込みしてください。', true);
-          if ($('tm-updated'))$('tm-updated').textContent = '地図を表示できません';
+          fail('地図の設定を取得できませんでした。ページを再読み込みしてください。');
+          return;
+        }
+        if (!cfg || !cfg.school || !cfg.tiles || !cfg.tiles.template) {
+          fail('地図の設定が正しくありません。管理者に連絡してください。');
           return;
         }
         S.cfg = cfg;
-        
+        const view = Object.assign({ zoom: 13, minZoom: 5, maxZoom: 18 }, cfg.view || {});
         const tileUrl = cfg.tiles.template.replace('{layer}', 'pale');
 
         const map = L.map('tm-map', {
-          center: [cfg.school.lat, cfg.school.lon], zoom: cfg.view.zoom, minZoom: cfg.view.minZoom, maxZoom: cfg.view.maxZoom,
+          center: [cfg.school.lat, cfg.school.lon], zoom: view.zoom, minZoom: view.minZoom, maxZoom: view.maxZoom,
           zoomAnimation: false,
           preferCanvas: true,
           attributionControl: true
@@ -1010,9 +1211,19 @@
         S.map = map;
         map.attributionControl.setPrefix(false);
         map.attributionControl.addAttribution('データ: <a href="https://www.odpt.org/" target="_blank" rel="noopener noreferrer">公共交通オープンデータセンター</a>・<a href="https://www.jartic.or.jp/" target="_blank" rel="noopener noreferrer">JARTIC</a>(推測)等');
-        
+
+        // 重なり順: 地図タイル < 路線 < 駅 < 道路 < 現在地 < 車両(Canvas)。
+        // 道路は、下にある Canvas(路線・駅)にクリックを奪われないよう、それらより上の専用レイヤーに置く。
+        [['transit-routes', 400], ['transit-stations', 410], ['transit-roads', 420], ['transit-me', 430]].forEach(([name, z]) => {
+          map.createPane(name).style.zIndex = z;
+        });
+        S.roadRenderer = L.svg({ pane: 'transit-roads', padding: 0.1 });
+        S.meRenderer = L.svg({ pane: 'transit-me', padding: 0.1 });
+
         S.tiles = L.tileLayer(tileUrl, {
-          minZoom: cfg.view.minZoom, maxZoom: cfg.view.maxZoom, errorTileUrl: BLANK_TILE, keepBuffer: 2,
+          minZoom: view.minZoom, maxZoom: view.maxZoom,
+          maxNativeZoom: Math.min(view.maxZoom, 18), // 地理院タイルはズーム18まで。それ以上は拡大表示で空白を防ぐ
+          errorTileUrl: BLANK_TILE, keepBuffer: 2,
           attribution: '地図: <a href="https://maps.gsi.go.jp/development/ichiran.html" target="_blank" rel="noopener noreferrer">国土地理院(地理院タイル)</a>'
         }).addTo(map);
         L.control.scale({ imperial: false, position: 'bottomleft' }).addTo(map);
@@ -1024,44 +1235,47 @@
         if (S.on.local) map.addLayer(S.layers.local);
         if (S.on.expw) map.addLayer(S.layers.expw);
 
-        $('tm-home')?.addEventListener('click', () => map.setView([cfg.school.lat, cfg.school.lon], cfg.view.zoom));
+        $('tm-home')?.addEventListener('click', () => map.setView([cfg.school.lat, cfg.school.lon], view.zoom));
 
         $('tm-geolocation')?.addEventListener('click', () => {
           if (!navigator.geolocation) {
-            showMsg('お使いのブラウザは現在地機能に対応していません。');
-            setTimeout(() => showMsg(''), 4000);
+            showMsg('お使いのブラウザは現在地機能に対応していません。', false, 4000);
             return;
           }
-          
+
           const geoBtn = $('tm-geolocation');
-          geoBtn.textContent = '取得中...';
+          const label = geoBtn.querySelector('.tm-btn-label');
+          const done = () => { if (label) label.textContent = '現在地へ'; geoBtn.disabled = false; };
+          if (label) label.textContent = '取得中...';
           geoBtn.disabled = true;
 
           navigator.geolocation.getCurrentPosition(
             (position) => {
-              geoBtn.textContent = '現在地へ';
-              geoBtn.disabled = false;
-              map.setView([position.coords.latitude, position.coords.longitude], 15);
+              done();
+              const { latitude, longitude, accuracy } = position.coords;
+              showMyLocation(latitude, longitude, accuracy);
+              map.setView([latitude, longitude], 15);
             },
             (error) => {
-              geoBtn.textContent = '現在地へ';
-              geoBtn.disabled = false;
-              showMsg('現在地を取得できませんでした。端末の位置情報設定を確認してください。');
-              setTimeout(() => showMsg(''), 5000);
+              done();
+              const text = error && error.code === 1 ? '位置情報の利用が許可されていません。ブラウザや端末の設定を確認してください。'
+                : error && error.code === 3 ? '現在地の取得がタイムアウトしました。もう一度お試しください。'
+                : '現在地を取得できませんでした。端末の位置情報設定を確認してください。';
+              showMsg(text, false, 5000);
             },
-            { enableHighAccuracy: true, timeout: 10000, maximumAge: 0 }
+            { enableHighAccuracy: true, timeout: 15000, maximumAge: 10000 }
           );
         });
 
-        map.on('click', (e) => { 
-          const hit = S.overlay.hitAt(e.containerPoint); 
+        map.on('click', (e) => {
+          const hit = S.overlay.hitAt(e.containerPoint);
           if (hit) {
             select({ kind: hit.kind, id: hit.id });
           } else if (!S.ignoreMapClick) {
             select(null);
           }
         });
-        
+
         map.on('mousemove', (e) => { map.getContainer().style.cursor = S.overlay.hitAt(e.containerPoint) ? 'pointer' : ''; });
         let moveTimer = 0;
         map.on('moveend zoomend', () => { clearTimeout(moveTimer); moveTimer = setTimeout(() => { loadVehicles(); }, 250); });
@@ -1070,25 +1284,29 @@
 
         const pollMs = Math.max(15, Math.round((cfg.pollSec || 30) / 2)) * 1000;
         setInterval(() => { if (!document.hidden) loadVehicles(); }, pollMs);
-        setInterval(() => { if (!document.hidden) refreshAllRoadData(); }, 300000); // 道路データは5分毎
-        
-        document.addEventListener('visibilitychange', () => { 
-          if (!document.hidden) { 
-            loadVehicles(); 
-            loadInfo(); 
+        setInterval(() => { if (!document.hidden) refreshAllRoadData(); }, ROAD_REFRESH_MS);
+
+        document.addEventListener('visibilitychange', () => {
+          if (!document.hidden) {
+            loadVehicles();
+            loadInfo();
             refreshAllRoadData();
-          } 
+          }
         });
 
         S.overlay.schedule();
+        await infoReady; // 「その他」の有無が分かってから最初の車両取得を行う
         loadVehicles();
-        
+
         loadGeoJsonRoutes();
         loadGeoJsonStations();
         refreshAllRoadData();
       }
 
-      init();
+      init().catch((err) => {
+        console.error('交通マップの初期化に失敗:', err);
+        fail('地図の初期化中にエラーが発生しました。ページを再読み込みしてください。');
+      });
     })();
   </script>
 </body>
