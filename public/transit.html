@@ -205,7 +205,7 @@
             <button type="button" class="tm-chip" data-tm-layer="other" aria-pressed="true" hidden><span class="tm-dot other" aria-hidden="true"></span>その他 <span class="tm-count" data-tm-count="other"></span></button>
             <button type="button" class="tm-chip" data-tm-layer="delayed" aria-pressed="false"><span class="tm-dot late" aria-hidden="true"></span>3分以上の遅れだけ</button>
             
-            <!-- 道路用レイヤー（追加） -->
+            <!-- 道路用レイヤー -->
             <button type="button" class="tm-chip" data-tm-layer="local" aria-pressed="false">
               <span class="tm-dot local" aria-hidden="true"></span>一般道 <span class="tm-count" data-tm-count="local"></span>
             </button>
@@ -322,7 +322,7 @@
         feeds: new Map(), statics: new Map(),
         selected: null, seq: { v: 0 }, updatedAt: 0, stale: false, truncated: false, error: false,
         ignoreMapClick: false,
-        layers: { local: null, expw: null } // 道路用レイヤー
+        layers: { local: null, expw: null }
       };
 
       async function api(url) {
@@ -862,9 +862,20 @@
       // ===== 道路情報 (一般道・高速道路) =====
       function getRoadStyle(feature, type) {
         const props = feature.properties || {};
-        const isClosure = props.status === 'closure' || props.status === 'closed';
-        const isTrafficJam = props.status === 'jam' || props.status === 'heavy';
-        
+        let isClosure = false;
+        let isTrafficJam = false;
+
+        // 新API構造 (expwなど) への対応
+        if (props.rd !== undefined) {
+          const rd = props.rd || '';
+          isClosure = rd.includes('通行止') || rd.includes('閉鎖');
+          isTrafficJam = rd.includes('渋滞') || rd.includes('混雑') || rd.includes('対面通行');
+        } else {
+          // 既存の構造へのフォールバック
+          isClosure = props.status === 'closure' || props.status === 'closed';
+          isTrafficJam = props.status === 'jam' || props.status === 'heavy';
+        }
+
         let color = type === 'expw' ? '#3b82f6' : '#10b981';
         let weight = type === 'expw' ? 6 : 4;
         let opacity = 0.7;
@@ -888,6 +899,7 @@
           return;
         }
         try {
+          // 既存のAPIパスを維持（必要であれば /api/expw のように変更してください）
           const res = await rf(`/api/road/${type}`, { headers: { 'Accept': 'application/json' } });
           if (!res.ok) throw new Error('HTTP Error: ' + res.status);
           const geojson = await res.json();
@@ -897,13 +909,38 @@
           const geoLayer = L.geoJSON(geojson, {
             filter: (feature) => {
               if (!S.on.closure) return true;
-              const st = feature.properties?.status;
+              const props = feature.properties || {};
+              
+              // 新API構造
+              if (props.rd !== undefined) {
+                const rd = props.rd || '';
+                return rd.includes('通行止') || rd.includes('閉鎖') || rd.includes('渋滞') || rd.includes('混雑');
+              }
+              // 既存の構造へのフォールバック
+              const st = props.status;
               return ['closure', 'closed', 'jam', 'heavy'].includes(st);
             },
             style: (feature) => getRoadStyle(feature, type),
             onEachFeature: (feature, layer) => {
               layer.bindPopup(() => {
                 const props = feature.properties || {};
+                
+                // 新API構造 (expwなど)
+                if (props.r !== undefined || props.rd !== undefined) {
+                  const r = props.r || '名称不明';
+                  const d = props.d ? ` (${props.d})` : '';
+                  const i = props.i || '区間不明';
+                  const rd = props.rd || '状況不明';
+                  const c = props.c || '';
+                  
+                  let desc = `<b>${r}${d}</b><br>`;
+                  desc += `区間: ${i}<br>`;
+                  desc += `状況: <b>${rd}</b>`;
+                  if (c) desc += `<br>理由: ${c}`;
+                  return desc;
+                }
+
+                // 既存の構造へのフォールバック
                 const name = props.name || props.road_name || '名称不明';
                 const status = props.status || '順調';
                 let desc = `<b>${name}</b><br>状況: ${status}`;
