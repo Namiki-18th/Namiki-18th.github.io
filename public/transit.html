@@ -804,44 +804,15 @@
 
           const stationDotsLayer = L.layerGroup();
           
-          stationGroups.forEach((data, name) => {
-            let latSum = 0; let lngSum = 0;
-            data.centers.forEach(c => { latSum += c.lat; lngSum += c.lng; });
-            const avgCenter = L.latLng(latSum / data.centers.length, lngSum / data.centers.length);
-            
-            const routes = [...new Set(data.props.map(p => p.N02_004 || p.N02_003 || p.route_name || p.company || '').filter(Boolean))];
-            
-            L.circleMarker(avgCenter, {
-              renderer: stationRenderer,
-              interactive: true,
-              radius: 4.5,
-              color: '#000000',
-              weight: 1.5,
-              fillColor: '#ffffff',
-              fillOpacity: 1
-            }).on('click', (e) => {
-              handleStationClick(e, name, routes, avgCenter);
-            }).addTo(stationDotsLayer);
-          });
-
-          unknownStations.forEach(item => {
-            const r = item.props.N02_004 || item.props.N02_003 || item.props.route_name || item.props.company || '';
-            L.circleMarker(item.center, {
-              renderer: stationRenderer, interactive: true, radius: 4.5,
-              color: '#000000', weight: 1.5, fillColor: '#ffffff', fillOpacity: 1
-            }).on('click', (e) => {
-              handleStationClick(e, '不明', r ? [r] : [], item.center);
-            }).addTo(stationDotsLayer);
-          });
-
           function updateStationDisplay() {
             const z = S.map.getZoom();
-            if (z <= 10) {
-              if (!S.map.hasLayer(stationDotsLayer)) S.map.addLayer(stationDotsLayer);
+            // ズームレベルの閾値を 10 から 8 に変更 (9以上で長方形を表示、8以下で見えなくなる)
+            if (z <= 8) {
+              // ズームアウト時は何も表示しない（丸に切り替えない）
               if (S.map.hasLayer(stationBgLayer)) S.map.removeLayer(stationBgLayer);
               if (S.map.hasLayer(stationFgLayer)) S.map.removeLayer(stationFgLayer);
             } else {
-              if (S.map.hasLayer(stationDotsLayer)) S.map.removeLayer(stationDotsLayer);
+              // ズームイン時は長方形でレンダリング
               if (!S.map.hasLayer(stationBgLayer)) S.map.addLayer(stationBgLayer);
               if (!S.map.hasLayer(stationFgLayer)) S.map.addLayer(stationFgLayer);
 
