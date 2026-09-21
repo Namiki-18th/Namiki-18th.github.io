@@ -122,7 +122,8 @@ const connectSrcUrls = [
   'https://api.odpt.org',
   'https://api.allorigins.win',
   'https://www.google.com/recaptcha/',
-  'https://www.gstatic.com/recaptcha/'
+  'https://www.gstatic.com/recaptcha/',
+  'https://www.jma.go.jp'
 ];
 if (process.env.ROAD_INFO_WORKER_URL) connectSrcUrls.push(process.env.ROAD_INFO_WORKER_URL);
 if (process.env.JOBAN_LINE_WORKER_URL) connectSrcUrls.push(process.env.JOBAN_LINE_WORKER_URL);
