@@ -18,7 +18,7 @@ const LOCAL_CODES = [
 /**
  * 日本標準時（JST）を基準に、JARTICのURL用タイムスタンプを生成します
  * @param {Date} date - 基準となる日時
- * @returns {string} - YYYYMMDDHHMM 形式の文字列（分は5分単位に切り捨て）
+ * @returns {string} - YYYYMMDDHHMM 形式の文字列（1分単位）
  */
 function formatJarticTime(date) {
   const d = new Date(date.toLocaleString('en-US', { timeZone: 'Asia/Tokyo' }));
@@ -26,20 +26,20 @@ function formatJarticTime(date) {
   const m = String(d.getMonth() + 1).padStart(2, '0');
   const day = String(d.getDate()).padStart(2, '0');
   const h = String(d.getHours()).padStart(2, '0');
-  const min = String(Math.floor(d.getMinutes() / 5) * 5).padStart(2, '0');
+  const min = String(d.getMinutes()).padStart(2, '0'); // 1分単位でそのまま取得
   return `${y}${m}${day}${h}${min}`;
 }
 
 /**
  * サーバーに存在する最新のタイムスタンプを特定します
- * （現在時刻から1分前、2分前、3分前、4分前、5分前、6分前...と1分刻みで最大10回テスト）
+ * （現在時刻から1分前、2分前、3分前...と1分刻みで最大15回テスト）
  * @returns {Promise<string>} - 有効なタイムスタンプ
  */
 async function getLatestTimestamp() {
   const now = new Date();
 
-  // 1分前から順に1分刻みで遡ってテスト
-  for (let i = 1; i <= 10; i++) {
+  // 1分前から順に1分刻みで遡ってテスト（最大15回）
+  for (let i = 1; i <= 15; i++) {
     const d = new Date(now.getTime() - i * 60 * 1000);
     const timestamp = formatJarticTime(d);
     const testUrl = `https://www.jartic.or.jp/d/traffic_info/r1/${timestamp}/d/201/A03.json`;
