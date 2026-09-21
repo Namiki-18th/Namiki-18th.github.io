@@ -192,6 +192,84 @@
       pointer-events: stroke !important;
       cursor: pointer;
     }
+
+    /* モバイル向け共通レイアウト */
+    @media (max-width: 767px) {
+      .sidebar { display: none !important; }
+      .mobile-topbar { display: flex !important; position: sticky; top: 0; z-index: 50; }
+      
+      /* 下部タブバーを横スクロール可能にして全機能へアクセス可能に */
+      .mobile-tab-bar { 
+        display: flex !important; 
+        position: fixed; 
+        bottom: 0; 
+        left: 0;
+        width: 100%; 
+        z-index: 50; 
+        overflow-x: auto;
+        white-space: nowrap;
+        justify-content: flex-start;
+        -webkit-overflow-scrolling: touch;
+        scrollbar-width: none;
+        background-color: #ffffff;
+        border-top: 1px solid rgba(127, 127, 127, 0.25);
+      }
+      html.dark .mobile-tab-bar {
+        background-color: #1e293b;
+      }
+      .mobile-tab-bar::-webkit-scrollbar {
+        display: none; 
+      }
+      .mobile-nav-button {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        flex-shrink: 0;
+        padding: 0.5rem 1rem;
+        color: #64748b;
+        text-decoration: none;
+        gap: 0.25rem;
+        min-width: 4.5rem;
+      }
+      html.dark .mobile-nav-button {
+        color: #94a3b8;
+      }
+      .mobile-nav-button.active {
+        color: #3b82f6;
+      }
+      .mobile-nav-button svg {
+        width: 1.5rem;
+        height: 1.5rem;
+      }
+      .mobile-nav-text {
+        font-size: 0.65rem;
+      }
+
+      .app-main { 
+        padding-bottom: 70px !important; 
+      }
+
+      /* モバイル用ポップアップメニューのスタイル */
+      #mobile-account-popup-menu {
+        position: fixed;
+        top: 60px;
+        right: 10px;
+        z-index: 100;
+        background-color: #ffffff;
+        border-radius: 0.5rem;
+        box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+        border: 1px solid rgba(127, 127, 127, 0.25);
+      }
+      html.dark #mobile-account-popup-menu {
+        background-color: #1e293b;
+      }
+    }
+    @media (min-width: 768px) {
+      .mobile-topbar { display: none !important; }
+      .mobile-tab-bar { display: none !important; }
+      #mobile-account-popup-menu { display: none !important; }
+    }
   </style>
 </head>
 <body>
@@ -328,6 +406,37 @@
       </section>
     </div>
   </main>
+
+  <nav class="mobile-tab-bar">
+    <a href="/index" class="mobile-nav-button" title="ホーム">
+      <svg class="icon-nav" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6" /></svg>
+      <span class="mobile-nav-text">ホーム</span>
+    </a>
+    <a href="/schedule" class="mobile-nav-button" title="時間割">
+      <svg class="icon-nav" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
+      <span class="mobile-nav-text">時間割</span>
+    </a>
+    <a href="/notice" class="mobile-nav-button" title="お知らせ">
+      <svg class="icon-nav" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9" /></svg>
+      <span class="mobile-nav-text">お知らせ</span>
+    </a>
+    <a href="/link" class="mobile-nav-button" title="リンク">
+      <svg class="icon-nav" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13.828 10.172a4 4 0 00-5.656 0l-4 4a4 4 0 105.656 5.656l1.102-1.101m-.758-4.899a4 4 0 005.656 0l4-4a4 4 0 00-5.656-5.656l-1.1 1.1" /></svg>
+      <span class="mobile-nav-text">リンク</span>
+    </a>
+    <a href="/calendar" class="mobile-nav-button" title="カレンダー">
+      <svg class="icon-nav" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" /></svg>
+      <span class="mobile-nav-text">カレンダー</span>
+    </a>
+    <a href="/classroom" class="mobile-nav-button" title="Classroom">
+      <svg class="icon-nav" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10" /></svg>
+      <span class="mobile-nav-text">Classroom</span>
+    </a>
+    <a href="/transit" class="mobile-nav-button active" title="交通情報">
+      <svg class="icon-nav" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true"><path stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" d="M6 3h12a2 2 0 0 1 2 2v10a3 3 0 0 1-3 3H7a3 3 0 0 1-3-3V5a2 2 0 0 1 2-2Z" /><path stroke="currentColor" stroke-width="1.8" stroke-linecap="round" d="M4 9h16M8 6h.01M16 6h.01M7 21v-3M17 21v-3M8 13h.01M16 13h.01" /></svg>
+      <span class="mobile-nav-text">交通情報</span>
+    </a>
+  </nav>
 
   <script src="/vendor/leaflet/leaflet.js"></script>
   <script nonce="%%CSP_NONCE%%">
