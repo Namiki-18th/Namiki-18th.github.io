@@ -37,12 +37,13 @@ function formatJarticTime(date) {
  */
 async function getLatestTimestamp() {
   const d = new Date();
-  // JARTICデータの生成・配信ラグを考慮し、初期値を10分前に設定
   d.setMinutes(d.getMinutes() - 10);
 
-  for (let i = 0; i < 12; i++) {
+  for (let i = 1; i <= 12; i++) {
     const timestamp = formatJarticTime(d);
     const testUrl = `https://www.jartic.or.jp/d/traffic_info/r1/${timestamp}/d/201/A03.json`;
+    
+    console.log(`[タイムスタンプ検索] 試行 ${i}/12: ${timestamp} をテスト中 (${testUrl})`);
     
     try {
       const response = await fetch(testUrl, {
@@ -52,10 +53,13 @@ async function getLatestTimestamp() {
         }
       });
       if (response.ok) {
+        console.log(`[タイムスタンプ検索] 成功: 有効なタイムスタンプ ${timestamp} を確認しました。`);
         return timestamp;
+      } else {
+        console.log(`[タイムスタンプ検索] 失敗: ステータスコード ${response.status}`);
       }
     } catch (error) {
-      // ネットワークエラー等の場合は次のループへ
+      console.log(`[タイムスタンプ検索] 通信エラー: ${error.message}`);
     }
     // さらに5分遡る
     d.setMinutes(d.getMinutes() - 5);
@@ -71,6 +75,7 @@ async function getLatestTimestamp() {
  */
 async function fetchArea(timestamp, code) {
   const url = `https://www.jartic.or.jp/d/traffic_info/r1/${timestamp}/d/201/${code}.json`;
+  const startTime = Date.now();
   try {
     const response = await fetch(url, {
       headers: {
@@ -78,20 +83,24 @@ async function fetchArea(timestamp, code) {
         'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36'
       }
     });
+    const duration = Date.now() - startTime;
     if (!response.ok) {
-      console.warn(`[取得失敗] ${code}: HTTP ${response.status}`);
+      console.warn(`[取得失敗] エリア: ${code} | ステータス: ${response.status} | 経過時間: ${duration}ms`);
       return null;
     }
-    return await response.json();
+    const data = await response.json();
+    const featureCount = Array.isArray(data.features) ? data.features.length : 0;
+    console.log(`[取得成功] エリア: ${code.padEnd(6)} | 地物数: ${String(featureCount).padStart(3)}件 | 経過時間: ${duration}ms`);
+    return data;
   } catch (error) {
-    console.error(`[通信エラー] ${code}: ${error.message}`);
+    const duration = Date.now() - startTime;
+    console.error(`[通信エラー] エリア: ${code} | エラー: ${error.message} | 経過時間: ${duration}ms`);
     return null;
   }
 }
 
 /**
  * 配列を指定されたサイズのチャンク（塊）に分割します
- * （並列リクエスト数を制御するため）
  */
 function chunkArray(array, size) {
   const chunks = [];
@@ -113,10 +122,13 @@ async function aggregateData(timestamp, codes) {
     features: []
   };
 
-  // サーバー負荷軽減のため、10件ずつ同時に処理します
   const chunks = chunkArray(codes, 10);
+  let processedCount = 0;
   
-  for (const chunk of chunks) {
+  for (let cIdx = 0; cIdx < chunks.length; cIdx++) {
+    const chunk = chunks[cIdx];
+    console.log(`[進捗] チャンク ${cIdx + 1}/${chunks.length} を処理中 (${chunk.length}エリア)...`);
+    
     const promises = chunk.map(code => fetchArea(timestamp, code));
     const results = await Promise.all(promises);
     
@@ -126,8 +138,13 @@ async function aggregateData(timestamp, codes) {
       }
     }
     
-    // 次のチャンクを処理する前に少し待機（APIへの配慮）
-    await new Promise(resolve => setTimeout(resolve, 500));
+    processedCount += chunk.length;
+    console.log(`[進捗] 完了: ${processedCount}/${codes.length} エリア処理済み`);
+    
+    // 次のチャンクを処理する前に少し待機
+    if (cIdx < chunks.length - 1) {
+      await new Promise(resolve => setTimeout(resolve, 500));
+    }
   }
 
   return combinedGeoJSON;
@@ -137,31 +154,41 @@ async function aggregateData(timestamp, codes) {
  * メイン処理
  */
 async function main() {
+  const scriptStartTime = Date.now();
   try {
+    console.log('=== JARTICデータ取得スクリプト開始 ===');
     console.log('JARTICデータの最新タイムスタンプを検索中...');
     const timestamp = await getLatestTimestamp();
     console.log(`最新のタイムスタンプを確認しました: ${timestamp}`);
 
     const dataDir = path.join(process.cwd(), 'data');
+    console.log(`データ保存ディレクトリを確認/作成中: ${dataDir}`);
     await fs.mkdir(dataDir, { recursive: true });
 
     // 1. 高速道路のデータを取得して保存
-    console.log(`高速道路のデータを取得中 (${EXPW_CODES.length}エリア)...`);
+    console.log(`\n--- [1/2] 高速道路データの取得開始 (${EXPW_CODES.length}エリア) ---`);
     const expwData = await aggregateData(timestamp, EXPW_CODES);
     const expwPath = path.join(dataDir, 'jartic_expw.json');
-    await fs.writeFile(expwPath, JSON.stringify(expwData), 'utf-8');
-    console.log(`高速道路のデータを保存しました: ${expwPath} (地物数: ${expwData.features.length})`);
+    const expwString = JSON.stringify(expwData);
+    await fs.writeFile(expwPath, expwString, 'utf-8');
+    console.log(`高速道路のデータを保存しました: ${expwPath}`);
+    console.log(`  - 合計地物数: ${expwData.features.length}件`);
+    console.log(`  - ファイルサイズ: ${(Buffer.byteLength(expwString, 'utf-8') / 1024).toFixed(2)} KB`);
 
     // 2. 一般道のデータを取得して保存
-    console.log(`一般道のデータを取得中 (${LOCAL_CODES.length}エリア)...`);
+    console.log(`\n--- [2/2] 一般道データの取得開始 (${LOCAL_CODES.length}エリア) ---`);
     const localData = await aggregateData(timestamp, LOCAL_CODES);
     const localPath = path.join(dataDir, 'jartic_local.json');
-    await fs.writeFile(localPath, JSON.stringify(localData), 'utf-8');
-    console.log(`一般道のデータを保存しました: ${localPath} (地物数: ${localData.features.length})`);
+    const localString = JSON.stringify(localData);
+    await fs.writeFile(localPath, localString, 'utf-8');
+    console.log(`一般道のデータを保存しました: ${localPath}`);
+    console.log(`  - 合計地物数: ${localData.features.length}件`);
+    console.log(`  - ファイルサイズ: ${(Buffer.byteLength(localString, 'utf-8') / 1024).toFixed(2)} KB`);
 
-    console.log('すべての処理が完了しました。');
+    const totalDuration = ((Date.now() - scriptStartTime) / 1000).toFixed(2);
+    console.log(`\n=== すべての処理が正常に完了しました (総所要時間: ${totalDuration}秒) ===`);
   } catch (error) {
-    console.error('予期せぬエラーが発生しました:', error);
+    console.error('\n[致命的エラー] 予期せぬエラーが発生しました:', error);
     process.exit(1);
   }
 }
