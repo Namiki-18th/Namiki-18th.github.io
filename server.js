@@ -14,6 +14,7 @@ const rateLimit = require('express-rate-limit');
 const compression = require('compression');
 const axios = require('axios');
 const deepl = require('deepl-node');
+const { fork } = require('child_process');
 require('dotenv').config();
 
 // --- [オプショナルモジュールの読み込み] ---
@@ -1390,9 +1391,48 @@ let cachedClassroomData = [];
 setInterval(updateTransitCache, 60 * 1000);
 setInterval(updateRoadCache, 60 * 1000);
 
+function runRoadWorker() {
+  console.log('[RoadWorker] road.js の実行を開始します...');
+  const workerPath = path.join(__dirname, 'road.js');
+  
+  // 別プロセスとして road.js を実行
+  const worker = fork(workerPath);
+  
+  worker.on('exit', (code) => {
+    if (code === 0) {
+      console.log('[RoadWorker] road.js の実行が正常に完了しました。');
+    } else {
+      console.error(`[RoadWorker] road.js がエラーコード ${code} で終了しました。`);
+    }
+  });
+}
+
+// サーバー起動時に初回実行
+runRoadWorker();
+// 以降、5分 (300,000ミリ秒) おきに実行
+setInterval(runRoadWorker, 5 * 60 * 1000);
+
 app.get('/api/transit', ensureAuth, asyncHandler(async (req, res) => res.json(cachedTransitData)));
 app.get('/api/road', ensureAuth, asyncHandler(async (req, res) => res.json(cachedRoadData)));
+// ==========================================
+// 既存の処理（1080行目付近）
+// app.get('/api/transit', ensureAuth, asyncHandler(async (req, res) => res.json(cachedTransitData)));
+// app.get('/api/road', ensureAuth, asyncHandler(async (req, res) => res.json(cachedRoadData)));
+// ==========================================
 
+// --- [追加: road.js で生成された GeoJSON を提供するエンドポイント] ---
+// 高速道路データ用API
+app.get('/api/road/expw', ensureAuth, asyncHandler(async (req, res) => {
+  const filePath = path.join(DATA_DIR, 'jartic_expw.json');
+  // safeReadJSONを利用して、ファイルが無い場合は空のFeatureCollectionを返す
+  res.json(await safeReadJSON(filePath, { type: 'FeatureCollection', features: [] }));
+}));
+
+// 一般道データ用API
+app.get('/api/road/local', ensureAuth, asyncHandler(async (req, res) => {
+  const filePath = path.join(DATA_DIR, 'jartic_local.json');
+  res.json(await safeReadJSON(filePath, { type: 'FeatureCollection', features: [] }));
+}));
 // ====== [GeoJSON提供用エンドポイント追加] ======
 app.get('/api/transit/railroadsection', ensureAuth, asyncHandler(async (req, res) => {
   res.json(await safeReadJSON(path.join(DATA_DIR, 'railroadsection.geojson'), { type: 'FeatureCollection', features: [] }));
