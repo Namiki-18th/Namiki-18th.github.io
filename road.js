@@ -32,18 +32,19 @@ function formatJarticTime(date) {
 
 /**
  * サーバーに存在する最新のタイムスタンプを特定します
- * （配信のタイムラグを考慮し、10分前を起点として5分ずつ遡り、最大12回アクセスを試行）
+ * （現在時刻から1分前、2分前、3分前、4分前、5分前、6分前...と1分刻みで最大10回テスト）
  * @returns {Promise<string>} - 有効なタイムスタンプ
  */
 async function getLatestTimestamp() {
-  const d = new Date();
-  d.setMinutes(d.getMinutes() - 10);
+  const now = new Date();
 
-  for (let i = 1; i <= 12; i++) {
+  // 1分前から順に1分刻みで遡ってテスト
+  for (let i = 1; i <= 10; i++) {
+    const d = new Date(now.getTime() - i * 60 * 1000);
     const timestamp = formatJarticTime(d);
     const testUrl = `https://www.jartic.or.jp/d/traffic_info/r1/${timestamp}/d/201/A03.json`;
     
-    console.log(`[タイムスタンプ検索] 試行 ${i}/12: ${timestamp} をテスト中 (${testUrl})`);
+    console.log(`[タイムスタンプ検索] ${i}分前 (タイムスタンプ: ${timestamp}) をテスト中 (${testUrl})`);
     
     try {
       const response = await fetch(testUrl, {
@@ -61,8 +62,6 @@ async function getLatestTimestamp() {
     } catch (error) {
       console.log(`[タイムスタンプ検索] 通信エラー: ${error.message}`);
     }
-    // さらに5分遡る
-    d.setMinutes(d.getMinutes() - 5);
   }
   throw new Error('有効なJARTICデータのタイムスタンプが見つかりませんでした。');
 }
@@ -74,7 +73,7 @@ async function getLatestTimestamp() {
  * @returns {Promise<Object|null>} - JSONデータ、失敗時はnull
  */
 async function fetchArea(timestamp, code) {
-  const url = `https://www.jartic.or.jp/d/traffic_info/r1/${timestamp}/d/201/${code}.json`;
+  const url = `https://www.jartic.or.jp/d/traffic_info/r1/${timestamp}/d/301/${code}.json`;
   const startTime = Date.now();
   try {
     const response = await fetch(url, {
@@ -141,7 +140,6 @@ async function aggregateData(timestamp, codes) {
     processedCount += chunk.length;
     console.log(`[進捗] 完了: ${processedCount}/${codes.length} エリア処理済み`);
     
-    // 次のチャンクを処理する前に少し待機
     if (cIdx < chunks.length - 1) {
       await new Promise(resolve => setTimeout(resolve, 500));
     }
