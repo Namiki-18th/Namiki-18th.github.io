@@ -32,12 +32,15 @@ function formatJarticTime(date) {
 
 /**
  * サーバーに存在する最新のタイムスタンプを特定します
- * （現在時刻から5分ずつ遡り、最大6回アクセスを試行）
+ * （配信のタイムラグを考慮し、10分前を起点として5分ずつ遡り、最大12回アクセスを試行）
  * @returns {Promise<string>} - 有効なタイムスタンプ
  */
 async function getLatestTimestamp() {
   const d = new Date();
-  for (let i = 0; i < 6; i++) {
+  // JARTICデータの生成・配信ラグを考慮し、初期値を10分前に設定
+  d.setMinutes(d.getMinutes() - 10);
+
+  for (let i = 0; i < 12; i++) {
     const timestamp = formatJarticTime(d);
     const testUrl = `https://www.jartic.or.jp/d/traffic_info/r1/${timestamp}/d/201/A03.json`;
     
@@ -54,7 +57,7 @@ async function getLatestTimestamp() {
     } catch (error) {
       // ネットワークエラー等の場合は次のループへ
     }
-    // 5分遡る
+    // さらに5分遡る
     d.setMinutes(d.getMinutes() - 5);
   }
   throw new Error('有効なJARTICデータのタイムスタンプが見つかりませんでした。');
