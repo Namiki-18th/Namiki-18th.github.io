@@ -1174,7 +1174,9 @@
         if (accuracy && accuracy < 3000) {
           L.circle([lat, lon], { radius: accuracy, renderer: S.meRenderer, interactive: false, color: '#2563eb', weight: 1, fillColor: '#2563eb', fillOpacity: 0.1 }).addTo(S.meLayer);
         }
-        L.circleMarker([lat, lon], { radius: 7, renderer: S.meRenderer, interactive: false, color: '#ffffff', weight: 3, fillColor: '#2563eb', fillOpacity: 1 }).addTo(S.meLayer);
+        const marker = L.circleMarker([lat, lon], { radius: 7, renderer: S.meRenderer, interactive: true, color: '#ffffff', weight: 3, fillColor: '#2563eb', fillOpacity: 1 }).addTo(S.meLayer);
+        // 現在地マーカーをタップ・クリックした際に座標を表示するポップアップを追加
+        marker.bindPopup(`<div style="font-size:.85rem;line-height:1.4;"><b>現在地</b><br>緯度: ${lat.toFixed(5)}<br>経度: ${lon.toFixed(5)}</div>`, { className: 'tm-road-pop' });
       }
 
       function fail(text) {
@@ -1255,6 +1257,8 @@
               const { latitude, longitude, accuracy } = position.coords;
               showMyLocation(latitude, longitude, accuracy);
               map.setView([latitude, longitude], 15);
+              // 取得完了時に、画面上部のメッセージエリアへ座標を5秒間表示させる
+              showMsg(`現在地を取得しました（緯度: ${latitude.toFixed(5)}, 経度: ${longitude.toFixed(5)}）`, false, 5000);
             },
             (error) => {
               done();
