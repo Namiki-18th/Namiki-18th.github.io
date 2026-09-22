@@ -5,7 +5,6 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>交通情報 - 並木中等教育学校18回生</title>
   <script nonce="%%CSP_NONCE%%">
-    // 保存済みのテーマ設定を描画前に反映する(反映しないと、ライト設定でもページを開くたびにダークで表示されてしまう)
     try {
       var savedTheme = localStorage.getItem('namiki-theme');
       if (savedTheme === 'light' || savedTheme === 'dark') {
@@ -21,7 +20,6 @@
   <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Noto+Sans+JP:wght@400;500;600;700&display=swap" />
   <link rel="stylesheet" href="/vendor/leaflet/leaflet.css">
   <style nonce="%%CSP_NONCE%%">
-    /* CSS崩れの補正・インライン調整 (index共通) */
     .user-info-header { display: flex; align-items: center; gap: 0.75rem; }
     .popup-user-avatar { width: 2.25rem; height: 2.25rem; border-radius: 9999px; object-fit: cover; border: 1px solid var(--color-border, #e2e8f0); flex-shrink: 0; }
     html.dark .popup-user-avatar { border-color: var(--color-border, #334155); }
@@ -54,7 +52,6 @@
       padding: 0;
     }
 
-    /* ===== 画面レイアウトの全画面化調整 ===== */
     .app-main {
       height: 100vh;
       display: flex;
@@ -75,7 +72,6 @@
       padding: 0;
     }
 
-    /* ===== 交通マップ (.tm-*) ===== */
     .tm-section {
       margin-top: 0;
       flex: 1;
@@ -122,7 +118,6 @@
     .tm-dot.typhoon { background: #ef4444; }
     .tm-count { font-variant-numeric: tabular-nums; opacity: .8; }
 
-    /* 更新状況 */
     .tm-updated { display: inline-flex; align-items: center; gap: .4rem; font-size: .8rem; opacity: .85; font-variant-numeric: tabular-nums; }
     .tm-updated::before { content: ""; flex: none; width: .5rem; height: .5rem; border-radius: 50%; background: currentColor; opacity: .45; }
     .tm-updated[data-state="ok"]::before { background: #10b981; opacity: 1; }
@@ -160,7 +155,6 @@
     }
     .tm-msg-btn:hover { background: rgba(255, 255, 255, .18); }
 
-    /* ポップアップ */
     .tm-pop {
       position: absolute; z-index: 460; width: 15.5rem; max-width: calc(100% - 16px); padding: .7rem .8rem .6rem;
       border-radius: 12px; color: var(--tm-pop-fg); background: var(--tm-pop-bg);
@@ -401,7 +395,7 @@
       <div class="flex items-center gap-3">
         <div class="logo-badge">
           <img src="/logo.webp" alt="Logo" class="logo-badge-img" />
-          <span class="logo-badge-emoji u-hidden">🏫</span>
+          <svg class="logo-badge-emoji u-hidden" viewBox="0 0 24 24" width="1em" height="1em" stroke="currentColor" stroke-width="2" fill="none" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 19V7l8-4 8 4v12M12 22v-8h-4v8M8 10h8M8 14h8"/></svg>
         </div>
         <h1 class="font-bold text-sm sidebar-brand-name sidebar-brand-text">
           並木中等教育学校18回生<br>
@@ -564,7 +558,6 @@
       <section class="tm-section" aria-label="交通・気象マップ">
         <div class="tm-toolbar">
           <div class="tm-chipset" role="group" aria-label="地図に表示するもの">
-            <!-- 交通用レイヤー -->
             <div class="tm-group" role="group" aria-label="列車・バス">
               <button type="button" class="tm-chip" data-tm-layer="rail" aria-pressed="true"><span class="tm-dot rail" aria-hidden="true"></span>列車 <span class="tm-count" data-tm-count="rail"></span></button>
               <button type="button" class="tm-chip" data-tm-layer="bus" aria-pressed="true"><span class="tm-dot bus" aria-hidden="true"></span>バス <span class="tm-count" data-tm-count="bus"></span></button>
@@ -574,7 +567,6 @@
 
             <span class="tm-sep" aria-hidden="true"></span>
 
-            <!-- 道路用レイヤー -->
             <div class="tm-group" role="group" aria-label="道路">
               <button type="button" class="tm-chip" data-tm-layer="local" aria-pressed="false">
                 <span class="tm-dot local" aria-hidden="true"></span>一般道 <span class="tm-count" data-tm-count="local"></span>
@@ -589,7 +581,6 @@
 
             <span class="tm-sep" aria-hidden="true"></span>
 
-            <!-- 気象情報用レイヤー（追加） -->
             <div class="tm-group" role="group" aria-label="気象情報">
               <button type="button" class="tm-chip" data-tm-layer="radar" aria-pressed="false">
                 <span class="tm-dot radar" aria-hidden="true"></span>雨雲レーダー
@@ -720,7 +711,6 @@
     });
   </script>
   <script nonce="%%CSP_NONCE%%">
-    // ===== 交通・道路・気象マップ =====
     (() => {
       'use strict';
       const rf = typeof rawFetch === 'function' ? rawFetch : window.fetch.bind(window);
@@ -1314,7 +1304,6 @@
         }
       }
 
-      // ===== 道路情報 =====
       function roadState(props) {
         if (props.rd !== undefined) {
           const rd = String(props.rd || '');
@@ -1373,101 +1362,92 @@
         });
       }
 
-      async function loadRoadData(type) {
-        if (!S.map || !S.layers[type]) return;
-        const seq = ++S.roadSeq[type];
-        if (!S.on[type]) { S.layers[type].clearLayers(); setCount(type, ''); return; }
-        try {
-          const geojson = await api(`/api/road/${type}`);
-          if (seq !== S.roadSeq[type] || !S.on[type]) return;
+      async function loadRoads() {
+        if (!S.map) return;
+        const local = S.on.local || S.on.closure;
+        const expw = S.on.expw || S.on.closure;
+        if (!local && !expw) {
+          if (S.layers.local) S.layers.local.clearLayers();
+          if (S.layers.expw) S.layers.expw.clearLayers();
+          setCount('local', '');
+          setCount('expw', '');
+          return;
+        }
 
-          S.layers[type].clearLayers();
-          const geoLayer = L.geoJSON(geojson, {
-            renderer: S.roadRenderer,
-            filter: (feature) => !S.on.closure || roadState(feature.properties || {}) !== 'normal',
-            style: (feature) => getRoadStyle(feature, type),
-            onEachFeature: (feature, layer) => {
-              layer.on('click', (e) => {
-                if (S.overlay && S.overlay.hitAt(e.containerPoint)) return;
-                L.popup({ className: 'tm-road-pop', maxWidth: 280 })
-                  .setLatLng(e.latlng)
-                  .setContent(roadPopupContent(feature.properties || {}))
-                  .openOn(S.map);
+        try {
+          const res = await fetch('/api/transit/map/roads');
+          if (!res.ok) throw new Error('Road API error');
+          const data = await res.json();
+          let localCount = 0;
+          let expwCount = 0;
+
+          const renderGroup = (layerGroup, features, type) => {
+            if (!layerGroup) return;
+            layerGroup.clearLayers();
+            for (const f of features) {
+              const state = roadState(f.properties);
+              if (S.on.closure && state === 'normal') continue;
+              if (type === 'local') localCount++;
+              if (type === 'expw') expwCount++;
+
+              const style = getRoadStyle(f, type);
+              const layer = L.geoJSON(f, {
+                style: style,
+                interactive: true
               });
+              layer.bindPopup(roadPopupContent(f.properties), { className: 'tm-road-pop' });
+              layerGroup.addLayer(layer);
             }
-          });
-          geoLayer.addTo(S.layers[type]);
-          setCount(type, String(geoLayer.getLayers().length));
-        } catch (err) {
-          if (err && err.message === 'unauthorized') return;
-          console.error(`道路情報(${type})の取得に失敗:`, err);
-          if (seq === S.roadSeq[type]) showMsg(`${ROAD_LABEL[type]}の情報を取得できませんでした。`, false, 5000);
+          };
+
+          if (local && S.layers.local && Array.isArray(data.local)) {
+            renderGroup(S.layers.local, data.local, 'local');
+          }
+          if (expw && S.layers.expw && Array.isArray(data.expw)) {
+            renderGroup(S.layers.expw, data.expw, 'expw');
+          }
+          
+          setCount('local', S.on.local ? String(localCount) : '');
+          setCount('expw', S.on.expw ? String(expwCount) : '');
+        } catch (e) {
+          console.error(e);
         }
       }
 
-      function refreshAllRoadData() {
-        if (S.on.local) loadRoadData('local');
-        if (S.on.expw) loadRoadData('expw');
-      }
-
-      // ===== 気象情報 API (雨雲レーダー・天気分布・台風情報) =====
-      async function loadRadarData() {
+      function updateWeatherTiles() {
         if (!S.map) return;
-        if (!S.on.radar) {
-          if (S.layers.radar && S.map.hasLayer(S.layers.radar)) S.map.removeLayer(S.layers.radar);
-          return;
+        const now = new Date();
+        const m = Math.floor(now.getMinutes() / 5) * 5;
+        const timeStr = `${now.getFullYear()}${String(now.getMonth() + 1).padStart(2, '0')}${String(now.getDate()).padStart(2, '0')}${String(now.getHours()).padStart(2, '0')}${String(m).padStart(2, '0')}00`;
+        
+        if (S.on.radar) {
+          if (!S.layers.radar) {
+            S.layers.radar = L.tileLayer(`https://www.jma.go.jp/bosai/jmatile/data/nowc/${timeStr}/none/${timeStr}/surf/hrpns/{z}/{x}/{y}.png`, {
+              pane: 'transit-weather-tile',
+              opacity: 0.7,
+              zIndex: 10
+            }).addTo(S.map);
+          } else {
+            S.layers.radar.setUrl(`https://www.jma.go.jp/bosai/jmatile/data/nowc/${timeStr}/none/${timeStr}/surf/hrpns/{z}/{x}/{y}.png`);
+          }
+        } else if (S.layers.radar) {
+          S.map.removeLayer(S.layers.radar);
+          S.layers.radar = null;
         }
-        try {
-          const res = await fetch('https://www.jma.go.jp/bosai/jmatile/data/nowc/targetTimes.json');
-          if (!res.ok) throw new Error('JMA Nowcast API error');
-          const data = await res.json();
-          if (!Array.isArray(data) || !data.length) return;
 
-          const latest = data[0];
-          const basetime = latest.basetime;
-          const validtime = latest.validtime;
-          const url = `https://www.jma.go.jp/bosai/jmatile/data/nowc/${basetime}/none/${validtime}/surf/hrpns/{z}/{x}/{y}.png`;
-
-          if (S.layers.radar) S.map.removeLayer(S.layers.radar);
-          S.layers.radar = L.tileLayer(url, {
-            pane: 'transit-weather',
-            opacity: 0.65,
-            maxZoom: 18,
-            attribution: '<a href="https://www.jma.go.jp/" target="_blank">気象庁 Japan Meteorological Agency</a>'
-          });
-          if (S.on.radar) S.layers.radar.addTo(S.map);
-        } catch (err) {
-          console.error('雨雲レーダーの取得に失敗:', err);
-        }
-      }
-
-      async function loadWeatherData() {
-        if (!S.map) return;
-        if (!S.on.weather) {
-          if (S.layers.weather && S.map.hasLayer(S.layers.weather)) S.map.removeLayer(S.layers.weather);
-          return;
-        }
-        try {
-          const res = await fetch('https://www.jma.go.jp/bosai/jmatile/data/wdist/targetTimes.json');
-          if (!res.ok) throw new Error('JMA Weather Distribution API error');
-          const data = await res.json();
-          if (!Array.isArray(data) || !data.length) return;
-
-          const latest = data[0];
-          const basetime = latest.basetime;
-          const validtime = latest.validtime;
-          const url = `https://www.jma.go.jp/bosai/jmatile/data/wdist/${basetime}/none/${validtime}/surf/weather/{z}/{x}/{y}.png`;
-
-          if (S.layers.weather) S.map.removeLayer(S.layers.weather);
-          S.layers.weather = L.tileLayer(url, {
-            pane: 'transit-weather',
-            opacity: 0.6,
-            maxZoom: 18,
-            attribution: '<a href="https://www.jma.go.jp/" target="_blank">気象庁 Japan Meteorological Agency</a>'
-          });
-          if (S.on.weather) S.layers.weather.addTo(S.map);
-        } catch (err) {
-          console.error('天気分布の取得に失敗:', err);
+        if (S.on.weather) {
+          if (!S.layers.weather) {
+            S.layers.weather = L.tileLayer(`https://www.jma.go.jp/bosai/jmatile/data/wdist/${timeStr}/none/${timeStr}/surf/wm/{z}/{x}/{y}.png`, {
+              pane: 'transit-weather-tile',
+              opacity: 0.6,
+              zIndex: 9
+            }).addTo(S.map);
+          } else {
+            S.layers.weather.setUrl(`https://www.jma.go.jp/bosai/jmatile/data/wdist/${timeStr}/none/${timeStr}/surf/wm/{z}/{x}/{y}.png`);
+          }
+        } else if (S.layers.weather) {
+          S.map.removeLayer(S.layers.weather);
+          S.layers.weather = null;
         }
       }
 
@@ -1479,27 +1459,33 @@
           return;
         }
         try {
-          const res = await fetch('https://www.jma.go.jp/bosai/typhoon/data/targetDev.json');
+          const res = await fetch('https://www.jma.go.jp/bosai/typhoon/data/targetTc.json');
           if (!res.ok) throw new Error('Typhoon API error');
-          const list = await res.json();
+          const data = await res.json();
+          const list = data.tropicalCyclone || (Array.isArray(data) ? data : []);
+          
+          let count = 0;
           S.layers.typhoon.clearLayers();
 
-          let count = 0;
           if (Array.isArray(list)) {
             for (const item of list) {
-              const tcId = item.id || item.tcId;
+              const tcId = typeof item === 'object' ? (item.id || item.tcId || item.tc) : item;
               if (!tcId) continue;
-              const detailRes = await fetch(`https://www.jma.go.jp/bosai/typhoon/data/${tcId}.json`);
+              
+              const detailRes = await fetch(`https://www.jma.go.jp/bosai/typhoon/data/${tcId}/forecast.json`);
               if (!detailRes.ok) continue;
               const tyData = await detailRes.json();
               
-              if (tyData && tyData.center) {
+              const forecasts = Array.isArray(tyData) ? tyData : (tyData.forecasts || [tyData]);
+              const latest = forecasts[0];
+              
+              if (latest && latest.center) {
                 count++;
-                const lat = tyData.center.lat;
-                const lon = tyData.center.lon;
-                const name = tyData.name || item.name || '台風';
-                const pressure = tyData.center.pressure ? `${tyData.center.pressure} hPa` : '不明';
-                const maxWind = tyData.center.maxWind ? `${tyData.center.maxWind} m/s` : '不明';
+                const lat = latest.center.lat;
+                const lon = latest.center.lon;
+                const name = latest.name || (typeof item === 'object' ? item.name : '') || '台風';
+                const pressure = latest.center.pressure ? `${latest.center.pressure} hPa` : '不明';
+                const maxWind = latest.center.maxWind ? `${latest.center.maxWind} m/s` : '不明';
 
                 const marker = L.circleMarker([lat, lon], {
                   pane: 'transit-weather',
@@ -1510,247 +1496,190 @@
                   opacity: 1,
                   fillOpacity: 0.85
                 });
-
+                
                 const popContent = el('div', 'tm-road-body');
+                const titleEl = el('b', '');
+                titleEl.innerHTML = `<svg width="1em" height="1em" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align: text-bottom; margin-right: 0.25rem;"><path d="M12 22a2.5 2.5 0 0 0 2.5-2.5c0-1.25-1-2.5-2.5-4a4.5 4.5 0 0 1-4.5-4.5c0-1.5 1.25-2.5 2.5-4a2.5 2.5 0 0 0-2.5-2.5c-1.5 0-3.5 1.5-3.5 4a6.5 6.5 0 0 0 6.5 6.5c2.5 0 4.5 1.25 4.5 3a4.5 4.5 0 0 1-4.5 4.5Z"/></svg>${name}`;
+
                 popContent.append(
-                  el('b', '', `🌀 ${name}`), el('br'),
+                  titleEl, el('br'),
                   document.createTextNode(`中心気圧: ${pressure}`), el('br'),
                   document.createTextNode(`最大風速: ${maxWind}`)
                 );
                 marker.bindPopup(popContent);
                 marker.addTo(S.layers.typhoon);
 
-                // 予想進路（線）
-                if (Array.isArray(tyData.forecasts)) {
-                  const latlngs = [[lat, lon]];
-                  tyData.forecasts.forEach(f => {
-                    if (f.lat && f.lon) {
-                      latlngs.push([f.lat, f.lon]);
-                      if (f.radius) {
-                        L.circle([f.lat, f.lon], {
-                          pane: 'transit-weather',
-                          radius: f.radius * 1000,
-                          color: '#ef4444',
-                          dashArray: '4, 4',
-                          weight: 1,
-                          fillOpacity: 0.08
-                        }).addTo(S.layers.typhoon);
-                      }
+                const latlngs = [];
+                forecasts.forEach(f => {
+                  if (f.center && f.center.lat && f.center.lon) {
+                    latlngs.push([f.center.lat, f.center.lon]);
+                    const rad = f.center.radius || f.radius;
+                    if (rad) {
+                      L.circle([f.center.lat, f.center.lon], {
+                        pane: 'transit-weather',
+                        radius: rad * 1000,
+                        color: '#ef4444',
+                        dashArray: '4, 4',
+                        weight: 1,
+                        fillOpacity: 0.08
+                      }).addTo(S.layers.typhoon);
                     }
-                  });
-                  if (latlngs.length > 1) {
-                    L.polyline(latlngs, {
-                      pane: 'transit-weather',
-                      color: '#ef4444',
-                      weight: 3,
-                      dashArray: '6, 6'
-                    }).addTo(S.layers.typhoon);
+                  } else if (f.lat && f.lon) {
+                    latlngs.push([f.lat, f.lon]);
+                    if (f.radius) {
+                      L.circle([f.lat, f.lon], {
+                        pane: 'transit-weather',
+                        radius: f.radius * 1000,
+                        color: '#ef4444',
+                        dashArray: '4, 4',
+                        weight: 1,
+                        fillOpacity: 0.08
+                      }).addTo(S.layers.typhoon);
+                    }
                   }
+                });
+                if (latlngs.length > 1) {
+                  L.polyline(latlngs, {
+                    pane: 'transit-weather',
+                    color: '#ef4444',
+                    weight: 3,
+                    dashArray: '6, 6'
+                  }).addTo(S.layers.typhoon);
                 }
               }
             }
           }
-          setCount('typhoon', String(count));
-          if (count === 0 && S.on.typhoon) {
-            showMsg('現在発生中の台風情報はありません。', false, 4000);
-          }
-        } catch (err) {
-          console.error('台風情報の取得に失敗:', err);
-          setCount('typhoon', '0');
+          setCount('typhoon', count > 0 ? String(count) : '');
+        } catch (e) {
+          console.error(e);
         }
       }
 
-      function refreshAllWeatherData() {
-        if (S.on.radar) loadRadarData();
-        if (S.on.weather) loadWeatherData();
-        if (S.on.typhoon) loadTyphoonData();
+      function onMapMove() {
+        if (S.map) {
+          loadVehicles();
+        }
       }
 
-      // ===== UI・ボタン制御 =====
-      function bindControls() {
-        document.querySelectorAll('[data-tm-layer]').forEach((btn) => {
-          const key = btn.dataset.tmLayer;
-          btn.setAttribute('aria-pressed', String(S.on[key]));
-          btn.addEventListener('click', () => {
-            if (!S.map) return;
-            S.on[key] = !S.on[key];
-            btn.setAttribute('aria-pressed', String(S.on[key]));
-            savePrefs();
+      async function initMap() {
+        const container = document.getElementById('tm-map');
+        if (!container) return;
 
-            if (MODES.includes(key)) {
-              afterVehicles();
-              loadVehicles();
-            } else if (ROAD_MODES.includes(key)) {
-              if (S.on[key]) {
-                if (!S.map.hasLayer(S.layers[key])) S.map.addLayer(S.layers[key]);
-              } else if (S.map.hasLayer(S.layers[key])) {
-                S.map.removeLayer(S.layers[key]);
-              }
-              loadRoadData(key);
-            } else if (key === 'closure') {
-              if (S.on.closure && !S.on.local && !S.on.expw) showMsg('「通行止め・渋滞のみ」は、一般道か高速道路を表示しているときに使えます。', false, 5000);
-              refreshAllRoadData();
-            } else if (key === 'radar') {
-              loadRadarData();
-            } else if (key === 'weather') {
-              loadWeatherData();
-            } else if (key === 'typhoon') {
-              if (S.on.typhoon) {
-                if (!S.map.hasLayer(S.layers.typhoon)) S.map.addLayer(S.layers.typhoon);
-              } else if (S.map.hasLayer(S.layers.typhoon)) {
-                S.map.removeLayer(S.layers.typhoon);
-              }
-              loadTyphoonData();
-            } else {
-              afterVehicles();
+        S.map = L.map(container, {
+          center: [36.08, 140.11],
+          zoom: 11,
+          zoomControl: false,
+          minZoom: 5,
+          maxZoom: 18,
+          preferCanvas: true
+        });
+
+        L.control.zoom({ position: 'bottomright' }).addTo(S.map);
+
+        const isDark = document.documentElement.classList.contains('dark');
+        S.tiles = L.tileLayer('https://cyberjapandata.gsi.go.jp/xyz/pale/{z}/{x}/{y}.png', {
+          attribution: '<a href="https://maps.gsi.go.jp/development/ichiran.html" target="_blank">地理院タイル</a>',
+          maxZoom: 18
+        }).addTo(S.map);
+
+        S.map.createPane('transit-stations').style.zIndex = 400;
+        S.map.createPane('transit-routes').style.zIndex = 390;
+        S.map.createPane('transit-roads').style.zIndex = 410;
+        S.map.createPane('transit-weather-tile').style.zIndex = 380;
+        S.map.createPane('transit-weather').style.zIndex = 420;
+
+        S.layers.local = L.layerGroup().addTo(S.map);
+        S.layers.expw = L.layerGroup().addTo(S.map);
+        S.layers.typhoon = L.layerGroup().addTo(S.map);
+
+        S.overlay = createOverlay(S.map);
+
+        S.map.on('moveend', onMapMove);
+        S.map.on('zoomend', onMapMove);
+        S.map.on('click', () => { if (!S.ignoreMapClick) select(null); });
+
+        try {
+          const cfgRes = await fetch('/api/transit/map/config');
+          if (cfgRes.ok) {
+            S.cfg = await cfgRes.json();
+            if (S.cfg.school) {
+              S.map.setView([S.cfg.school.lat, S.cfg.school.lon], S.cfg.school.zoom || 11);
             }
-          });
-        });
-      }
+          }
+        } catch (_) {}
 
-      function showMyLocation(lat, lon, accuracy) {
-        if (!S.map || !S.meRenderer) return;
-        if (S.meLayer) S.meLayer.remove();
-        S.meLayer = L.layerGroup().addTo(S.map);
-        if (accuracy && accuracy < 3000) {
-          L.circle([lat, lon], { radius: accuracy, renderer: S.meRenderer, interactive: false, color: '#2563eb', weight: 1, fillColor: '#2563eb', fillOpacity: 0.1 }).addTo(S.meLayer);
-        }
-        L.circleMarker([lat, lon], { radius: 7, renderer: S.meRenderer, interactive: false, color: '#ffffff', weight: 3, fillColor: '#2563eb', fillOpacity: 1 }).addTo(S.meLayer);
-      }
-
-      function fail(text) {
-        showMsg(text, true);
-        setStatus('地図を表示できません', 'error');
-      }
-
-      async function init() {
         loadPrefs();
-        bindControls();
-        const infoReady = loadInfo();
-        setInterval(() => { if (!document.hidden) loadInfo(); }, 60 * 1000);
-
-        if (typeof L === 'undefined') { fail('地図ライブラリ(Leaflet)を読み込めませんでした。'); return; }
-        let cfg;
-        try { cfg = await api('/api/transit/map/config'); } catch (_) {
-          fail('地図の設定を取得できませんでした。ページを再読み込みしてください。');
-          return;
-        }
-        if (!cfg || !cfg.school || !cfg.tiles || !cfg.tiles.template) {
-          fail('地図の設定が正しくありません。管理者に連絡してください。');
-          return;
-        }
-        S.cfg = cfg;
-        const view = Object.assign({ zoom: 13, minZoom: 5, maxZoom: 18 }, cfg.view || {});
-        const tileUrl = cfg.tiles.template.replace('{layer}', 'pale');
-
-        const map = L.map('tm-map', {
-          center: [cfg.school.lat, cfg.school.lon], zoom: view.zoom, minZoom: view.minZoom, maxZoom: view.maxZoom,
-          zoomAnimation: false,
-          preferCanvas: true,
-          attributionControl: true
-        });
-        S.map = map;
-        map.attributionControl.setPrefix(false);
-        map.attributionControl.addAttribution('データ: <a href="https://www.odpt.org/" target="_blank" rel="noopener noreferrer">公共交通オープンデータセンター</a>・<a href="https://www.jartic.or.jp/" target="_blank" rel="noopener noreferrer">JARTIC</a>・<a href="https://www.jma.go.jp/" target="_blank" rel="noopener noreferrer">気象庁</a>');
-
-        // 重なり順: 地図タイル < 気象(雨雲/天気/台風) < 路線 < 駅 < 道路 < 現在地 < 車両
-        [['transit-weather', 390], ['transit-routes', 400], ['transit-stations', 410], ['transit-roads', 420], ['transit-me', 430]].forEach(([name, z]) => {
-          map.createPane(name).style.zIndex = z;
-        });
-        S.roadRenderer = L.svg({ pane: 'transit-roads', padding: 0.1 });
-        S.meRenderer = L.svg({ pane: 'transit-me', padding: 0.1 });
-
-        S.tiles = L.tileLayer(tileUrl, {
-          minZoom: view.minZoom, maxZoom: view.maxZoom,
-          maxNativeZoom: Math.min(view.maxZoom, 18),
-          errorTileUrl: BLANK_TILE, keepBuffer: 2,
-          attribution: '地図: <a href="https://maps.gsi.go.jp/development/ichiran.html" target="_blank" rel="noopener noreferrer">国土地理院(地理院タイル)</a>'
-        }).addTo(map);
-        L.control.scale({ imperial: false, position: 'bottomleft' }).addTo(map);
-        S.overlay = createOverlay(map);
-
-        S.layers.local = L.layerGroup();
-        S.layers.expw = L.layerGroup();
-        S.layers.typhoon = L.layerGroup();
-        if (S.on.local) map.addLayer(S.layers.local);
-        if (S.on.expw) map.addLayer(S.layers.expw);
-        if (S.on.typhoon) map.addLayer(S.layers.typhoon);
-
-        $('tm-home')?.addEventListener('click', () => map.setView([cfg.school.lat, cfg.school.lon], view.zoom));
-
-        $('tm-geolocation')?.addEventListener('click', () => {
-          if (!navigator.geolocation) {
-            showMsg('お使いのブラウザは現在地機能に対応していません。', false, 4000);
-            return;
-          }
-
-          const geoBtn = $('tm-geolocation');
-          const label = geoBtn.querySelector('.tm-btn-label');
-          const done = () => { if (label) label.textContent = '現在地へ'; geoBtn.disabled = false; };
-          if (label) label.textContent = '取得中...';
-          geoBtn.disabled = true;
-
-          navigator.geolocation.getCurrentPosition(
-            (position) => {
-              done();
-              const { latitude, longitude, accuracy } = position.coords;
-              showMyLocation(latitude, longitude, accuracy);
-              map.setView([latitude, longitude], 15);
-            },
-            (error) => {
-              done();
-              const text = error && error.code === 1 ? '位置情報の利用が許可されていません。ブラウザや端末の設定を確認してください。'
-                : error && error.code === 3 ? '現在地の取得がタイムアウトしました。もう一度お試しください。'
-                : '現在地を取得できませんでした。端末の位置情報設定を確認してください。';
-              showMsg(text, false, 5000);
-            },
-            { enableHighAccuracy: true, timeout: 15000, maximumAge: 10000 }
-          );
-        });
-
-        map.on('click', (e) => {
-          const hit = S.overlay.hitAt(e.containerPoint);
-          if (hit) {
-            select({ kind: hit.kind, id: hit.id });
-          } else if (!S.ignoreMapClick) {
-            select(null);
-          }
-        });
-
-        map.on('mousemove', (e) => { map.getContainer().style.cursor = S.overlay.hitAt(e.containerPoint) ? 'pointer' : ''; });
-        let moveTimer = 0;
-        map.on('moveend zoomend', () => { clearTimeout(moveTimer); moveTimer = setTimeout(() => { loadVehicles(); }, 250); });
-        document.addEventListener('keydown', (e) => { if (e.key === 'Escape') select(null); });
-        if (typeof ResizeObserver === 'function') new ResizeObserver(() => map.invalidateSize({ pan: false })).observe(map.getContainer());
-
-        const pollMs = Math.max(15, Math.round((cfg.pollSec || 30) / 2)) * 1000;
-        setInterval(() => { if (!document.hidden) loadVehicles(); }, pollMs);
-        setInterval(() => { if (!document.hidden) refreshAllRoadData(); }, ROAD_REFRESH_MS);
-        setInterval(() => { if (!document.hidden) refreshAllWeatherData(); }, WEATHER_REFRESH_MS);
-
-        document.addEventListener('visibilitychange', () => {
-          if (!document.hidden) {
-            loadVehicles();
-            loadInfo();
-            refreshAllRoadData();
-            refreshAllWeatherData();
-          }
-        });
-
-        S.overlay.schedule();
-        await infoReady;
+        updateChips();
+        
+        await Promise.all([
+          loadInfo(),
+          loadGeoJsonRoutes(),
+          loadGeoJsonStations()
+        ]);
+        
         loadVehicles();
+        loadRoads();
+        updateWeatherTiles();
+        loadTyphoonData();
 
-        loadGeoJsonRoutes();
-        loadGeoJsonStations();
-        refreshAllRoadData();
-        refreshAllWeatherData();
+        setInterval(loadVehicles, 15000);
+        setInterval(loadRoads, ROAD_REFRESH_MS);
+        setInterval(updateWeatherTiles, WEATHER_REFRESH_MS);
+        setInterval(loadTyphoonData, WEATHER_REFRESH_MS);
       }
 
-      init().catch((err) => {
-        console.error('交通マップの初期化に失敗:', err);
-        fail('地図の初期化中にエラーが発生しました。ページを再読み込みしてください。');
+      function updateChips() {
+        document.querySelectorAll('.tm-chip').forEach(chip => {
+          const layer = chip.dataset.tmLayer;
+          if (layer && S.on[layer] !== undefined) {
+            chip.setAttribute('aria-pressed', S.on[layer] ? 'true' : 'false');
+          }
+        });
+      }
+
+      function toggleLayer(layer) {
+        if (S.on[layer] !== undefined) {
+          S.on[layer] = !S.on[layer];
+          savePrefs();
+          updateChips();
+          
+          if (MODES.includes(layer) || layer === 'delayed') {
+            loadVehicles();
+          } else if (ROAD_MODES.includes(layer) || layer === 'closure') {
+            loadRoads();
+          } else if (layer === 'radar' || layer === 'weather') {
+            updateWeatherTiles();
+          } else if (layer === 'typhoon') {
+            loadTyphoonData();
+          }
+        }
+      }
+
+      document.querySelectorAll('.tm-chip').forEach(chip => {
+        chip.addEventListener('click', () => {
+          const layer = chip.dataset.tmLayer;
+          if (layer) toggleLayer(layer);
+        });
       });
+
+      document.getElementById('tm-geolocation')?.addEventListener('click', () => {
+        if (!navigator.geolocation) return;
+        navigator.geolocation.getCurrentPosition(pos => {
+          if (S.map) S.map.setView([pos.coords.latitude, pos.coords.longitude], 14);
+        });
+      });
+
+      document.getElementById('tm-home')?.addEventListener('click', () => {
+        if (S.map && S.cfg && S.cfg.school) {
+          S.map.setView([S.cfg.school.lat, S.cfg.school.lon], S.cfg.school.zoom || 11);
+        }
+      });
+
+      if (document.readyState === 'loading') {
+        document.addEventListener('DOMContentLoaded', initMap);
+      } else {
+        initMap();
+      }
     })();
   </script>
 </body>
