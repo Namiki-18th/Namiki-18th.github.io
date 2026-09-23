@@ -367,7 +367,12 @@ const globalLimiter = rateLimit({
   max: 600,
   standardHeaders: true,
   legacyHeaders: false,
-  skip: (req) => req.path.startsWith('/api/transit/map/') || req.path.startsWith('/api/transit/tiles/')
+  // Preference saves have their own authenticated, per-user limiter below.  Keeping
+  // them in this IP-based bucket makes users behind the same proxy/NAT block each
+  // other, including when a CDN/WAF does not forward the client IP as expected.
+  skip: (req) => req.path === '/api/profile/preferences'
+    || req.path.startsWith('/api/transit/map/')
+    || req.path.startsWith('/api/transit/tiles/')
 });
 app.use(globalLimiter);
 
@@ -385,6 +390,18 @@ const writeLimiter = rateLimit({
   standardHeaders: true,
   legacyHeaders: false,
   message: { error: 'Too many requests, please slow down.' }
+});
+
+// Settings are saved by an authenticated browser session.  Limit by account rather
+// than source IP so a shared school network, reverse proxy, or CORE/WAF cannot make
+// one user's saves exhaust another user's quota.
+const preferencesLimiter = rateLimit({
+  windowMs: 60 * 1000,
+  max: 120,
+  standardHeaders: true,
+  legacyHeaders: false,
+  keyGenerator: (req) => req.user?.email || req.sessionID || req.ip,
+  message: { error: 'Too many settings updates, please try again shortly.' }
 });
 
 app.use(express.json({ limit: '4mb' }));
@@ -919,7 +936,7 @@ app.post('/api/translate', ensureAuth, writeLimiter, asyncHandler(async (req, re
   res.json({ translations: translations.map((translation) => translation.text) });
 }));
 
-app.post('/api/profile/preferences', ensureAuth, writeLimiter, asyncHandler(async (req, res) => {
+app.post('/api/profile/preferences', ensureAuth, preferencesLimiter, asyncHandler(async (req, res) => {
   const user = usersDB[req.user.email];
   if (!user) return res.status(404).json({ error: 'User not found' });
 
