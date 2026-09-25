@@ -49,6 +49,31 @@ const app = express();
 const server = http.createServer(app);
 app.use(compression());
 
+// --- [リクエスト検証ミドルウェア (カスタム制限)] ---
+app.use((req, res, next) => {
+  if (req.originalUrl && req.originalUrl.length > 2048) {
+    const err = new Error('URI Too Long');
+    err.status = 414;
+    return next(err);
+  }
+
+  const headerLength = JSON.stringify(req.headers || {}).length;
+  if (headerLength > 8192) {
+    const err = new Error('Request Header Fields Too Large');
+    err.status = 431;
+    return next(err);
+  }
+
+  const contentLength = req.headers['content-length'];
+  if (contentLength && parseInt(contentLength, 10) > 10485760) {
+    const err = new Error('Payload Too Large');
+    err.status = 413;
+    return next(err);
+  }
+
+  next();
+});
+
 // --- [CORS 柔軟化設定] ---
 const rawCorsOrigin = process.env.CORS_ORIGIN || process.env.RENDER_EXTERNAL_URL || '';
 const allowedOriginsList = rawCorsOrigin
@@ -367,9 +392,6 @@ const globalLimiter = rateLimit({
   max: 600,
   standardHeaders: true,
   legacyHeaders: false,
-  // Preference saves have their own authenticated, per-user limiter below.  Keeping
-  // them in this IP-based bucket makes users behind the same proxy/NAT block each
-  // other, including when a CDN/WAF does not forward the client IP as expected.
   skip: (req) => req.path === '/api/profile/preferences'
     || req.path.startsWith('/api/transit/map/')
     || req.path.startsWith('/api/transit/tiles/')
@@ -392,9 +414,6 @@ const writeLimiter = rateLimit({
   message: { error: 'Too many requests, please slow down.' }
 });
 
-// Settings are saved by an authenticated browser session.  Limit by account rather
-// than source IP so a shared school network, reverse proxy, or CORE/WAF cannot make
-// one user's saves exhaust another user's quota.
 const preferencesLimiter = rateLimit({
   windowMs: 60 * 1000,
   max: 120,
@@ -810,8 +829,19 @@ const ensureAuth = (req, res, next) => {
 };
 
 const ensureAdmin = (req, res, next) => {
-  if (req.isAuthenticated() && req.user?.role === 'admin') return next();
-  if (req.xhr || req.path.startsWith('/api/')) return res.status(403).json({ error: 'Forbidden' });
+  if (req.isAuthenticated()) {
+    if (req.user?.role === 'admin') {
+      return next();
+    } else {
+      if (req.xhr || req.path.startsWith('/api/')) {
+        return res.status(403).json({ error: 'Forbidden' });
+      }
+      const err = new Error('Forbidden');
+      err.status = 403;
+      return next(err);
+    }
+  }
+  if (req.xhr || req.path.startsWith('/api/')) return res.status(401).json({ error: 'Unauthorized' });
   res.redirect('/login');
 };
 
@@ -1844,7 +1874,11 @@ app.use((req, res, next) => {
   next(err);
 });
 
-const ERROR_PAGE_CODES = new Set([301, 400, 401, 403, 404, 405, 408, 409, 410, 413, 415, 418, 422, 429, 500, 501, 502, 504]);
+const ERROR_PAGE_CODES = new Set([
+  301, 302, 303, 304, 307, 308,
+  400, 401, 402, 403, 404, 405, 406, 407, 408, 409, 410, 411, 412, 413, 414, 415, 416, 417, 418, 422, 423, 425, 426, 428, 429, 431, 451,
+  500, 501, 502, 503, 504, 505, 506, 507, 508, 510
+]);
 
 async function sendErrorPage(res, status) {
   const pageCode = ERROR_PAGE_CODES.has(status) ? status : 500;
@@ -1865,8 +1899,8 @@ async function sendErrorPage(res, status) {
 
 app.use((err, req, res, next) => {
   if (res.headersSent) return next(err);
-  const status = Number.isInteger(err.status) && err.status >= 400 && err.status <= 599 ? err.status : 500;
-  if (status >= 400 && status < 500) {
+  const status = Number.isInteger(err.status) && err.status >= 300 && err.status <= 599 ? err.status : 500;
+  if (status >= 300 && status < 500) {
     console.warn(`[HTTP ${status}] ${req.method} ${req.url} - ${err.message}`);
   } else {
     console.error(`[System Error - ${status}] ${req.method} ${req.url}`, err.stack);
