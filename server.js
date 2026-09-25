@@ -75,10 +75,19 @@ app.use((req, res, next) => {
 });
 
 // --- [CORS 柔軟化設定] ---
-const rawCorsOrigin = process.env.CORS_ORIGIN || process.env.RENDER_EXTERNAL_URL || '';
-const allowedOriginsList = rawCorsOrigin
-  ? rawCorsOrigin.split(',').map((s) => s.trim()).filter(Boolean)
-  : [];
+// CORS_ORIGIN is an additional allowlist, not an override for the app's own
+// production origin or the hosting provider's URL. Keeping these origins
+// together also lets the CSRF origin check below accept legitimate settings
+// updates from the app's public domain.
+const allowedOriginsList = [
+  process.env.CORS_ORIGIN,
+  process.env.RENDER_EXTERNAL_URL,
+  process.env.APP_ORIGIN || 'https://namiki-18th.net'
+]
+  .filter(Boolean)
+  .flatMap((value) => value.split(','))
+  .map((origin) => origin.trim())
+  .filter(Boolean);
 
 const configuredOrigins = new Set(
   allowedOriginsList
