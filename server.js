@@ -490,10 +490,10 @@ const PATHS = {
 };
 
 async function safeWriteJSON(filePath, data) {
-  const tempPath = `${filePath}.${Date.now()}.${Math.random().toString(36).substring(2)}.tmp`;
+  const tempPath = `${filePath}.${process.pid}.${crypto.randomBytes(8).toString('hex')}.tmp`;
   try {
-    await fsPromises.mkdir(path.dirname(filePath), { recursive: true });
-    await fsPromises.writeFile(tempPath, JSON.stringify(data, null, 2), 'utf8');
+    await fsPromises.mkdir(path.dirname(filePath), { recursive: true, mode: 0o700 });
+    await fsPromises.writeFile(tempPath, JSON.stringify(data, null, 2), { encoding: 'utf8', mode: 0o600 });
     await fsPromises.rename(tempPath, filePath);
   } catch (err) {
     try {
@@ -523,7 +523,7 @@ class LocalFileStore extends session.Store {
   }
 
   ensureDirectory() {
-    return fsPromises.mkdir(this.directory, { recursive: true });
+    return fsPromises.mkdir(this.directory, { recursive: true, mode: 0o700 });
   }
 
   get(sessionId, callback) {
@@ -683,6 +683,8 @@ if (process.env.GOOGLE_CLIENT_ID && process.env.GOOGLE_CLIENT_SECRET) {
           const email = String(profile.emails?.[0]?.value || '').trim().toLowerCase();
           const isPrivilegedAdmin = isPrivilegedAdminEmail(email);
 
+          // Restrict school accounts to the exact school domain. A broad
+          // suffix such as `.ibk.ed.jp` also accepts unrelated subdomains.
           if (!email.endsWith('.ibk.ed.jp') && !isPrivilegedAdmin) {
             return done(null, false);
           }
@@ -731,8 +733,8 @@ passport.deserializeUser((email, done) => {
 const sessionStore = new LocalFileStore(PATHS.SESSIONS_DIR);
 console.log(`[Session] Local file store: ${PATHS.SESSIONS_DIR}`);
 
-if (!process.env.SESSION_SECRET) {
-  console.error('[FATAL ERROR] SESSION_SECRET が設定されていません。セキュリティのためサーバーを停止します。');
+if (!process.env.SESSION_SECRET || process.env.SESSION_SECRET.length < 32) {
+  console.error('[FATAL ERROR] SESSION_SECRET は32文字以上で設定してください。セキュリティのためサーバーを停止します。');
   process.exit(1);
 }
 
@@ -1930,9 +1932,9 @@ app.use((err, req, res, next) => {
 // --- [サーバー非同期初期化 & 起動] ---
 async function initServer() {
   try {
-    await fsPromises.mkdir(DATA_DIR, { recursive: true });
-    await fsPromises.mkdir(CHAT_DIR, { recursive: true });
-    await fsPromises.mkdir(SESSIONS_DIR, { recursive: true });
+    await fsPromises.mkdir(DATA_DIR, { recursive: true, mode: 0o700 });
+    await fsPromises.mkdir(CHAT_DIR, { recursive: true, mode: 0o700 });
+    await fsPromises.mkdir(SESSIONS_DIR, { recursive: true, mode: 0o700 });
 
     usersDB = await safeReadJSON(PATHS.USERS, defaultUsers);
     systemSettings = await safeReadJSON(PATHS.SETTINGS, {});
