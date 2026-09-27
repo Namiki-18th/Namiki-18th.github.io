@@ -1,0 +1,20 @@
+
+    .policy-section h3 {
+      color: var(--color-text-primary);
+      font-weight: 600;
+      font-size: 1rem;
+      margin-bottom: 0.5rem;
+      display: flex;
+      align-items: center; /* 修正: CSSプロパティ名を修復 */
+    }
+    .policy-section p, .policy-section ul {
+      color: var(--color-text-body);
+      font-size: 0.875rem;
+      line-height: 1.7;
+    }
+    .policy-section ul {
+      list-style-type: disc;
+      padding-left: 1.25rem;
+      margin-top: 0.25rem;
+      margin-bottom: 0.5rem;
+    }

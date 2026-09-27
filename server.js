@@ -195,7 +195,7 @@ app.use(
   })
 );
 
-async function sendHtmlWithNonce(res, filePath) {
+async function sendHtmlWithNonce(res, filePath, user = null) {
   try {
     const html = await fsPromises.readFile(filePath, 'utf8');
     const nonce = res.locals.cspNonce;
@@ -322,8 +322,8 @@ async function sendHtmlWithNonce(res, filePath) {
           });
         }
       };
-      fetch('/api/profile', { credentials: 'same-origin' }).then((response) => response.ok ? response.json() : null).then((profile) => {
-        const preferences = profile?.preferences || {};
+      const preferences = %%USER_PREFERENCES%%;
+
         const theme = preferences.theme === 'light' ? 'light' : 'dark';
         const root = document.documentElement;
         root.classList.remove('light', 'dark');
@@ -351,8 +351,6 @@ async function sendHtmlWithNonce(res, filePath) {
         window.namikiPreferences = preferences;
         document.dispatchEvent(new CustomEvent('namiki:preferences-ready', { detail: preferences }));
         if (preferences.language) window.applyDeepLTranslation(preferences.language).catch(() => {});
-      }).catch(() => {});
-
       function closeAccountMenus(target) {
         document.querySelectorAll('.account-popup-menu.show').forEach((menu) => {
           const toggle = menu.closest('.sidebar-footer')?.querySelector('.sidebar-user-row')
@@ -378,7 +376,16 @@ async function sendHtmlWithNonce(res, filePath) {
         initCommonNavigation();
       }
     </script>`;
+    const profile = user?.email ? usersDB[user.email] || user : null;
+    const preferences = profile?.preferences || {};
+    const serializedPreferences = JSON.stringify(preferences)
+      .replace(/</g, '\\u003c')
+      .replace(/>/g, '\\u003e')
+      .replace(/&/g, '\\u0026')
+      .replace(/\u2028/g, '\\u2028')
+      .replace(/\u2029/g, '\\u2029');
     const injected = html
+      .replace('%%USER_PREFERENCES%%', serializedPreferences)
       .replace(/%%CSP_NONCE%%/g, nonce)
       .replace(/%%RECAPTCHA_SITE_KEY%%/g, RECAPTCHA_SITE_KEY)
       .replace(/%%RECAPTCHA_V2_SITE_KEY%%/g, RECAPTCHA_V2_SITE_KEY)
@@ -459,9 +466,9 @@ app.use((req, res, next) => {
 });
 
 // 認証不要ルート
-app.get(['/privacy-noauth', '/privacy-noauth.html'], asyncHandler(async (req, res) => await sendHtmlWithNonce(res, path.join(__dirname, 'public', 'privacy.html'))));
-app.get(['/terms-noauth', '/terms-noauth.html'], asyncHandler(async (req, res) => await sendHtmlWithNonce(res, path.join(__dirname, 'public', 'terms.html'))));
-app.get(['/report-noauth', '/report-noauth.html'], asyncHandler(async (req, res) => await sendHtmlWithNonce(res, path.join(__dirname, 'public', 'report-noauth.html'))));
+app.get(['/privacy-noauth', '/privacy-noauth.html'], asyncHandler(async (req, res) => await sendHtmlWithNonce(res, path.join(__dirname, 'public', 'privacy.html'), req.user)));
+app.get(['/terms-noauth', '/terms-noauth.html'], asyncHandler(async (req, res) => await sendHtmlWithNonce(res, path.join(__dirname, 'public', 'terms.html'), req.user)));
+app.get(['/report-noauth', '/report-noauth.html'], asyncHandler(async (req, res) => await sendHtmlWithNonce(res, path.join(__dirname, 'public', 'report-noauth.html'), req.user)));
 
 // --- [パス定義 & ストレージ管理] ---
 const DATA_DIR = path.join(__dirname, 'data');
@@ -870,7 +877,7 @@ const ensureApiKeyOrAdmin = (req, res, next) => {
 
 // --- [ルーティング: 認証 & 画面表示] ---
 app.get('/', (req, res) => res.redirect(req.isAuthenticated() ? '/index' : '/login'));
-app.get('/login', asyncHandler(async (req, res) => (req.isAuthenticated() ? res.redirect('/index') : await sendHtmlWithNonce(res, path.join(__dirname, 'public', 'login.html')))));
+app.get('/login', asyncHandler(async (req, res) => (req.isAuthenticated() ? res.redirect('/index') : await sendHtmlWithNonce(res, path.join(__dirname, 'public', 'login.html'), req.user))));
 
 app.get('/auth/google', authLimiter, (req, res, next) => {
   if (!process.env.GOOGLE_CLIENT_ID || !process.env.GOOGLE_CLIENT_SECRET) {
@@ -926,10 +933,10 @@ app.all(['/api/chat', '/api/chat/*'], ensureAuth, (req, res) => {
 });
 
 ['index', 'terms', 'privacy', 'report', 'link', 'calendar', 'schedule', 'transit', 'notice', 'classroom', 'setting'].forEach((p) => {
-  app.get([`/${p}`, `/${p}.html`], ensureAuth, asyncHandler(async (req, res) => await sendHtmlWithNonce(res, path.join(__dirname, 'public', `${p}.html`))));
+  app.get([`/${p}`, `/${p}.html`], ensureAuth, asyncHandler(async (req, res) => await sendHtmlWithNonce(res, path.join(__dirname, 'public', `${p}.html`), req.user)));
 });
 ['admin'].forEach((p) => {
-  app.get([`/${p}`, `/${p}.html`], ensureAdmin, asyncHandler(async (req, res) => await sendHtmlWithNonce(res, path.join(__dirname, 'public', `${p}.html`))));
+  app.get([`/${p}`, `/${p}.html`], ensureAdmin, asyncHandler(async (req, res) => await sendHtmlWithNonce(res, path.join(__dirname, 'public', `${p}.html`), req.user)));
 });
 // --- [静的ファイル配信 (画面ルーティングの後ろに配置)] ---
 app.use(

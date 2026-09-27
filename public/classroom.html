@@ -10,81 +10,8 @@
   <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Noto+Sans+JP:wght@400;500;600;700&display=swap" />
   <script src="/socket.io/socket.io.js" nonce="%%CSP_NONCE%%"></script>
   
-  <style nonce="%%CSP_NONCE%%">
-    /* 💡CSP対応: style属性から抽出したユーティリティクラス */
-    .gen-93b8ea { display:none; }
-    .gen-951743 { margin-top: 0.25rem; }
-    .gen-f98762 { margin-top: auto; margin-bottom: 1rem; }
-    .gen-fd5985 { padding: 0.5rem 0.75rem; border-bottom: 1px solid var(--color-border); margin-bottom: 0.5rem; }
-    .gen-073e36 { display: block; font-weight: 600; color: var(--color-text-primary); font-size: 0.875rem; }
-    .gen-c8c1bd { display: block; font-size: 0.75rem; color: var(--color-text-muted); margin-top: 0.125rem; }
-    .gen-08cddd { border-top: 1px solid var(--color-border); margin: 0.25rem 0; }
-    .gen-24b531 { cursor: pointer; }
-    .gen-ca678e { background:none; border:none; cursor:pointer; color:var(--color-text-secondary); }
-    .gen-25e521 { padding-top: 0; }
-    .gen-594229 { position: sticky; top: 0; z-index: 20; background: var(--color-bg, #111827); padding: 0.5rem 0; border-bottom: 1px solid var(--color-border); margin-bottom: 0.75rem; }
-    .gen-93223f { display: flex; gap: 0.5rem; margin-bottom: 0.5rem; width: 100%; }
-    .gen-bd89a3 { flex: 1; justify-content: center; display: inline-flex; align-items: center; gap: 0.375rem; font-weight: 600; }
-    .gen-85a89f { width: 1.15rem; height: 1.15rem; flex-shrink: 0; }
-    .gen-1235a2 { display: flex; flex-wrap: wrap; gap: 0.375rem; align-items: center; }
-    .gen-f24406 { flex: 2; min-width: 120px; padding: 0.35rem 0.5rem; font-size: 0.8125rem; background: var(--color-bg); border: 1px solid var(--color-border); border-radius: 0.375rem; color: var(--color-text-primary); }
-    .gen-d15c60 { display: flex; align-items: center; gap: 0.25rem; flex: 2; min-width: 210px; }
-    .gen-e24759 { width: 50%; padding: 0.35rem 0.25rem; font-size: 0.75rem; background: var(--color-bg); border: 1px solid var(--color-border); border-radius: 0.375rem; color: var(--color-text-primary); }
-    .gen-e91191 { font-size: 0.75rem; color: var(--color-text-muted); }
-    .gen-3cd997 { flex: 1; min-width: 110px; padding: 0.35rem 0.5rem; font-size: 0.8125rem; background: var(--color-bg); border: 1px solid var(--color-border); border-radius: 0.375rem; color: var(--color-text-primary); }
-    .gen-9ed8b4 { padding: 0.35rem 0.5rem; font-size: 0.75rem; background: var(--color-border); border: none; border-radius: 0.375rem; color: var(--color-text-secondary); cursor: pointer; }
-    .gen-315af3 { width: 1rem; height: 1rem; flex-shrink: 0; }
-    .gen-cfe030 { width: 30px; height: 30px; border-radius: 50%; object-fit: cover; flex-shrink: 0; }
-    .gen-e41d0d { width: 30px; height: 30px; border-radius: 50%; background: var(--color-border); display: inline-flex; align-items: center; justify-content: center; font-size: 0.8125rem; font-weight: 600; flex-shrink: 0; color: var(--color-text-secondary); }
-    .gen-d2afe5 { display: flex; align-items: center; gap: 0.5rem; }
-    .gen-0318b0 { font-weight: 600; font-size: 0.95rem; color: var(--color-text-primary); }
-    .gen-804a6a { font-size: 0.8125rem; color: var(--color-text-muted); font-weight: 400; flex-shrink: 0; }
-    .gen-686ca0 { margin-top: 0.75rem; border-top: 1px dashed var(--color-border); padding-top: 0.5rem; }
-    .gen-936c68 { font-size: 0.75rem; color: var(--color-text-muted); font-weight: 600; }
-    .gen-d3890b { display: flex; flex-direction: column; gap: 0.375rem; margin-top: 0.375rem; }
-    .gen-0a4dcd { width: 100%; box-sizing: border-box; font-size: 0.8125rem; background: var(--color-bg); padding: 0.5rem 0.75rem; border-radius: 0.375rem; border: 1px solid var(--color-border); color: var(--color-text-primary); text-decoration: none; display: flex; align-items: center; gap: 0.5rem; }
-    .gen-49cdf8 { flex: 1; }
-    .gen-d85c4e { position: relative; }
-    .gen-b2fd88 { display: flex; align-items: center; justify-content: space-between; margin-bottom: 0.75rem; }
-    .gen-7160e3 { margin-bottom: 0.5rem; font-size: 1.05rem; }
-    .gen-0e62d2 { display: flex; align-items: center; gap: 0.25rem; font-size: 0.8125rem; color: #f87171; font-weight: 600; margin-bottom: 0.5rem; }
-    .gen-542ace { width: 1rem; height: 1rem; }
-    .gen-b002ba { color: var(--color-text-body); white-space: pre-wrap; word-break: break-word; font-size: 0.875rem; line-height: 1.5; }
-    .gen-755663 { margin-top: 0.75rem; text-align: right; }
-    .gen-0a07c7 { font-size: 0.8125rem; }
-    /* CSS崩れの補正・インライン調整 */
-    .user-info-header {
-      display: flex;
-      align-items: center;
-      gap: 0.75rem;
-    }
-    .popup-user-avatar {
-      width: 2.25rem;
-      height: 2.25rem;
-      border-radius: 9999px;
-      object-fit: cover;
-      border: 1px solid var(--color-border);
-      flex-shrink: 0;
-    }
-    .user-info-text {
-      flex: 1;
-      min-width: 0;
-    }
-    .sidebar-avatar-image,
-    .mobile-avatar-image {
-      object-fit: cover;
-      border-radius: 9999px;
-    }
-    /* テキスト内自動リンクのスタイル */
-    .auto-link {
-      color: var(--color-accent-blue-light, #60a5fa);
-      text-decoration: underline;
-      word-break: break-all;
-    }
-    .auto-link:hover {
-      opacity: 0.8;
-    }
-  </style>
+  <link rel="stylesheet" href="/assets/css/common.css">
+  <link rel="stylesheet" href="/assets/css/pages/classroom.css">
 
   <script nonce="%%CSP_NONCE%%">
     (function() {

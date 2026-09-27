@@ -1,0 +1,31 @@
+
+
+
+
+
+
+
+
+
+    .user-info-header { display: flex; align-items: center; gap: 0.75rem; }
+    .popup-user-avatar { width: 2.25rem; height: 2.25rem; border-radius: 9999px; object-fit: cover; border: 1px solid var(--color-border); flex-shrink: 0; }
+    .user-info-text { flex: 1; min-width: 0; }
+    .sidebar-avatar-image, .mobile-avatar-image { object-fit: cover; border-radius: 9999px; }
+    .auto-link { color: var(--color-accent-blue-light, #60a5fa); text-decoration: underline; word-break: break-all; }
+    .auto-link:hover { opacity: 0.8; }
+    /* リンクカードのFaviconレイアウト用 */
+    .link-card-name-wrapper {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem; /* アイコンとテキストの間隔 */
+    }
+
+    .link-favicon {
+    width: 1.5rem; /* 約24pxの表示サイズ */
+    height: 1.5rem;
+    object-fit: contain;
+    border-radius: 4px;
+    flex-shrink: 0; /* タイトルが長い場合でもアイコンが潰れないようにする */
+    /* 必要に応じて背景色を指定（透明なアイコンがダークモードで見えなくなる対策） */
+    /* background-color: #ffffff; */ 
+    }

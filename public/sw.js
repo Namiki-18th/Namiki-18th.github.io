@@ -1,8 +1,9 @@
-const CACHE_NAME = 'namiki-dashboard-v1';
+const CACHE_NAME = 'namiki-dashboard-v2';
 const STATIC_ASSETS = [
   '/favicon.png',
   '/style.css',
-  '/assets/css/app.css'
+  '/assets/css/app.css',
+  '/assets/css/common.css'
 ];
 
 self.addEventListener('install', (event) => {

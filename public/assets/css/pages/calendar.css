@@ -1,0 +1,373 @@
+/* 💡CSP対応: style属性から抽出したユーティリティクラス */
+
+    .gen-b08097 { display: flex; gap: 1rem; align-items: center; margin-bottom: 1rem; font-size: 0.875rem; }
+    .gen-1649af { display: flex; align-items: center; gap: 0.375rem; }
+    .gen-905fe7 { display: inline-block; width: 12px; height: 12px; background: var(--color-accent-blue-light); border-radius: 2px; }
+    .gen-9c23af { display: inline-block; width: 12px; height: 12px; background: #f97316; border-radius: 2px; }
+    .gen-674049 { display: inline-block; width: 12px; height: 12px; border: 1px solid #f87171; border-radius: 2px; }
+    .gen-56ee33 { display: flex; align-items: center; justify-content: space-between; margin-bottom: 1.5rem; padding: 1rem; background: var(--color-bg-secondary); border-radius: 0.5rem; }
+    .gen-a9a0ae { padding: 0.5rem 1rem; font-size: 0.9rem; }
+    .gen-ef7695 { margin: 0; font-size: 1.25rem; text-align: center; flex: 1; }
+    .gen-b56181 { overflow-x: auto; }
+    /* テーブルレイアウトを固定してセルの横幅を統一 */
+    .gen-2016c3 { width: 100%; border-collapse: collapse; margin-bottom: 1.5rem; table-layout: fixed; }
+    .gen-f35ed8 { background: var(--color-bg-secondary); border-bottom: 2px solid var(--color-border); }
+    .gen-8ce2af { padding: 0.75rem; text-align: center; font-weight: 600; color: #f87171; width: 14.28%; }
+    .gen-106cb7 { padding: 0.75rem; text-align: center; font-weight: 600; color: var(--color-text-primary); width: 14.28%; }
+    .gen-0b08be { padding: 0.75rem; text-align: center; font-weight: 600; color: #3b82f6; width: 14.28%; }
+    .gen-476907 { text-align: center; padding: 2rem; color: var(--color-text-muted); }
+    .gen-6e2da4 { display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem; }
+    .gen-f3e485 { margin: 0; font-size: 1.1rem; font-weight: 700; }
+    .gen-685eb7 { display: flex; flex-direction: column; gap: 0.5rem; }
+
+    .gen-14ec71 { height: 1.5rem; margin-bottom: 0.25rem; }
+    .gen-de800b { color: var(--color-text-muted); font-size: 0.7rem; line-height: 1; }
+    .gen-682d69 { font-size: 0.95rem; font-weight: 600; margin-bottom: 0.25rem; }
+    .gen-af89d6 { font-size: 0.75rem; }
+    .gen-30184a { color: var(--color-text-muted); font-size: 0.9rem; }
+    .gen-e5c627 { padding: 0.75rem; border: 1px solid var(--color-border); border-radius: 0.375rem; background: var(--color-bg-tertiary); }
+    .gen-1aecdc { font-weight: 600; font-size: 0.95rem; }
+    .gen-9803d8 { font-size: 0.75rem; color: var(--color-text-muted); margin-top: 0.25rem; }
+    
+    /* 1. モーダル等の色を定義（ライトモード用） */
+    :root {
+      --modal-bg: #ffffff;
+      --modal-text: #333333;
+      --modal-border: #e5e7eb;
+      --modal-close: #9ca3af;
+      --modal-close-hover: #1f2937;
+      --calendar-cell-hover: #f3f4f6; /* セルホバー色（ライトモード） */
+      --calendar-surface: #ffffff;
+      --calendar-surface-muted: #f3f4f6;
+      --calendar-text-muted: #6b7280;
+    }
+
+    /* 2. モーダル等の色を定義（ダークモード用） */
+    html.dark {
+      --modal-bg: #0b0c0c;          
+      --modal-text: #f9fafb;        
+      --modal-border: #35373a;      
+      --modal-close: #6b7280;       
+      --modal-close-hover: #f3f4f6; 
+      --calendar-cell-hover: #1f2937; /* セルホバー色（ダークモード） */
+      --calendar-surface: #0a0a0c;
+      --calendar-surface-muted: #15171a;
+      --calendar-text-muted: #9ca3af;
+    }
+
+    /* 3. 変数を使ってスタイルを適用 */
+    .modal-content {
+      background: var(--modal-bg);
+      color: var(--modal-text);
+      padding: 1.5rem;
+      border-radius: 0.5rem;
+      max-width: 90%;
+      width: 400px;
+      max-height: min(80vh, 720px);
+      overflow-y: auto;
+      border: 1px solid var(--modal-border);
+      box-shadow: 0 4px 6px rgba(0,0,0,0.3); 
+    }
+
+    .modal-close-btn {
+      cursor: pointer;
+      font-weight: bold;
+      color: var(--modal-close);
+      font-size: 1.2rem;
+      transition: color 0.2s;
+    }
+
+    .modal-close-btn:hover {
+      color: var(--modal-close-hover);
+    }
+    .schedule-modal-card {
+      padding: 1rem;
+      border: 1px solid var(--modal-border);
+      border-radius: 0.5rem;
+      background: var(--calendar-surface-muted);
+    }
+    .schedule-modal-heading {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 0.75rem;
+      margin-bottom: 0.75rem;
+    }
+    .schedule-modal-title {
+      margin: 0;
+      font-size: 1rem;
+      font-weight: 700;
+      color: var(--modal-text);
+    }
+    .schedule-modal-badge {
+      flex: 0 0 auto;
+      min-width: 2rem;
+      padding: 0.25rem 0.45rem;
+      border-radius: 0.3rem;
+      color: #ffffff;
+      font-size: 0.8rem;
+      line-height: 1.1;
+      text-align: center;
+      font-weight: 700;
+    }
+    .schedule-modal-badge.type-a { background: #2563eb; }
+    .schedule-modal-badge.type-b { background: #16a34a; }
+    .schedule-modal-badge.type-c { background: #f97316; }
+    .schedule-period-list {
+      display: grid;
+      gap: 0.35rem;
+    }
+    .schedule-period-row {
+      display: grid;
+      grid-template-columns: 3.25rem minmax(0, 1fr);
+      align-items: center;
+      min-height: 2.25rem;
+      border: 1px solid var(--modal-border);
+      border-radius: 0.35rem;
+      background: var(--calendar-surface);
+      overflow: hidden;
+    }
+    .schedule-period-number {
+      align-self: stretch;
+      display: grid;
+      place-items: center;
+      background: var(--calendar-surface-muted);
+      color: var(--calendar-text-muted);
+      font-size: 0.75rem;
+      font-weight: 600;
+    }
+    .schedule-period-subject {
+      min-width: 0;
+      padding: 0.45rem 0.65rem;
+      color: var(--modal-text);
+      font-size: 0.9rem;
+      font-weight: 600;
+      overflow-wrap: anywhere;
+    }
+    .schedule-modal-notes {
+      display: grid;
+      gap: 0.3rem;
+      margin-top: 0.75rem;
+      color: var(--color-text-muted);
+      font-size: 0.78rem;
+    }
+    .user-info-header {
+      display: flex;
+      align-items: center;
+      gap: 0.75rem;
+    }
+    .popup-user-avatar {
+      width: 2.25rem;
+      height: 2.25rem;
+      border-radius: 9999px;
+      object-fit: cover;
+      border: 1px solid var(--color-border, #dddddd);
+      flex-shrink: 0;
+    }
+    .user-info-text {
+      flex: 1;
+      min-width: 0;
+    }
+    .sidebar-avatar-image,
+    .mobile-avatar-image {
+      object-fit: cover;
+      border-radius: 9999px;
+    }
+    .event-chip-event {
+      background: var(--color-accent-blue-light, #3b82f6);
+      color: white;
+    }
+    .event-chip-test {
+      background: #7c3aed;
+      color: white;
+    }
+    .event-chip-ceremony {
+      background: #0891b2;
+      color: white;
+    }
+    .event-chip-school-event {
+      background: #b45309;
+      color: white;
+    }
+    .event-chip-holiday {
+      background: #64748b;
+      color: white;
+    }
+    /* イベントチップのスクロールバーを非表示にする */
+    .event-chip {
+      scrollbar-width: none;
+      -ms-overflow-style: none;
+    }
+    .event-chip::-webkit-scrollbar {
+      display: none;
+    }
+
+    /* モーダル用のスタイル追加 */
+    .modal-overlay {
+      display: none;
+      position: fixed;
+      top: 0; left: 0; right: 0; bottom: 0;
+      background: rgba(0, 0, 0, 0.5);
+      z-index: 1000;
+      align-items: center;
+      justify-content: center;
+    }
+    .modal-overlay.show {
+      display: flex;
+    }
+
+    /* カレンダーセルホバー時の背景色を修正 */
+    .calendar-cell:hover {
+      background: var(--calendar-cell-hover) !important;
+    }
+    .calendar-cell {
+      height: 100px;
+      padding: 0.5rem;
+      vertical-align: top;
+      cursor: pointer;
+      transition: background 0.2s;
+      overflow: visible;
+    }
+    .calendar-cell-header {
+      display: flex;
+      align-items: flex-start;
+      justify-content: space-between;
+      gap: 0.25rem;
+      min-height: 1.5rem;
+    }
+    .calendar-cell-meta {
+      display: inline-flex;
+      align-items: center;
+      gap: 0.25rem;
+      flex: 0 0 auto;
+    }
+    .no-vacation-marker {
+      width: 0.85rem;
+      height: 0.85rem;
+      border: 2px solid #f97316;
+      border-radius: 50%;
+      box-shadow: inset 0 0 0 2px var(--calendar-surface-muted);
+    }
+    .holiday-label {
+      padding: 0.1rem 0.25rem;
+      border: 1px solid #f87171;
+      border-radius: 0.25rem;
+      color: #f87171;
+      font-size: 0.65rem;
+      line-height: 1.2;
+      font-weight: 700;
+      white-space: nowrap;
+    }
+    .schedule-type-badge {
+      flex: 0 0 auto;
+      min-width: 1.35rem;
+      padding: 0.1rem 0.25rem;
+      border-radius: 0.25rem;
+      color: #ffffff;
+      font-size: 0.7rem;
+      line-height: 1.2;
+      text-align: center;
+      font-weight: 700;
+    }
+    .schedule-type-badge.type-a { background: #2563eb; }
+    .schedule-type-badge.type-b { background: #16a34a; }
+    .schedule-type-badge.type-c { background: #f97316; }
+    .calendar-cell.current-month {
+      background: var(--calendar-surface-muted);
+      color: var(--color-text-primary);
+    }
+    .calendar-cell.other-month {
+      background: var(--calendar-surface);
+      color: var(--color-text-muted);
+    }
+    .calendar-cell.today {
+      border: 2px solid var(--color-accent-blue-light);
+      font-weight: 700;
+    }
+    .calendar-cell.normal-weight {
+      font-weight: 500;
+    }
+    .calendar-cell.sunday,
+    .calendar-cell.holiday {
+      color: #f87171;
+    }
+    .calendar-cell.saturday {
+      color: #3b82f6;
+    }
+    .event-chip {
+      display: block;
+      max-width: 100%;
+      padding: 0.25rem 0.375rem;
+      margin-bottom: 0.25rem;
+      overflow-x: auto;
+      overflow-y: hidden;
+      white-space: nowrap;
+      text-overflow: clip;
+      font-size: 0.75rem;
+      height: 1.5rem;
+      line-height: 1rem;
+      box-sizing: border-box;
+      border-radius: 0.25rem;
+      touch-action: pan-x;
+      scrollbar-width: thin;
+      scrollbar-color: var(--color-text-faint) transparent;
+    }
+    .event-chip::-webkit-scrollbar { display: block; height: 4px; }
+    .event-chip::-webkit-scrollbar-thumb { background: var(--color-text-faint); border-radius: 999px; }
+    .gen-b56181 { overflow-x: auto; -webkit-overflow-scrolling: touch; }
+    .gen-2016c3 { min-width: 760px; }
+    .event-chip.continued-from-prev {
+      margin-left: -0.5rem;
+      padding-left: 0.5rem;
+      width: calc(100% + 0.5rem);
+      max-width: none;
+      position: relative;
+      z-index: 1;
+      border-top-left-radius: 0;
+      border-bottom-left-radius: 0;
+    }
+    .event-chip.continues-to-next {
+      margin-right: -0.5rem;
+      padding-right: 0.5rem;
+      width: calc(100% + 0.5rem);
+      max-width: none;
+      position: relative;
+      z-index: 1;
+      border-top-right-radius: 0;
+      border-bottom-right-radius: 0;
+    }
+    .event-chip.continued-from-prev.continues-to-next {
+      width: calc(100% + 1rem);
+      max-width: none;
+      border-radius: 0;
+    }
+    .event-chip.continues-to-next {
+      overflow: visible;
+      text-overflow: clip;
+      z-index: 2;
+    }
+    .event-chip-label {
+      display: inline-block;
+      min-width: max-content;
+      width: max-content;
+    }
+    .event-chip.is-auto-scrolling {
+      overflow: hidden;
+      scrollbar-width: none;
+    }
+    .event-chip.is-auto-scrolling::-webkit-scrollbar { display: none; }
+
+    /* Tailwind代替用のカスタムクラス */
+    .sidebar-header-inner { display: flex; align-items: center; gap: 0.75rem; }
+    .sidebar-brand-name { font-weight: 700; font-size: 0.875rem; }
+    .sidebar-brand-tagline { font-weight: 400; font-size: 0.75rem; }
+    .theme-toggle-label { display: flex; align-items: center; gap: 0.5rem; }
+    .logout-link { color: #ef4444; }
+    .sidebar-user-info { flex: 1 1 0%; min-width: 0; }
+    .sidebar-user-id-text { font-size: 0.75rem; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+    .sidebar-user-name-text { font-size: 0.875rem; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+    .mobile-brand-container { display: flex; align-items: center; gap: 0.5rem; }
+    .mobile-brand-name { font-weight: 700; font-size: 0.875rem; }
+    .mobile-header-actions { display: flex; align-items: center; gap: 0.75rem; }
+    .page-section-calendar { display: flex; flex-direction: column; gap: 1.5rem; }
+    .text-truncate { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
