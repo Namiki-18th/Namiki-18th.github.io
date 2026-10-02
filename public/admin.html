@@ -1857,9 +1857,18 @@
       log.textContent = `${labels[command]} を実行中...`;
       try {
         const res = await fetch(`/api/admin/commands/${encodeURIComponent(command)}`, { method: 'POST' });
-        const data = await res.json();
+        const responseText = await res.text();
+        let data;
+        try {
+          data = JSON.parse(responseText);
+        } catch (_) {
+          const hint = command === 'restart' ? '再起動中の可能性があります。数秒待ってから画面を再読み込みしてください。' : 'サーバーから予期しない応答が返りました。';
+          throw new Error(`${hint} (HTTP ${res.status})`);
+        }
         if (!res.ok) throw new Error(data.error || `HTTP ${res.status}`);
-        log.textContent = `${data.success ? '完了' : '終了コード ' + data.exitCode}\n$ ${labels[command]}\n${data.output || '(出力なし)'}${data.error ? `\n${data.error}` : ''}`;
+        log.textContent = data.accepted
+          ? `再起動要求を受け付けました。復帰まで数秒お待ちください。\n$ ${labels[command]}`
+          : `${data.success ? '完了' : '終了コード ' + data.exitCode}\n$ ${labels[command]}\n${data.output || '(出力なし)'}${data.error ? `\n${data.error}` : ''}`;
       } catch (error) {
         log.textContent = `実行に失敗しました: ${error.message}`;
       } finally {

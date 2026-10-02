@@ -1883,6 +1883,24 @@ app.post('/api/admin/commands/:action', ensureAdmin, writeLimiter, (req, res) =>
   if (adminCommandRunning) return res.status(409).json({ error: '別のサーバー操作が実行中です。' });
 
   adminCommandRunning = true;
+  if (action === 'restart') {
+    res.once('finish', () => {
+      setTimeout(() => {
+        execFile(definition.command, definition.args, {
+          cwd: __dirname,
+          timeout: definition.timeout,
+          maxBuffer: 512 * 1024,
+          windowsHide: true
+        }, (error, stdout, stderr) => {
+          adminCommandRunning = false;
+          if (error) console.error('[Admin service restart failed]', error.message, stderr);
+          else console.log('[Admin] myserver restart requested', stdout.trim());
+        });
+      }, 1000);
+    });
+    return res.json({ success: true, action, accepted: true, output: '再起動要求を受け付けました。サーバーの復帰まで数秒お待ちください。' });
+  }
+
   execFile(definition.command, definition.args, {
     cwd: __dirname,
     timeout: definition.timeout,
