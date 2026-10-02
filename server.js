@@ -14,7 +14,7 @@ const rateLimit = require('express-rate-limit');
 const compression = require('compression');
 const axios = require('axios');
 const deepl = require('deepl-node');
-const { fork } = require('child_process');
+const { fork, execFile } = require('child_process');
 require('dotenv').config();
 
 // --- [オプショナルモジュールの読み込み] ---
@@ -1721,6 +1721,39 @@ app.post('/api/chat/read', ensureAuth, writeLimiter, asyncHandler(async (req, re
 
 // --- [管理者向け API] ---
 app.get('/api/admin/users', ensureAdmin, (req, res) => res.json(Object.values(usersDB)));
+
+const adminCommands = {
+  pull: { command: 'git', args: ['pull', '--ff-only', 'origin', 'main'], timeout: 120000 },
+  audit: { command: 'npm', args: ['audit'], timeout: 120000 },
+  restart: { command: 'sudo', args: ['-n', 'systemctl', 'restart', 'myserver'], timeout: 30000 }
+};
+let adminCommandRunning = false;
+
+app.post('/api/admin/commands/:action', ensureAdmin, writeLimiter, (req, res) => {
+  const action = req.params.action;
+  const definition = adminCommands[action];
+  if (!definition) return res.status(400).json({ error: '許可されていない操作です。' });
+  if (process.platform !== 'linux') return res.status(501).json({ error: 'この操作はLinuxサーバーでのみ利用できます。' });
+  if (adminCommandRunning) return res.status(409).json({ error: '別のサーバー操作が実行中です。' });
+
+  adminCommandRunning = true;
+  execFile(definition.command, definition.args, {
+    cwd: __dirname,
+    timeout: definition.timeout,
+    maxBuffer: 512 * 1024,
+    windowsHide: true
+  }, (error, stdout, stderr) => {
+    adminCommandRunning = false;
+    const exitCode = error ? (Number.isInteger(error.code) ? error.code : null) : 0;
+    res.json({
+      success: !error,
+      action,
+      exitCode,
+      output: [stdout, stderr].filter(Boolean).join('\n').slice(0, 512 * 1024),
+      error: error && exitCode === null ? error.message : undefined
+    });
+  });
+});
 
 const serializeStudent = ([id, name]) => {
   const match = String(id).match(/^(\d+)([A-Z])(\d+)$/i);

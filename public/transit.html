@@ -37,7 +37,7 @@
     </div>
 
     <nav class="sidebar-nav">
-      <button data-href="/index" class="sidebar-nav-button active" title="ホーム">
+      <button data-href="/index" class="sidebar-nav-button" title="ホーム">
         <svg class="icon-nav" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6"/></svg>
         <span class="sidebar-nav-text">ホーム</span>
       </button>
@@ -61,7 +61,7 @@
         <svg class="icon-nav" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10"/></svg>
         <span class="sidebar-nav-text">Classroom</span>
       </button>
-      <button data-href="/transit" class="sidebar-nav-button mt-quarter-rem" title="交通情報">
+      <button data-href="/transit" class="sidebar-nav-button active mt-quarter-rem" title="交通情報" aria-current="page">
         <svg class="icon-nav" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true"><path stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" d="M6 3h12a2 2 0 0 1 2 2v10a3 3 0 0 1-3 3H7a3 3 0 0 1-3-3V5a2 2 0 0 1 2-2Z" /><path stroke-width="1.8" stroke-linecap="round" d="M4 9h16M8 6h.01M16 6h.01M7 21v-3M17 21v-3M8 13h.01M16 13h.01" /></svg>
         <span class="sidebar-nav-text">交通情報</span>
       </button>
@@ -174,13 +174,13 @@
     </div>
 
     <div class="mobile-tab-bar">
-      <button data-href="/index" class="mobile-nav-button active">ホーム</button>
+      <button data-href="/index" class="mobile-nav-button">ホーム</button>
       <button data-href="/schedule" class="mobile-nav-button">時間割</button>
       <button data-href="/notice" class="mobile-nav-button">お知らせ</button>
       <button data-href="/link" class="mobile-nav-button">リンク</button>
       <button data-href="/calendar" class="mobile-nav-button">カレンダー</button>
       <button data-href="/classroom" class="mobile-nav-button">Classroom</button>
-      <button data-href="/transit" class="mobile-nav-button">交通情報</button>
+      <button data-href="/transit" class="mobile-nav-button active" aria-current="page">交通情報</button>
       <button data-href="/privacy" class="mobile-nav-button">プライバシー</button>
       <button data-href="/terms" class="mobile-nav-button">利用規約</button>
       <button data-href="/report" class="mobile-nav-button">報告</button>
@@ -227,6 +227,10 @@
           </div>
 
           <div class="tm-tools">
+            <button type="button" class="tm-btn" id="tm-refresh" aria-label="交通情報を今すぐ更新" title="交通情報を今すぐ更新">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20 7v5h-5M4 17v-5h5" /><path d="M5.6 9a7 7 0 0 1 11.6-2L20 12M4 12l2.8 5a7 7 0 0 0 11.6-2" /></svg>
+              <span class="tm-btn-label">今すぐ更新</span>
+            </button>
             <button type="button" class="tm-btn" id="tm-geolocation">
               <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="3.5" /><path d="M12 2v3M12 19v3M2 12h3M19 12h3" /></svg>
               <span class="tm-btn-label">現在地へ</span>
@@ -1187,6 +1191,24 @@
         }
       }
 
+      async function refreshAll() {
+        const button = $('tm-refresh');
+        if (!button || button.disabled) return;
+        button.disabled = true;
+        button.setAttribute('aria-busy', 'true');
+        try {
+          await Promise.allSettled([
+            loadVehicles(),
+            loadRoads(),
+            loadTyphoonData()
+          ]);
+          updateWeatherTiles();
+        } finally {
+          button.disabled = false;
+          button.removeAttribute('aria-busy');
+        }
+      }
+
       function onMapMove() {
         if (S.map) {
           loadVehicles();
@@ -1300,6 +1322,8 @@
           if (S.map) S.map.setView([pos.coords.latitude, pos.coords.longitude], 14);
         });
       });
+
+      document.getElementById('tm-refresh')?.addEventListener('click', refreshAll);
 
       document.getElementById('tm-home')?.addEventListener('click', () => {
         if (S.map && S.cfg && S.cfg.school) {

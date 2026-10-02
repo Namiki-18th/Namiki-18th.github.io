@@ -394,6 +394,17 @@
           </button>
           <pre id="admin-sync-log" class="gen-07ea9a">ログ待ち...</pre>
         </div>
+
+        <div class="app-card content-card">
+          <h2 class="content-card-title">サーバーメンテナンス</h2>
+          <p class="content-card-subtitle">許可された操作のみ実行できます。コマンドはサーバー上のアプリケーションディレクトリで実行されます。</p>
+          <div class="admin-command-actions">
+            <button type="button" class="button-secondary admin-command-btn" data-command="pull">git pull origin main</button>
+            <button type="button" class="button-secondary admin-command-btn" data-command="audit">npm audit</button>
+            <button type="button" class="button-primary admin-command-btn" data-command="restart">myserverを再起動</button>
+          </div>
+          <pre id="admin-command-log" class="gen-07ea9a" aria-live="polite">実行結果がここに表示されます。</pre>
+        </div>
         
       </div>
       <!-- 6. 各種APIデータ セクション -->
@@ -649,6 +660,9 @@
       document.getElementById('btn-save-all-settings')?.addEventListener('click', saveAllSettings);
       document.getElementById('form-notice')?.addEventListener('submit', handleNoticeSubmit);
       document.getElementById('btn-trigger-sync')?.addEventListener('click', triggerAdminClassroomSync);
+      document.querySelectorAll('.admin-command-btn').forEach((button) => {
+        button.addEventListener('click', () => runAdminCommand(button));
+      });
       document.getElementById('form-schedule-day')?.addEventListener('submit', saveScheduleDay);
       document.getElementById('schedule-admin-save-base')?.addEventListener('click', saveScheduleBase);
       document.getElementById('schedule-admin-reset')?.addEventListener('click', resetScheduleDay);
@@ -1680,6 +1694,31 @@
         log.textContent = JSON.stringify({ status: "200 OK", timestamp: new Date().toISOString(), fetchedItems: data.length }, null, 2);
       } catch(e) {
         log.textContent = 'エラーが発生しました: ' + e.message;
+      }
+    }
+
+    async function runAdminCommand(button) {
+      const command = button.dataset.command;
+      const labels = {
+        pull: 'git pull --ff-only origin main',
+        audit: 'npm audit',
+        restart: 'sudo -n systemctl restart myserver'
+      };
+      if (!labels[command] || !confirm(`次の操作をサーバーで実行しますか？\n\n${labels[command]}`)) return;
+
+      const log = document.getElementById('admin-command-log');
+      const buttons = document.querySelectorAll('.admin-command-btn');
+      buttons.forEach((item) => { item.disabled = true; });
+      log.textContent = `${labels[command]} を実行中...`;
+      try {
+        const res = await fetch(`/api/admin/commands/${encodeURIComponent(command)}`, { method: 'POST' });
+        const data = await res.json();
+        if (!res.ok) throw new Error(data.error || `HTTP ${res.status}`);
+        log.textContent = `${data.success ? '完了' : '終了コード ' + data.exitCode}\n$ ${labels[command]}\n${data.output || '(出力なし)'}${data.error ? `\n${data.error}` : ''}`;
+      } catch (error) {
+        log.textContent = `実行に失敗しました: ${error.message}`;
+      } finally {
+        buttons.forEach((item) => { item.disabled = false; });
       }
     }
 
