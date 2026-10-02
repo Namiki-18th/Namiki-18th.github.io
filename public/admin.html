@@ -405,6 +405,30 @@
           </div>
           <pre id="admin-command-log" class="gen-07ea9a" aria-live="polite">実行結果がここに表示されます。</pre>
         </div>
+
+        <div class="app-card content-card">
+          <h2 class="content-card-title">サーバーファイル</h2>
+          <p class="content-card-subtitle">プロジェクト内を閲覧できます。編集可能なのは admin-editable 内の .txt / .md ファイルのみです。</p>
+          <div class="admin-file-toolbar">
+            <button type="button" id="admin-file-up" class="button-secondary" disabled>上のフォルダー</button>
+            <span id="admin-file-current-path" class="admin-file-current-path">/</span>
+            <button type="button" id="admin-file-refresh" class="button-secondary">再読み込み</button>
+            <button type="button" id="admin-file-new" class="button-primary" hidden>新規ファイル</button>
+          </div>
+          <div class="admin-file-manager">
+            <nav id="admin-file-list" class="admin-file-list" aria-label="サーバーファイル一覧">
+              <p class="placeholder-text">読み込み中...</p>
+            </nav>
+            <section class="admin-file-editor" aria-label="ファイル内容">
+              <div class="admin-file-editor-heading">
+                <strong id="admin-file-selected">ファイルを選択してください</strong>
+                <button type="button" id="admin-file-save" class="button-primary" disabled>保存</button>
+              </div>
+              <textarea id="admin-file-content" class="gen-07e2e8 admin-file-content" rows="22" spellcheck="false" readonly aria-label="ファイル内容"></textarea>
+            </section>
+          </div>
+          <p id="admin-file-status" class="admin-file-status" aria-live="polite">機密データ領域と隠しファイルは表示されません。</p>
+        </div>
         
       </div>
       <!-- 6. 各種APIデータ セクション -->
@@ -660,6 +684,16 @@
       document.getElementById('btn-save-all-settings')?.addEventListener('click', saveAllSettings);
       document.getElementById('form-notice')?.addEventListener('submit', handleNoticeSubmit);
       document.getElementById('btn-trigger-sync')?.addEventListener('click', triggerAdminClassroomSync);
+      document.getElementById('admin-file-up')?.addEventListener('click', navigateAdminFileParent);
+      document.getElementById('admin-file-refresh')?.addEventListener('click', () => loadAdminFiles(adminFilePath));
+      document.getElementById('admin-file-new')?.addEventListener('click', createAdminFile);
+      document.getElementById('admin-file-save')?.addEventListener('click', saveAdminFile);
+      document.getElementById('admin-file-list')?.addEventListener('click', (event) => {
+        const entry = event.target.closest('[data-admin-file-path]');
+        if (!entry) return;
+        if (entry.dataset.type === 'directory') loadAdminFiles(entry.dataset.adminFilePath);
+        else if (entry.dataset.readable === 'true') loadAdminFile(entry.dataset.adminFilePath);
+      });
       document.querySelectorAll('.admin-command-btn').forEach((button) => {
         button.addEventListener('click', () => runAdminCommand(button));
       });
@@ -784,6 +818,117 @@
       if (tabId === 'sessions') loadAdminSessions();
       if (tabId === 'reports') loadAdminReports();
       if (tabId === 'schedule') loadScheduleSettings();
+      if (tabId === 'system') loadAdminFiles(adminFilePath);
+    }
+
+    let adminFilePath = '';
+    let adminSelectedFilePath = '';
+
+    function renderAdminFileEntries(entries) {
+      const list = document.getElementById('admin-file-list');
+      if (!entries.length) {
+        list.innerHTML = '<p class="placeholder-text">このフォルダーは空です。</p>';
+        return;
+      }
+      list.innerHTML = entries.map((entry) => {
+        const selected = entry.path === adminSelectedFilePath ? ' is-selected' : '';
+        const label = entry.type === 'directory' ? `フォルダー　${entry.name}` : `${entry.readable ? 'ファイル' : 'バイナリ'}　${entry.name}`;
+        const detail = entry.type === 'file' ? `${entry.size.toLocaleString()} bytes${entry.editable ? ' ・編集可' : ' ・閲覧のみ'}` : '開く';
+        return `<button type="button" class="admin-file-entry${selected}" data-admin-file-path="${escapeHtml(entry.path)}" data-type="${entry.type}" data-readable="${entry.readable}"><span>${escapeHtml(label)}</span><small>${escapeHtml(detail)}</small></button>`;
+      }).join('');
+    }
+
+    async function loadAdminFiles(relativePath = '') {
+      adminFilePath = relativePath;
+      adminSelectedFilePath = '';
+      document.getElementById('admin-file-current-path').textContent = relativePath ? `/${relativePath}` : '/';
+      document.getElementById('admin-file-up').disabled = !relativePath;
+      document.getElementById('admin-file-new').hidden = relativePath !== 'admin-editable';
+      document.getElementById('admin-file-selected').textContent = 'ファイルを選択してください';
+      const editor = document.getElementById('admin-file-content');
+      editor.value = '';
+      editor.readOnly = true;
+      document.getElementById('admin-file-save').disabled = true;
+      document.getElementById('admin-file-status').textContent = 'フォルダーを読み込み中...';
+      try {
+        const query = new URLSearchParams({ path: relativePath });
+        const res = await fetch(`/api/admin/files?${query}`);
+        const data = await res.json();
+        if (!res.ok) throw new Error(data.error || `HTTP ${res.status}`);
+        renderAdminFileEntries(data.entries);
+        document.getElementById('admin-file-status').textContent = `${data.entries.length} 件を表示中。機密データ領域と隠しファイルは表示されません。`;
+      } catch (error) {
+        document.getElementById('admin-file-list').innerHTML = '<p class="placeholder-text">フォルダーを読み込めませんでした。</p>';
+        document.getElementById('admin-file-status').textContent = error.message;
+      }
+    }
+
+    function navigateAdminFileParent() {
+      const segments = adminFilePath.split('/').filter(Boolean);
+      segments.pop();
+      loadAdminFiles(segments.join('/'));
+    }
+
+    async function loadAdminFile(relativePath) {
+      try {
+        const query = new URLSearchParams({ path: relativePath });
+        const res = await fetch(`/api/admin/files/content?${query}`);
+        const data = await res.json();
+        if (!res.ok) throw new Error(data.error || `HTTP ${res.status}`);
+        adminSelectedFilePath = data.path;
+        document.getElementById('admin-file-selected').textContent = data.path;
+        const editor = document.getElementById('admin-file-content');
+        editor.value = data.content;
+        editor.readOnly = !data.editable;
+        document.getElementById('admin-file-save').disabled = !data.editable;
+        document.getElementById('admin-file-status').textContent = data.editable ? '編集できます。保存すると変更履歴がアクセスログに記録されます。' : '読み取り専用ファイルです。';
+        const refresh = await fetch(`/api/admin/files?${new URLSearchParams({ path: adminFilePath })}`);
+        const listing = await refresh.json();
+        if (refresh.ok) renderAdminFileEntries(listing.entries);
+      } catch (error) {
+        document.getElementById('admin-file-status').textContent = `ファイルを読み込めませんでした: ${error.message}`;
+      }
+    }
+
+    async function createAdminFile() {
+      const name = prompt('新しい .txt または .md ファイル名を入力してください');
+      if (name === null) return;
+      if (!/^[A-Za-z0-9][A-Za-z0-9._ -]{0,79}\.(?:md|txt)$/i.test(name) || name.includes('..')) {
+        alert('英数字で始まる .txt / .md ファイル名を指定してください。');
+        return;
+      }
+      try {
+        const res = await fetch('/api/admin/files/content', {
+          method: 'PUT',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ name, content: '', overwrite: false })
+        });
+        const data = await res.json();
+        if (!res.ok) throw new Error(data.error || `HTTP ${res.status}`);
+        await loadAdminFiles('admin-editable');
+        await loadAdminFile(`admin-editable/${name}`);
+      } catch (error) {
+        alert(`ファイルを作成できませんでした: ${error.message}`);
+      }
+    }
+
+    async function saveAdminFile() {
+      if (!adminSelectedFilePath.startsWith('admin-editable/')) return;
+      if (!confirm(`変更を保存しますか？\n\n${adminSelectedFilePath}`)) return;
+      const name = adminSelectedFilePath.slice('admin-editable/'.length);
+      try {
+        const res = await fetch('/api/admin/files/content', {
+          method: 'PUT',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ name, content: document.getElementById('admin-file-content').value, overwrite: true })
+        });
+        const data = await res.json();
+        if (!res.ok) throw new Error(data.error || `HTTP ${res.status}`);
+        document.getElementById('admin-file-status').textContent = '保存しました。変更履歴をアクセスログに記録しました。';
+        await loadAdminFile(adminSelectedFilePath);
+      } catch (error) {
+        document.getElementById('admin-file-status').textContent = `保存に失敗しました: ${error.message}`;
+      }
     }
 
     let scheduleData = {};

@@ -1729,6 +1729,152 @@ const adminCommands = {
 };
 let adminCommandRunning = false;
 
+const ADMIN_FILE_ROOT = path.resolve(__dirname);
+const ADMIN_EDITABLE_ROOT = path.join(ADMIN_FILE_ROOT, 'admin-editable');
+const ADMIN_FILE_LIMIT = 512 * 1024;
+const ADMIN_READABLE_EXTENSIONS = new Set(['.cjs', '.css', '.geojson', '.html', '.htm', '.js', '.json', '.md', '.mjs', '.sh', '.svg', '.txt', '.xml', '.yaml', '.yml']);
+const ADMIN_HIDDEN_ROOTS = new Set(['.git', 'certs', 'data', 'node_modules', 'students.enc', 'students.iv', 'students.tag']);
+
+function adminFileError(status, message) {
+  const error = new Error(message);
+  error.status = status;
+  return error;
+}
+
+function getAdminFileSegments(relativePath) {
+  if (relativePath === undefined || relativePath === '') return [];
+  if (typeof relativePath !== 'string' || relativePath.length > 1024 || relativePath.includes('\\') || relativePath.includes('\0')) {
+    throw adminFileError(400, '無効なパスです。');
+  }
+  const segments = relativePath.split('/');
+  if (segments.some((segment) => !segment || segment === '.' || segment === '..' || segment.startsWith('.'))) {
+    throw adminFileError(400, '無効なパスです。');
+  }
+  if (ADMIN_HIDDEN_ROOTS.has(segments[0].toLowerCase())) throw adminFileError(404, 'ファイルが見つかりません。');
+  return segments;
+}
+
+async function resolveAdminFilePath(relativePath) {
+  const segments = getAdminFileSegments(relativePath);
+  const absolutePath = path.resolve(ADMIN_FILE_ROOT, ...segments);
+  const relative = path.relative(ADMIN_FILE_ROOT, absolutePath);
+  if (relative.startsWith('..') || path.isAbsolute(relative)) throw adminFileError(400, '無効なパスです。');
+
+  let currentPath = ADMIN_FILE_ROOT;
+  let stat = await fsPromises.lstat(currentPath);
+  for (const segment of segments) {
+    currentPath = path.join(currentPath, segment);
+    stat = await fsPromises.lstat(currentPath).catch((error) => {
+      if (error.code === 'ENOENT') throw adminFileError(404, 'ファイルが見つかりません。');
+      throw error;
+    });
+    if (stat.isSymbolicLink()) throw adminFileError(404, 'ファイルが見つかりません。');
+  }
+  return { absolutePath, relativePath: segments.join('/'), stat };
+}
+
+function isEditableAdminFileName(name) {
+  return typeof name === 'string' && /^[A-Za-z0-9][A-Za-z0-9._ -]{0,79}\.(?:md|txt)$/i.test(name) && !name.includes('..');
+}
+
+app.get('/api/admin/files', ensureAdmin, asyncHandler(async (req, res) => {
+  let directory;
+  try {
+    directory = await resolveAdminFilePath(req.query.path || '');
+  } catch (error) {
+    return res.status(error.status || 500).json({ error: error.message });
+  }
+  if (!directory.stat.isDirectory()) return res.status(400).json({ error: 'フォルダーを指定してください。' });
+
+  const entries = [];
+  for (const entry of await fsPromises.readdir(directory.absolutePath, { withFileTypes: true })) {
+    if (entry.name.startsWith('.') || (directory.relativePath === '' && ADMIN_HIDDEN_ROOTS.has(entry.name.toLowerCase()))) continue;
+    if (!entry.isDirectory() && !entry.isFile()) continue;
+    const fullPath = path.join(directory.absolutePath, entry.name);
+    const stat = await fsPromises.lstat(fullPath);
+    if (stat.isSymbolicLink()) continue;
+    const relativePath = directory.relativePath ? `${directory.relativePath}/${entry.name}` : entry.name;
+    entries.push({
+      name: entry.name,
+      path: relativePath,
+      type: entry.isDirectory() ? 'directory' : 'file',
+      size: entry.isFile() ? stat.size : null,
+      modifiedAt: stat.mtime.toISOString(),
+      readable: entry.isFile() && ADMIN_READABLE_EXTENSIONS.has(path.extname(entry.name).toLowerCase()),
+      editable: directory.relativePath === 'admin-editable' && entry.isFile() && isEditableAdminFileName(entry.name)
+    });
+  }
+  entries.sort((a, b) => a.type === b.type ? a.name.localeCompare(b.name) : a.type === 'directory' ? -1 : 1);
+  res.json({ path: directory.relativePath, entries });
+}));
+
+app.get('/api/admin/files/content', ensureAdmin, asyncHandler(async (req, res) => {
+  let file;
+  try {
+    file = await resolveAdminFilePath(req.query.path);
+  } catch (error) {
+    return res.status(error.status || 500).json({ error: error.message });
+  }
+  if (!file.stat.isFile() || !ADMIN_READABLE_EXTENSIONS.has(path.extname(file.absolutePath).toLowerCase())) {
+    return res.status(415).json({ error: 'このファイル形式は表示できません。' });
+  }
+
+  let handle;
+  try {
+    handle = await fsPromises.open(file.absolutePath, fs.constants.O_RDONLY | (fs.constants.O_NOFOLLOW || 0));
+    const stat = await handle.stat();
+    if (!stat.isFile() || stat.size > ADMIN_FILE_LIMIT) return res.status(413).json({ error: 'ファイルが大きすぎます。' });
+    const content = await handle.readFile();
+    if (content.includes(0)) return res.status(415).json({ error: 'このファイル形式は表示できません。' });
+    let text;
+    try {
+      text = new TextDecoder('utf-8', { fatal: true }).decode(content);
+    } catch (_) {
+      return res.status(415).json({ error: 'UTF-8以外のファイルは表示できません。' });
+    }
+    res.json({ path: file.relativePath, content: text, editable: file.relativePath.startsWith('admin-editable/') && isEditableAdminFileName(path.basename(file.absolutePath)) });
+  } finally {
+    await handle?.close();
+  }
+}));
+
+app.put('/api/admin/files/content', ensureAdmin, writeLimiter, asyncHandler(async (req, res) => {
+  const { name, content, overwrite } = req.body || {};
+  if (!isEditableAdminFileName(name) || typeof content !== 'string') return res.status(400).json({ error: 'ファイル名または内容が無効です。' });
+  if (Buffer.byteLength(content, 'utf8') > ADMIN_FILE_LIMIT) return res.status(413).json({ error: 'ファイルは512KB以下にしてください。' });
+
+  await fsPromises.mkdir(ADMIN_EDITABLE_ROOT, { recursive: true });
+  const directoryStat = await fsPromises.lstat(ADMIN_EDITABLE_ROOT);
+  if (!directoryStat.isDirectory() || directoryStat.isSymbolicLink()) return res.status(400).json({ error: '編集用フォルダーが無効です。' });
+  const targetPath = path.join(ADMIN_EDITABLE_ROOT, name);
+  let targetExists = false;
+  try {
+    const targetStat = await fsPromises.lstat(targetPath);
+    if (targetStat.isSymbolicLink() || !targetStat.isFile()) return res.status(400).json({ error: '編集できないファイルです。' });
+    targetExists = true;
+  } catch (error) {
+    if (error.code !== 'ENOENT') throw error;
+  }
+  if (targetExists && overwrite !== true) return res.status(409).json({ error: '同名ファイルが既にあります。' });
+
+  const temporaryPath = path.join(ADMIN_EDITABLE_ROOT, `.${crypto.randomUUID()}.tmp`);
+  let handle;
+  try {
+    handle = await fsPromises.open(temporaryPath, 'wx', 0o600);
+    await handle.writeFile(content, 'utf8');
+    await handle.sync();
+    await handle.close();
+    handle = null;
+    if (overwrite === true) await fsPromises.rename(temporaryPath, targetPath);
+    else await fsPromises.link(temporaryPath, targetPath);
+  } finally {
+    await handle?.close();
+    await fsPromises.unlink(temporaryPath).catch(() => {});
+  }
+  await addLog(req, 'admin_file_write', req.user.email, name);
+  res.json({ success: true, name });
+}));
+
 app.post('/api/admin/commands/:action', ensureAdmin, writeLimiter, (req, res) => {
   const action = req.params.action;
   const definition = adminCommands[action];
