@@ -6,6 +6,19 @@
 
 
     .admin-command-actions { display:flex; flex-wrap:wrap; gap:0.5rem; }
+    .admin-file-toolbar { display:flex; align-items:center; flex-wrap:wrap; gap:0.5rem; margin-bottom:0.75rem; }
+    .admin-file-current-path { flex:1; min-width:12rem; overflow-wrap:anywhere; color:var(--color-text-secondary); font-family:monospace; }
+    .admin-file-manager { display:grid; grid-template-columns:minmax(14rem, 0.8fr) minmax(0, 2fr); gap:1rem; min-height:24rem; }
+    .admin-file-list { max-height:36rem; overflow:auto; border:1px solid var(--color-border); border-radius:0.375rem; }
+    .admin-file-entry { display:flex; width:100%; flex-direction:column; gap:0.25rem; padding:0.65rem 0.75rem; border:0; border-bottom:1px solid var(--color-border); background:transparent; color:var(--color-text-primary); text-align:left; cursor:pointer; overflow-wrap:anywhere; }
+    .admin-file-entry:hover, .admin-file-entry.is-selected { background:var(--color-bg-secondary); }
+    .admin-file-entry small, .admin-file-status { color:var(--color-text-muted); font-size:0.75rem; }
+    .admin-file-editor { display:flex; min-width:0; flex-direction:column; gap:0.5rem; }
+    .admin-file-editor-heading { display:flex; justify-content:space-between; align-items:center; gap:0.75rem; overflow-wrap:anywhere; }
+    .admin-file-content { min-height:24rem; resize:vertical; font-family:monospace; white-space:pre; }
+    .admin-file-content[readonly] { opacity:0.9; }
+    .admin-file-status { min-height:1.25rem; margin-top:0.5rem; }
+    @media (max-width: 768px) { .admin-file-manager { grid-template-columns:1fr; } .admin-file-list { max-height:14rem; } }
     .gen-91f0da { width: 100%; border-collapse: collapse; }
 
     .gen-9e227a { padding: 0.75rem; text-align: left; }
